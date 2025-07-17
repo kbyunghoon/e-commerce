@@ -14,6 +14,7 @@ erDiagram
         string name "상품명"
         int price "가격"
         int stock "재고 수량"
+        string status "상품 판매 상태(ACTIVE, INACTIVE, OUT_OF_STOCK)"
         datetime created_at "생성일시"
         datetime updated_at "수정일시"
     }
@@ -24,7 +25,7 @@ erDiagram
         bigint user_coupon_id FK "사용한 쿠폰 ID(Nullable)"
         int total_amount "할인 전 총액"
         int final_amount "최종 결제액"
-        string status "주문 상태 (COMPLETED, CANCELLED)"
+        string status "주문 상태 (PENDING, COMPLETED, CANCELLED)"
         datetime order_date "주문일시"
         datetime updated_at "수정일시"
     }
@@ -38,12 +39,10 @@ erDiagram
     }
 
     PRODUCT_STOCK_HISTORY {
-        bigint history_id PK "재고 이력 식별자"
+        bigint history_id PK "재고 이력 ID"
         bigint product_id FK "관련 상품"
         int change_quantity "변경 수량 (+입고, -출고)"
-        string reason "변경 사유 (INBOUND, ORDER, ADJUST, RETURN)"
         bigint order_id FK "관련 주문 (Nullable)"
-        string memo "메모 (수기 조정 시)"
         datetime created_at "발생일시"
     }
 
@@ -64,7 +63,7 @@ erDiagram
         bigint user_coupon_id PK "사용자 보유 쿠폰 ID"
         bigint user_id FK "보유한 사용자 ID"
         bigint coupon_id FK "발급된 쿠폰 ID"
-        boolean is_used "사용 여부"
+        string status "사용 여부 (AVAILABLE, USED, EXPIRED)"
         datetime issued_at "발급일시"
         datetime used_at "사용일시 (Nullable)"
     }
