@@ -1,49 +1,60 @@
 package kr.hhplus.be.application.service
 
-import kr.hhplus.be.presentation.dto.common.ErrorCode
+import kr.hhplus.be.application.dto.OrderCreateCommand
+import kr.hhplus.be.application.dto.OrderInfo
+import kr.hhplus.be.application.dto.OrderItemInfo
+import kr.hhplus.be.application.dto.PaymentProcessCommand
+import kr.hhplus.be.application.port.`in`.OrderUseCase
 import kr.hhplus.be.domain.enums.OrderStatus
 import kr.hhplus.be.domain.exception.BusinessException
-import kr.hhplus.be.domain.model.Order
-import kr.hhplus.be.domain.model.OrderItem
-import kr.hhplus.be.domain.model.Payment
-import kr.hhplus.be.application.dto.OrderItemRequest
+import kr.hhplus.be.domain.exception.ErrorCode
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
 @Service
-class OrderService {
-    fun createOrder(
-        userId: Long,
-        items: List<OrderItemRequest>,
-        couponId: Long?
-    ): Order {
-        val orderItem = OrderItem(
-            productId = 1,
-            productName = "상품명",
-            price = 10000,
-            quantity = 2
-        )
-        return Order(
-            orderId = "test-order-id-123",
-            userId = userId,
-            items = listOf(orderItem),
-            originalAmount = 20000,
-            discountAmount = 2000,
-            finalAmount = 18000
+class OrderService : OrderUseCase {
+    override fun createOrder(command: OrderCreateCommand): OrderInfo {
+        if (command.items.isEmpty()) {
+            throw BusinessException(ErrorCode.INVALID_INPUT_VALUE)
+        }
+        // TODO: 상품 가격 조회, 재고 확인, 쿠폰 적용 등 로직 추가 예정
+        val totalAmount = command.items.sumOf { it.quantity * 10000 }
+        val orderItems = command.items.map { OrderItemInfo(it.productId, it.quantity, it.quantity * 10000) }
+
+        return OrderInfo(
+            id = 1L,
+            userId = command.userId,
+            orderStatus = OrderStatus.PENDING,
+            totalAmount = totalAmount,
+            orderedAt = LocalDateTime.now(),
+            orderItems = orderItems
         )
     }
 
-    fun pay(orderId: String, userId: Long, paymentMethod: String): Payment {
-        if (userId == 999L) {
+    override fun processPayment(command: PaymentProcessCommand): OrderInfo {
+        if (command.userId == 999L) {
             throw BusinessException(ErrorCode.INSUFFICIENT_BALANCE)
         }
-        return Payment(
-            orderId = 12345,
-            orderNumber = "order-number-54321",
-            userId = userId,
-            finalAmount = 18000,
-            status = OrderStatus.COMPLETED,
-            orderedAt = LocalDateTime.now()
+        // TODO: 결제 처리 및 주문 상태 업데이트 로직 추가 예정
+        return OrderInfo(
+            id = command.orderId,
+            userId = command.userId,
+            orderStatus = OrderStatus.COMPLETED,
+            totalAmount = 18000,
+            orderedAt = LocalDateTime.now(),
+            orderItems = listOf(OrderItemInfo(1L, 1, 18000))
+        )
+    }
+
+    override fun getOrder(orderId: Long): OrderInfo {
+        // TODO: 추후 DB에서 주문 조회 로직 추가 예정
+        return OrderInfo(
+            id = orderId,
+            userId = 1L,
+            orderStatus = OrderStatus.COMPLETED,
+            totalAmount = 18000,
+            orderedAt = LocalDateTime.now(),
+            orderItems = listOf(OrderItemInfo(1L, 1, 18000))
         )
     }
 }

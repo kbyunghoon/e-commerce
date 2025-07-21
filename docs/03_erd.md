@@ -19,6 +19,15 @@ erDiagram
         datetime updated_at "수정일시"
     }
 
+    PRODUCT_PRICE_HISTORY {
+        bigint history_id PK "이력 ID"
+        bigint product_id FK "상품 ID"
+        int old_price "이전 가격"
+        int new_price "변경된 가격"
+        string reason "변경 사유 (ex: 이벤트, 원가 상승 등)"
+        datetime changed_at "변경 시각"
+    }
+
     ORDERS {
         bigint order_id PK "주문 ID"
         bigint user_id FK "주문한 사용자 ID"
@@ -95,6 +104,7 @@ erDiagram
     USER_COUPONS |o..o| ORDERS : "사용"
 
     PRODUCTS ||--|{ PRODUCT_STOCK_HISTORY : "이력"
+    PRODUCTS ||--|{ PRODUCT_PRICE_HISTORY : "가격 변경"
     ORDERS |o..o| PRODUCT_STOCK_HISTORY : "출고 근거"
 
     PRODUCTS }o--|| PRODUCT_RANKINGS : "랭킹에 포함"
