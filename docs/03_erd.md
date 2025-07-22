@@ -36,6 +36,8 @@ erDiagram
         int final_amount "최종 결제액"
         string status "주문 상태 (PENDING, COMPLETED, CANCELLED)"
         datetime order_date "주문일시"
+        datetime expires_at "주문 만료 일시"
+        datetime created_at "생성일시"
         datetime updated_at "수정일시"
     }
 
