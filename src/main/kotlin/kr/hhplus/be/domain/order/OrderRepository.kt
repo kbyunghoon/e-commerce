@@ -6,5 +6,4 @@ import org.springframework.stereotype.Repository
 interface OrderRepository {
     fun save(order: Order): Order
     fun findById(orderId: Long): Order?
-    fun findByIdForUpdate(orderId: Long): Order?
 }

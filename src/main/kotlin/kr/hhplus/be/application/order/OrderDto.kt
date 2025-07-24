@@ -1,34 +1,36 @@
 package kr.hhplus.be.application.order
 
+import kr.hhplus.be.application.product.ProductDto
 import kr.hhplus.be.domain.order.Order
 import kr.hhplus.be.domain.order.OrderItem
 import kr.hhplus.be.domain.order.OrderStatus
-import kr.hhplus.be.application.product.ProductDto
 import java.time.LocalDateTime
 
 class OrderDto {
 
     data class OrderInfo(
-        val id: Long?,
+        val id: Long? = null,
         val userId: Long,
-        val orderStatus: OrderStatus,
+        val userCouponId: Long? = null,
         val originalAmount: Int,
         val discountAmount: Int,
         val finalAmount: Int,
         val orderedAt: LocalDateTime,
-        val orderItems: List<OrderItemInfo>
+        val orderItems: List<OrderItemInfo>,
+        val status: OrderStatus
     ) {
         companion object {
-            fun from(order: Order): OrderInfo {
+            fun from(order: Order, items: List<OrderItem>): OrderInfo {
                 return OrderInfo(
                     id = order.id,
                     userId = order.userId,
-                    orderStatus = order.status,
+                    userCouponId = order.userCouponId,
                     originalAmount = order.originalAmount,
                     discountAmount = order.discountAmount,
                     finalAmount = order.finalAmount,
                     orderedAt = order.orderedAt,
-                    orderItems = order.items.map { OrderItemInfo.from(it) }
+                    orderItems = items.map { OrderItemInfo.from(it) },
+                    status = order.status
                 )
             }
         }
@@ -44,7 +46,7 @@ class OrderDto {
                 return OrderItemInfo(
                     productId = orderItem.productId,
                     quantity = orderItem.quantity,
-                    price = orderItem.price
+                    price = orderItem.pricePerItem
                 )
             }
         }

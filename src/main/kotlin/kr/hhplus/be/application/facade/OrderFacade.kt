@@ -2,8 +2,9 @@ package kr.hhplus.be.application.facade
 
 import kr.hhplus.be.application.balance.BalanceDeductCommand
 import kr.hhplus.be.application.order.OrderCreateCommand
-import kr.hhplus.be.application.order.OrderDto.OrderCreateDto
+import kr.hhplus.be.application.order.OrderDto
 import kr.hhplus.be.application.order.OrderDto.CalculatedOrderDetails
+import kr.hhplus.be.application.order.OrderDto.OrderCreateDto
 import kr.hhplus.be.application.order.PaymentOperationsStatus
 import kr.hhplus.be.application.order.PaymentProcessCommand
 import kr.hhplus.be.application.service.BalanceService
@@ -37,14 +38,15 @@ class OrderFacade(
     }
 
     private fun toOrderCreateDto(request: OrderCreateCommand, details: CalculatedOrderDetails): OrderCreateDto {
-        val orderItems = request.items.map { orderItem ->
-            val product = details.products.find { it.id == orderItem.productId }
+        val orderItems = request.items.map { orderItemRequest ->
+            val product = details.products.find { it.id == orderItemRequest.productId }
                 ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+
             OrderItem(
-                productId = orderItem.productId,
-                productName = product.name,
-                quantity = orderItem.quantity,
-                price = product.price
+                productId = orderItemRequest.productId,
+                quantity = orderItemRequest.quantity,
+                pricePerItem = product.price,
+                status = OrderStatus.PENDING
             )
         }
 
@@ -60,7 +62,7 @@ class OrderFacade(
 
     @Transactional
     fun processPayment(request: PaymentProcessCommand): OrderResponse {
-        val order = orderService.getOrderForUpdate(request.orderId)
+        val order = orderService.getOrder(request.orderId)
 
         if (order.userId != request.userId) {
             throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
@@ -75,8 +77,8 @@ class OrderFacade(
             performPaymentOperations(
                 userId = order.userId,
                 finalAmount = order.finalAmount,
-                couponId = order.userCouponId,
-                items = order.items,
+                userCouponId = order.userCouponId,
+                items = order.orderItems,
                 paymentStatus = paymentStatus
             )
             val completedOrder = orderService.completePayment(request.orderId)
@@ -86,7 +88,6 @@ class OrderFacade(
                 userId = order.userId,
                 finalAmount = order.finalAmount,
                 couponId = order.userCouponId,
-                items = order.items,
                 paymentStatus = paymentStatus
             )
             throw e
@@ -113,8 +114,8 @@ class OrderFacade(
     private fun performPaymentOperations(
         userId: Long,
         finalAmount: Int,
-        couponId: Long?,
-        items: List<OrderItem>,
+        userCouponId: Long?,
+        items: List<OrderDto.OrderItemInfo>,
         paymentStatus: PaymentOperationsStatus
     ) {
         balanceService.use(BalanceDeductCommand(userId = userId, amount = finalAmount))
@@ -125,7 +126,7 @@ class OrderFacade(
             paymentStatus.deductedProducts.add(item)
         }
 
-        couponId?.let { id ->
+        userCouponId?.let { id ->
             couponService.use(userId, id)
             paymentStatus.couponUsed = true
         }
@@ -135,7 +136,6 @@ class OrderFacade(
         userId: Long,
         finalAmount: Int,
         couponId: Long?,
-        items: List<OrderItem>,
         paymentStatus: PaymentOperationsStatus
     ) {
         if (paymentStatus.balanceDeducted) {

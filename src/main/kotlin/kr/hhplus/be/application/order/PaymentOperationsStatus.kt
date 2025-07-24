@@ -1,9 +1,7 @@
 package kr.hhplus.be.application.order
 
-import kr.hhplus.be.domain.order.OrderItem
-
 data class PaymentOperationsStatus(
     var balanceDeducted: Boolean = false,
-    val deductedProducts: MutableList<OrderItem> = mutableListOf(),
+    val deductedProducts: MutableList<OrderDto.OrderItemInfo> = mutableListOf(),
     var couponUsed: Boolean = false
 )

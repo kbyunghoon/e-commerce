@@ -41,7 +41,7 @@ data class OrderResponse(
                 originalAmount = orderInfo.originalAmount,
                 discountAmount = orderInfo.discountAmount,
                 finalAmount = orderInfo.finalAmount,
-                status = orderInfo.orderStatus,
+                status = orderInfo.status,
                 orderedAt = orderInfo.orderedAt
             )
         }
