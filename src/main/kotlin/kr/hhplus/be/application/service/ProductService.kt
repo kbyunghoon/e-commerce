@@ -8,7 +8,6 @@ import kr.hhplus.be.domain.product.ProductRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 
 @Service
 class ProductService(
@@ -26,8 +25,8 @@ class ProductService(
         }
     }
 
-    fun getAllProducts(pagable: Pageable): Page<ProductDto.ProductInfo> {
-        val products = productRepository.findAll(pagable)
+    fun getAllProducts(pageable: Pageable): Page<ProductDto.ProductInfo> {
+        val products = productRepository.findAll(pageable)
         return products.map { ProductDto.ProductInfo.from(it) }
     }
 
