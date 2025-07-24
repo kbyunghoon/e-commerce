@@ -83,6 +83,8 @@ erDiagram
         bigint history_id PK "충전 기록 ID"
         bigint user_id FK "충전한 사용자 ID"
         int amount "충전 금액"
+        int before_amount "충전 전 금액"
+        int after_amount "충전 후 금액"
         datetime charged_at "충전일시"
     }
     
