@@ -1,14 +1,13 @@
 package kr.hhplus.be.application.balance
 
 import kr.hhplus.be.domain.user.User
-import kr.hhplus.be.presentation.dto.request.BalanceChargeRequest
 import java.time.LocalDateTime
 
 data class BalanceChargeCommand(
     val userId: Long,
     val amount: Int,
 ) {
-    
+
 }
 
 data class BalanceInfo(

@@ -7,7 +7,6 @@ import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.Order
 import kr.hhplus.be.domain.order.OrderRepository
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 
 @Service
 class OrderService(

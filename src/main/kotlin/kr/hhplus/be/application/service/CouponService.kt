@@ -11,7 +11,6 @@ import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.user.UserCoupon
 import kr.hhplus.be.domain.user.UserCouponRepository
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 @Service
@@ -43,17 +42,6 @@ class CouponService(
         val savedUserCoupon = userCouponRepository.save(userCoupon)
 
         return UserCouponInfo.from(savedUserCoupon, coupon)
-    }
-
-    fun getCoupons(userId: Long): List<UserCouponInfo> {
-        val userCoupons = userCouponRepository.findByUserId(userId)
-
-        return userCoupons.map { userCoupon ->
-            val coupon = couponRepository.findById(userCoupon.couponId)
-                ?: throw BusinessException(ErrorCode.COUPON_NOT_FOUND)
-
-            UserCouponInfo.from(userCoupon, coupon)
-        }
     }
 
     fun use(userId: Long, couponId: Long): UserCouponInfo {

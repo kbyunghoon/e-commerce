@@ -24,5 +24,4 @@ class ProductRankingEntity(
 
     @Column(name = "ranking_date", nullable = false)
     var rankingDate: LocalDateTime = LocalDateTime.now()
-) {
-}
+)

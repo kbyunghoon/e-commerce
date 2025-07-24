@@ -10,7 +10,6 @@ import kr.hhplus.be.domain.user.BalanceHistoryRepository
 import kr.hhplus.be.domain.user.TransactionType
 import kr.hhplus.be.domain.user.UserRepository
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 @Service

@@ -1,7 +1,6 @@
 package kr.hhplus.be.infrastructure.entity
 
 import jakarta.persistence.*
-import kr.hhplus.be.domain.user.BalanceHistory
 import kr.hhplus.be.domain.user.TransactionType
 import java.time.LocalDateTime
 
@@ -30,30 +29,4 @@ class BalanceHistoryEntity(
 
     @Column(name = "transaction_at", nullable = false)
     val transactionAt: LocalDateTime = LocalDateTime.now()
-) {
-    fun toDomain(): BalanceHistory {
-        return BalanceHistory(
-            id = this.id,
-            userId = this.userId,
-            amount = this.amount,
-            beforeAmount = this.beforeAmount,
-            afterAmount = this.afterAmount,
-            type = this.type,
-            transactionAt = this.transactionAt
-        )
-    }
-
-    companion object {
-        fun fromDomain(history: BalanceHistory): BalanceHistoryEntity {
-            return BalanceHistoryEntity(
-                id = history.id,
-                userId = history.userId,
-                amount = history.amount,
-                beforeAmount = history.beforeAmount,
-                afterAmount = history.afterAmount,
-                type = history.type,
-                transactionAt = history.transactionAt
-            )
-        }
-    }
-}
+)

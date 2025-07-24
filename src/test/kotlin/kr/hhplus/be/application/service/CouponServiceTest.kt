@@ -309,7 +309,7 @@ class CouponServiceTest : BehaviorSpec({
         }
     }
 
-    Given("사용자 쿠폰 조회(getCoupons/getUserCoupons) 시나리오") {
+    Given("사용자 쿠폰 조회(getUserCoupons) 시나리오") {
         val userId = 1L
         val couponId1 = 1L
         val couponId2 = 2L
@@ -361,7 +361,7 @@ class CouponServiceTest : BehaviorSpec({
             every { couponRepository.findById(couponId1) } returns coupon1
             every { couponRepository.findById(couponId2) } returns coupon2
 
-            val results = couponService.getCoupons(userId)
+            val results = couponService.getUserCoupons(userId)
 
             Then("해당 사용자의 모든 쿠폰 정보가 반환된다") {
                 results.size shouldBe 2
@@ -381,7 +381,7 @@ class CouponServiceTest : BehaviorSpec({
             every { couponRepository.findById(couponId1) } returns null
 
             val exception = shouldThrow<BusinessException> {
-                couponService.getCoupons(userId)
+                couponService.getUserCoupons(userId)
             }
 
             Then("COUPON_NOT_FOUND 예외가 발생한다") {

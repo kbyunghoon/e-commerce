@@ -4,7 +4,7 @@ import kr.hhplus.be.domain.product.Product
 import java.time.LocalDateTime
 
 class ProductDto {
-    
+
     data class ProductInfo(
         val id: Long,
         val name: String,
@@ -16,23 +16,23 @@ class ProductDto {
         companion object {
             fun from(product: Product): ProductInfo {
                 return ProductInfo(
-                    id = product.id ?: 0L,
+                    id = product.id,
                     name = product.name,
                     price = product.price,
                     stock = product.stock,
-                    createdAt = product.createdAt ?: LocalDateTime.now(),
-                    updatedAt = product.updatedAt ?: LocalDateTime.now()
+                    createdAt = product.createdAt,
+                    updatedAt = product.updatedAt,
                 )
             }
         }
     }
-    
+
     data class ProductWithStock(
         val product: ProductInfo,
         val availableStock: Int,
         val reservedStock: Int = 0
     )
-    
+
     data class ProductSearchCriteria(
         val keyword: String? = null,
         val minPrice: Int? = null,
