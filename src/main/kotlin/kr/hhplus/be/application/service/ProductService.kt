@@ -1,48 +1,95 @@
 package kr.hhplus.be.application.service
 
-import kr.hhplus.be.application.dto.ProductInfo
-import kr.hhplus.be.application.port.`in`.ProductUseCase
+import kr.hhplus.be.application.order.OrderItemCreateCommand
+import kr.hhplus.be.application.product.ProductDto
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
+import kr.hhplus.be.domain.product.ProductRepository
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
-import java.time.LocalDateTime
+import org.springframework.transaction.annotation.Transactional
 
 @Service
-class ProductService : ProductUseCase {
-    override fun getProducts(): List<ProductInfo> {
-        // TODO: 추후 DB에서 상품 목록 조회 로직 추가 예정
-        return listOf(
-            ProductInfo(
-                id = 1L,
-                name = "상품명1",
-                price = 10000,
-                stock = 150,
-                createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now()
-            ),
-            ProductInfo(
-                id = 2L,
-                name = "상품명2",
-                price = 20000,
-                stock = 200,
-                createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now()
-            )
-        )
+class ProductService(
+    private val productRepository: ProductRepository
+) {
+
+    @Transactional(readOnly = true)
+    fun getProducts(
+        pageable: Pageable,
+        searchKeyword: String?,
+        minPrice: Int?,
+        maxPrice: Int?
+    ): Page<ProductDto.ProductInfo> {
+        return productRepository.findAvailableProducts(pageable, searchKeyword, minPrice, maxPrice).map { product ->
+            ProductDto.ProductInfo.from(product)
+        }
     }
 
-    override fun getProduct(productId: Long): ProductInfo {
-        if (productId == 999L) {
+    @Transactional(readOnly = true)
+    fun getAllProducts(pagable: Pageable): Page<ProductDto.ProductInfo> {
+        val products = productRepository.findAll(pagable)
+        return products.map { ProductDto.ProductInfo.from(it) }
+    }
+
+    @Transactional(readOnly = true)
+    fun getProduct(productId: Long): ProductDto.ProductInfo {
+        val product = productRepository.findById(productId)
+            ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+
+        return ProductDto.ProductInfo.from(product)
+    }
+
+    @Transactional(readOnly = true)
+    fun getProductsByIds(productIds: List<Long>): List<ProductDto.ProductInfo> {
+        val products = productRepository.findByProductIds(productIds)
+        return products.map { ProductDto.ProductInfo.from(it) }
+    }
+
+    @Transactional(readOnly = true)
+    fun searchProductsByName(pageable: Pageable, keyword: String): Page<ProductDto.ProductInfo> {
+        val products = productRepository.findByNameContaining(pageable, keyword)
+        return products.map { ProductDto.ProductInfo.from(it) }
+    }
+
+    @Transactional(readOnly = true)
+    fun getProductsByPriceRange(pageable: Pageable, minPrice: Int, maxPrice: Int): Page<ProductDto.ProductInfo> {
+        val products = productRepository.findByPriceBetween(pageable, minPrice, maxPrice)
+        return products.map { ProductDto.ProductInfo.from(it) }
+    }
+
+    @Transactional(readOnly = true)
+    fun validateOrderItems(items: List<OrderItemCreateCommand>): List<ProductDto.ProductInfo> {
+        val productIds = items.map { it.productId }
+        val products = productRepository.findByProductIds(productIds)
+
+        if (products.size != productIds.size) {
             throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
         }
-        // TODO: 추후 DB에서 특정 상품 조회 로직 추가 예정
-        return ProductInfo(
-            id = productId,
-            name = "상품명",
-            price = 89000,
-            stock = 150,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
+
+        items.forEach { item ->
+            val product = products.find { it.id == item.productId }
+                ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+
+            validateStock(ProductDto.ProductInfo.from(product), item.quantity)
+        }
+
+        return products.map { ProductDto.ProductInfo.from(it) }
+    }
+
+    fun validateStock(product: ProductDto.ProductInfo, requestQuantity: Int) {
+        if (product.stock < requestQuantity) {
+            throw BusinessException(ErrorCode.INSUFFICIENT_STOCK)
+        }
+    }
+
+    @Transactional
+    fun deductStock(productId: Long, quantity: Int) {
+        val product = productRepository.findById(productId)
+            ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+
+        product.deductStock(quantity)
+        productRepository.save(product)
     }
 }
