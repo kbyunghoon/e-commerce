@@ -39,7 +39,14 @@ class OrderFacadeTest : BehaviorSpec({
         val productId = 1L
         val orderId = 1L
         val orderItems = listOf(OrderItemCreateCommand(productId, 2))
-        val productInfo = ProductInfo(id = productId, name = "Test Product", price = 10000, stock = 10, createdAt = LocalDateTime.now(), updatedAt = LocalDateTime.now())
+        val productInfo = ProductInfo(
+            id = productId,
+            name = "Test Product",
+            price = 10000,
+            stock = 10,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
+        )
         val totalAmount = 20000
 
         When("쿠폰 없이 주문을 생성하면") {
@@ -159,6 +166,71 @@ class OrderFacadeTest : BehaviorSpec({
                 verify { productService.deductStock(2L, 1) }
                 verify { couponService.use(userId, couponId) }
                 verify { orderService.completePayment(orderId) }
+            }
+        }
+
+        When("결제 처리 중 첫 번째 상품의 재고 차감에 실패하면") {
+            val request = PaymentProcessCommand(userId = userId, orderId = orderId)
+
+            every { orderService.getOrderForUpdate(orderId) } returns pendingOrder
+            every { balanceService.use(any()) } returns mockk()
+            every {
+                productService.deductStock(
+                    orderItems[0].productId,
+                    orderItems[0].quantity
+                )
+            } throws BusinessException(ErrorCode.INSUFFICIENT_STOCK)
+
+            every { balanceService.refund(any(), any()) } returns mockk()
+            every { productService.restoreStock(any(), any()) } returns Unit
+            every { couponService.restore(any(), any()) } returns mockk()
+
+            val exception = shouldThrow<BusinessException> {
+                orderFacade.processPayment(request)
+            }
+
+            Then("잔액이 복구되고, 재고 및 쿠폰은 복구되지 않으며 예외가 다시 발생한다") {
+                exception.errorCode shouldBe ErrorCode.INSUFFICIENT_STOCK
+
+                verify { orderService.getOrderForUpdate(orderId) }
+                verify { balanceService.use(any()) }
+                verify { productService.deductStock(orderItems[0].productId, orderItems[0].quantity) }
+
+                verify { balanceService.refund(userId, finalAmount) }
+                verify(exactly = 0) { productService.restoreStock(any(), any()) }
+                verify(exactly = 0) { couponService.restore(any(), any()) }
+            }
+        }
+
+        When("결제 처리 중 쿠폰 사용에 실패하면") {
+            val request = PaymentProcessCommand(userId = userId, orderId = orderId)
+
+            every { orderService.getOrderForUpdate(orderId) } returns pendingOrder
+            every { balanceService.use(any()) } returns mockk()
+            every { productService.deductStock(any(), any()) } returns Unit
+            every { couponService.use(userId, couponId) } throws BusinessException(ErrorCode.COUPON_NOT_AVAILABLE)
+
+            every { balanceService.refund(any(), any()) } returns mockk()
+            every { productService.restoreStock(any(), any()) } returns Unit
+            every { couponService.restore(any(), any()) } returns mockk()
+
+            val exception = shouldThrow<BusinessException> {
+                orderFacade.processPayment(request)
+            }
+
+            Then("잔액과 모든 상품 재고가 복구되고 예외가 다시 발생한다") {
+                exception.errorCode shouldBe ErrorCode.COUPON_NOT_AVAILABLE
+
+                verify { orderService.getOrderForUpdate(orderId) }
+                verify { balanceService.use(any()) }
+                verify { productService.deductStock(orderItems[0].productId, orderItems[0].quantity) }
+                verify { productService.deductStock(orderItems[1].productId, orderItems[1].quantity) }
+                verify { couponService.use(userId, couponId) }
+
+                verify { balanceService.refund(userId, finalAmount) }
+                verify { productService.restoreStock(orderItems[0].productId, orderItems[0].quantity) }
+                verify { productService.restoreStock(orderItems[1].productId, orderItems[1].quantity) }
+                verify(exactly = 0) { couponService.restore(any(), any()) }
             }
         }
 
