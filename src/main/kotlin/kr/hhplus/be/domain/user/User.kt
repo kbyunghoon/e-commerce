@@ -2,7 +2,6 @@ package kr.hhplus.be.domain.user
 
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
-import kr.hhplus.be.infrastructure.entity.UserEntity
 import java.time.LocalDateTime
 
 data class User(
@@ -30,16 +29,5 @@ data class User(
         }
         this.balance -= amount
         this.updatedAt = LocalDateTime.now()
-    }
-
-    fun toEntity(): UserEntity {
-        return UserEntity(
-            id = this.id,
-            name = this.name,
-            email = this.email,
-            balance = this.balance,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
     }
 }
