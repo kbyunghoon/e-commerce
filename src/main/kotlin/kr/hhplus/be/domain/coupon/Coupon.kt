@@ -26,6 +26,14 @@ data class Coupon(
         this.updatedAt = LocalDateTime.now()
     }
 
+    fun restore() {
+        if (this.issuedQuantity <= 0) {
+            throw BusinessException(ErrorCode.COUPON_NOT_FOUND)
+        }
+        this.issuedQuantity--
+        this.updatedAt = LocalDateTime.now()
+    }
+
     fun calculateDiscount(amount: Int): Int {
         val discount = when (discountType) {
             DiscountType.PERCENTAGE -> amount * discountValue / 100

@@ -83,4 +83,12 @@ class ProductService(
         product.deductStock(quantity)
         productRepository.save(product)
     }
+
+    fun restoreStock(productId: Long, quantity: Int) {
+        val product = productRepository.findById(productId)
+            ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+
+        product.addStock(quantity)
+        productRepository.save(product)
+    }
 }

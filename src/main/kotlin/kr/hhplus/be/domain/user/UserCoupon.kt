@@ -24,6 +24,14 @@ data class UserCoupon(
         this.usedAt = LocalDateTime.now()
     }
 
+    fun restore() {
+        if (status != CouponStatus.USED) {
+            throw BusinessException(ErrorCode.COUPON_NOT_USED)
+        }
+        this.status = CouponStatus.AVAILABLE
+        this.usedAt = null
+    }
+
     fun expire() {
         this.status = CouponStatus.EXPIRED
     }

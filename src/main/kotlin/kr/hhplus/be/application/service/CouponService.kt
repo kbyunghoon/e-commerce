@@ -65,6 +65,15 @@ class CouponService(
         return UserCouponInfo.from(updatedUserCoupon, coupon)
     }
 
+    fun restore(userId: Long, couponId: Long): UserCouponInfo {
+        val (userCoupon, coupon) = findAndValidateUserCoupon(userId, couponId)
+
+        userCoupon.restore()
+        val updatedUserCoupon = userCouponRepository.save(userCoupon)
+
+        return UserCouponInfo.from(updatedUserCoupon, coupon)
+    }
+
     fun calculateDiscount(userId: Long, couponId: Long, originalAmount: Int): Int {
         val coupon = couponRepository.findById(couponId) ?: throw BusinessException(ErrorCode.COUPON_NOT_FOUND)
 

@@ -70,4 +70,25 @@ class BalanceService(
         )
         balanceHistoryRepository.save(history)
     }
+
+    fun refund(userId: Long, amount: Int): BalanceInfo {
+        val user = userRepository.findById(userId) ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+        val currentAmount = user.balance
+        user.chargeBalance(amount)
+        val updatedUser = userRepository.save(user)
+        recordRefundHistory(userId, currentAmount, amount)
+        return BalanceInfo.from(updatedUser)
+    }
+
+    fun recordRefundHistory(userId: Long, currentAmount: Int, refundAmount: Int) {
+        val history = BalanceHistory(
+            userId = userId,
+            amount = refundAmount,
+            beforeAmount = currentAmount,
+            afterAmount = currentAmount + refundAmount,
+            type = TransactionType.REFUND,
+            transactionAt = LocalDateTime.now()
+        )
+        balanceHistoryRepository.save(history)
+    }
 }

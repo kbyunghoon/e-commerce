@@ -23,6 +23,7 @@ enum class ErrorCode(val status: HttpStatus, val code: String, val message: Stri
     COUPON_EXPIRED(HttpStatus.BAD_REQUEST, "COUPON_EXPIRED", "쿠폰 기간이 만료되었습니다."),
     COUPON_ALREADY_ISSUED(HttpStatus.CONFLICT, "COUPON_ALREADY_ISSUED", "이미 발급받은 쿠폰입니다."),
     COUPON_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "COUPON_NOT_AVAILABLE", "사용할 수 없는 쿠폰입니다."),
+    COUPON_NOT_USED(HttpStatus.BAD_REQUEST, "COUPON_NOT_USED", "사용되지 않은 쿠폰입니다."),
     COUPON_OWNERSHIP_MISMATCH(HttpStatus.BAD_REQUEST, "COUPON_OWNERSHIP_MISMATCH", "보유하지 않은 쿠폰입니다."),
     USER_COUPON_NOT_FOUND(HttpStatus.BAD_REQUEST, "USER_COUPON_NOT_FOUND", "사용자 쿠폰이 존재하지 않습니다."),
 

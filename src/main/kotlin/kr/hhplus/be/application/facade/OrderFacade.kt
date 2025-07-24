@@ -1,10 +1,7 @@
 package kr.hhplus.be.application.facade
 
 import kr.hhplus.be.application.balance.BalanceDeductCommand
-import kr.hhplus.be.application.order.CalculatedOrderDetails
-import kr.hhplus.be.application.order.OrderCreateCommand
-import kr.hhplus.be.application.order.OrderCreateDto
-import kr.hhplus.be.application.order.PaymentProcessCommand
+import kr.hhplus.be.application.order.*
 import kr.hhplus.be.application.service.BalanceService
 import kr.hhplus.be.application.service.CouponService
 import kr.hhplus.be.application.service.OrderService
@@ -69,16 +66,27 @@ class OrderFacade(
             throw BusinessException(ErrorCode.ORDER_ALREADY_PROCESSED)
         }
 
-        performPaymentOperations(
-            userId = order.userId,
-            finalAmount = order.finalAmount,
-            couponId = order.userCouponId,
-            items = order.items
-        )
-
-        val completedOrder = orderService.completePayment(request.orderId)
-
-        return OrderResponse.from(completedOrder)
+        val paymentStatus = PaymentOperationsStatus()
+        try {
+            performPaymentOperations(
+                userId = order.userId,
+                finalAmount = order.finalAmount,
+                couponId = order.userCouponId,
+                items = order.items,
+                paymentStatus = paymentStatus
+            )
+            val completedOrder = orderService.completePayment(request.orderId)
+            return OrderResponse.from(completedOrder)
+        } catch (e: Exception) {
+            rollbackPaymentOperations(
+                userId = order.userId,
+                finalAmount = order.finalAmount,
+                couponId = order.userCouponId,
+                items = order.items,
+                paymentStatus = paymentStatus
+            )
+            throw e
+        }
     }
 
     private fun calculateOrderAmounts(request: OrderCreateCommand): CalculatedOrderDetails {
@@ -98,15 +106,42 @@ class OrderFacade(
         return CalculatedOrderDetails(totalAmount, discountAmount, finalAmount, products)
     }
 
-    private fun performPaymentOperations(userId: Long, finalAmount: Int, couponId: Long?, items: List<OrderItem>) {
+    private fun performPaymentOperations(
+        userId: Long,
+        finalAmount: Int,
+        couponId: Long?,
+        items: List<OrderItem>,
+        paymentStatus: PaymentOperationsStatus
+    ) {
         balanceService.use(BalanceDeductCommand(userId = userId, amount = finalAmount))
+        paymentStatus.balanceDeducted = true
 
         items.forEach { item ->
             productService.deductStock(item.productId, item.quantity)
+            paymentStatus.deductedProducts.add(item)
         }
 
         couponId?.let { id ->
             couponService.use(userId, id)
+            paymentStatus.couponUsed = true
+        }
+    }
+
+    private fun rollbackPaymentOperations(
+        userId: Long,
+        finalAmount: Int,
+        couponId: Long?,
+        items: List<OrderItem>,
+        paymentStatus: PaymentOperationsStatus
+    ) {
+        if (paymentStatus.balanceDeducted) {
+            balanceService.refund(userId, finalAmount)
+        }
+        paymentStatus.deductedProducts.forEach { item ->
+            productService.restoreStock(item.productId, item.quantity)
+        }
+        if (paymentStatus.couponUsed && couponId != null) {
+            couponService.restore(userId, couponId)
         }
     }
 
