@@ -8,18 +8,17 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kr.hhplus.be.application.order.OrderCreateCommand
+import kr.hhplus.be.application.order.OrderDto
 import kr.hhplus.be.application.order.OrderDto.OrderInfo
 import kr.hhplus.be.application.order.OrderItemCreateCommand
 import kr.hhplus.be.application.order.PaymentProcessCommand
-import kr.hhplus.be.application.product.ProductInfo
+import kr.hhplus.be.application.product.ProductDto
 import kr.hhplus.be.application.service.BalanceService
 import kr.hhplus.be.application.service.CouponService
 import kr.hhplus.be.application.service.OrderService
 import kr.hhplus.be.application.service.ProductService
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
-import kr.hhplus.be.domain.order.Order
-import kr.hhplus.be.domain.order.OrderItem
 import kr.hhplus.be.domain.order.OrderStatus
 import java.time.LocalDateTime
 
@@ -39,7 +38,7 @@ class OrderFacadeTest : BehaviorSpec({
         val productId = 1L
         val orderId = 1L
         val orderItems = listOf(OrderItemCreateCommand(productId, 2))
-        val productInfo = ProductInfo(
+        val productInfo = ProductDto.ProductInfo(
             id = productId,
             name = "Test Product",
             price = 10000,
@@ -58,7 +57,7 @@ class OrderFacadeTest : BehaviorSpec({
                 originalAmount = totalAmount,
                 discountAmount = 0,
                 finalAmount = totalAmount,
-                orderStatus = OrderStatus.PENDING,
+                status = OrderStatus.PENDING,
                 orderedAt = LocalDateTime.now()
             )
 
@@ -91,7 +90,7 @@ class OrderFacadeTest : BehaviorSpec({
                 originalAmount = totalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
-                orderStatus = OrderStatus.PENDING,
+                status = OrderStatus.PENDING,
                 orderedAt = LocalDateTime.now()
             )
 
@@ -120,17 +119,21 @@ class OrderFacadeTest : BehaviorSpec({
         val orderId = 1L
         val finalAmount = 19000
         val couponId = 1L
-        val orderItems = listOf(OrderItem(1L, "Product A", 10000, 1), OrderItem(2L, "Product B", 9000, 1))
+        val orderItems =
+            listOf(
+                OrderDto.OrderItemInfo(productId = 1L, quantity = 1, price = 10000),
+                OrderDto.OrderItemInfo(productId = 2L, quantity = 1, price = 9000)
+            )
 
-        val pendingOrder = Order(
+        val pendingOrder = OrderInfo(
             id = orderId,
             userId = userId,
-            items = orderItems,
             originalAmount = 19000,
             discountAmount = 0,
             finalAmount = finalAmount,
             status = OrderStatus.PENDING,
             userCouponId = couponId,
+            orderItems = orderItems,
             orderedAt = LocalDateTime.now()
         )
 
@@ -141,14 +144,14 @@ class OrderFacadeTest : BehaviorSpec({
             originalAmount = 19000,
             discountAmount = 0,
             finalAmount = finalAmount,
-            orderStatus = OrderStatus.COMPLETED,
+            status = OrderStatus.COMPLETED,
             orderedAt = LocalDateTime.now()
         )
 
         When("유효한 결제 요청을 처리하면") {
             val request = PaymentProcessCommand(userId = userId, orderId = orderId)
 
-            every { orderService.getOrderForUpdate(orderId) } returns pendingOrder
+            every { orderService.getOrder(orderId) } returns pendingOrder
             every { balanceService.use(any()) } returns mockk()
             every { productService.deductStock(any(), any()) } returns Unit
             every { couponService.use(userId, couponId) } returns mockk()
@@ -160,7 +163,7 @@ class OrderFacadeTest : BehaviorSpec({
                 response.status shouldBe OrderStatus.COMPLETED
                 response.orderId shouldBe orderId
 
-                verify { orderService.getOrderForUpdate(orderId) }
+                verify { orderService.getOrder(orderId) }
                 verify { balanceService.use(any()) }
                 verify { productService.deductStock(1L, 1) }
                 verify { productService.deductStock(2L, 1) }
@@ -172,7 +175,7 @@ class OrderFacadeTest : BehaviorSpec({
         When("결제 처리 중 첫 번째 상품의 재고 차감에 실패하면") {
             val request = PaymentProcessCommand(userId = userId, orderId = orderId)
 
-            every { orderService.getOrderForUpdate(orderId) } returns pendingOrder
+            every { orderService.getOrder(orderId) } returns pendingOrder
             every { balanceService.use(any()) } returns mockk()
             every {
                 productService.deductStock(
@@ -192,7 +195,7 @@ class OrderFacadeTest : BehaviorSpec({
             Then("잔액이 복구되고, 재고 및 쿠폰은 복구되지 않으며 예외가 다시 발생한다") {
                 exception.errorCode shouldBe ErrorCode.INSUFFICIENT_STOCK
 
-                verify { orderService.getOrderForUpdate(orderId) }
+                verify { orderService.getOrder(orderId) }
                 verify { balanceService.use(any()) }
                 verify { productService.deductStock(orderItems[0].productId, orderItems[0].quantity) }
 
@@ -205,7 +208,7 @@ class OrderFacadeTest : BehaviorSpec({
         When("결제 처리 중 쿠폰 사용에 실패하면") {
             val request = PaymentProcessCommand(userId = userId, orderId = orderId)
 
-            every { orderService.getOrderForUpdate(orderId) } returns pendingOrder
+            every { orderService.getOrder(orderId) } returns pendingOrder
             every { balanceService.use(any()) } returns mockk()
             every { productService.deductStock(any(), any()) } returns Unit
             every { couponService.use(userId, couponId) } throws BusinessException(ErrorCode.COUPON_NOT_AVAILABLE)
@@ -221,7 +224,7 @@ class OrderFacadeTest : BehaviorSpec({
             Then("잔액과 모든 상품 재고가 복구되고 예외가 다시 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_NOT_AVAILABLE
 
-                verify { orderService.getOrderForUpdate(orderId) }
+                verify { orderService.getOrder(orderId) }
                 verify { balanceService.use(any()) }
                 verify { productService.deductStock(orderItems[0].productId, orderItems[0].quantity) }
                 verify { productService.deductStock(orderItems[1].productId, orderItems[1].quantity) }
@@ -238,7 +241,7 @@ class OrderFacadeTest : BehaviorSpec({
             val anotherUserId = 2L
             val request = PaymentProcessCommand(userId = anotherUserId, orderId = orderId)
 
-            every { orderService.getOrderForUpdate(orderId) } returns pendingOrder
+            every { orderService.getOrder(orderId) } returns pendingOrder
 
             val exception = shouldThrow<BusinessException> {
                 orderFacade.processPayment(request)
@@ -253,7 +256,7 @@ class OrderFacadeTest : BehaviorSpec({
             val request = PaymentProcessCommand(userId = userId, orderId = orderId)
             val alreadyProcessedOrder = pendingOrder.copy(status = OrderStatus.COMPLETED)
 
-            every { orderService.getOrderForUpdate(orderId) } returns alreadyProcessedOrder
+            every { orderService.getOrder(orderId) } returns alreadyProcessedOrder
 
             val exception = shouldThrow<BusinessException> {
                 orderFacade.processPayment(request)
@@ -275,7 +278,7 @@ class OrderFacadeTest : BehaviorSpec({
             originalAmount = 10000,
             discountAmount = 0,
             finalAmount = 10000,
-            orderStatus = OrderStatus.COMPLETED,
+            status = OrderStatus.COMPLETED,
             orderedAt = LocalDateTime.now()
         )
 

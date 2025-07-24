@@ -11,14 +11,13 @@ class OrderTest : FunSpec({
     test("정상 주문을 생성하면 주문이 정상 생성된다") {
         // Given
         val orderItems = listOf(
-            OrderItem(1L, "상품1", 10000, 2),
-            OrderItem(2L, "상품2", 15000, 1)
+            OrderItem(1L, 1L, 10000, 2),
+            OrderItem(1L, 2L, 15000, 1)
         )
 
         // When
         val order = Order.create(
             userId = 1L,
-            items = orderItems,
             originalAmount = 35000,
             discountAmount = 5000,
             finalAmount = 30000,
@@ -27,7 +26,6 @@ class OrderTest : FunSpec({
 
         // Then
         order.userId shouldBe 1L
-        order.items.size shouldBe 2
         order.originalAmount shouldBe 35000
         order.discountAmount shouldBe 5000
         order.finalAmount shouldBe 30000
@@ -39,7 +37,6 @@ class OrderTest : FunSpec({
         // Given
         val order = Order.create(
             userId = 1L,
-            items = listOf(OrderItem(1L, "상품1", 10000, 1)),
             originalAmount = 10000,
             discountAmount = 0,
             finalAmount = 10000,
@@ -57,7 +54,6 @@ class OrderTest : FunSpec({
         // Given
         val order = Order.create(
             userId = 1L,
-            items = listOf(OrderItem(1L, "상품1", 10000, 1)),
             originalAmount = 10000,
             discountAmount = 0,
             finalAmount = 10000,
@@ -74,7 +70,6 @@ class OrderTest : FunSpec({
         // Given
         val order = Order.create(
             userId = 1L,
-            items = listOf(OrderItem(1L, "상품1", 10000, 1)),
             originalAmount = 10000,
             discountAmount = 0,
             finalAmount = 10000,
@@ -92,7 +87,6 @@ class OrderTest : FunSpec({
         // Given
         val order = Order.create(
             userId = 1L,
-            items = listOf(OrderItem(1L, "상품1", 10000, 1)),
             originalAmount = 10000,
             discountAmount = 0,
             finalAmount = 10000,

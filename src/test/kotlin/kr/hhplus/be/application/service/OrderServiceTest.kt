@@ -10,15 +10,13 @@ import io.mockk.verify
 import kr.hhplus.be.application.order.OrderDto.OrderCreateDto
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
-import kr.hhplus.be.domain.order.Order
-import kr.hhplus.be.domain.order.OrderItem
-import kr.hhplus.be.domain.order.OrderRepository
-import kr.hhplus.be.domain.order.OrderStatus
+import kr.hhplus.be.domain.order.*
 import java.time.LocalDateTime
 
 class OrderServiceTest : BehaviorSpec({
     val orderRepository: OrderRepository = mockk()
-    val orderService = OrderService(orderRepository)
+    val orderItemRepository: OrderItemRepository = mockk()
+    val orderService = OrderService(orderRepository, orderItemRepository)
 
     afterContainer {
         clearAllMocks()
@@ -26,7 +24,7 @@ class OrderServiceTest : BehaviorSpec({
 
     Given("주문 생성(createOrder) 시나리오") {
         val userId = 1L
-        val orderItems = listOf(OrderItem(1L, "Product A", 10000, 1))
+        val orderItems = listOf(OrderItem(productId = 1L, quantity = 10000, pricePerItem = 1))
         val originalAmount = 10000
         val discountAmount = 0
         val finalAmount = 10000
@@ -45,7 +43,6 @@ class OrderServiceTest : BehaviorSpec({
             val createdOrder = Order(
                 id = 1L,
                 userId = userId,
-                items = orderItems,
                 originalAmount = originalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
@@ -55,14 +52,16 @@ class OrderServiceTest : BehaviorSpec({
             )
 
             every { orderRepository.save(any()) } returns createdOrder
+            every { orderItemRepository.saveAll(any()) } returns orderItems
 
             val result = orderService.createOrder(orderCreateDto)
 
             Then("주문이 성공적으로 생성되고, 생성된 주문 정보가 반환된다") {
                 result.userId shouldBe userId
                 result.finalAmount shouldBe finalAmount
-                result.orderStatus shouldBe OrderStatus.PENDING
+                result.status shouldBe OrderStatus.PENDING
                 verify(exactly = 1) { orderRepository.save(any()) }
+                verify(exactly = 1) { orderItemRepository.saveAll(any()) }
             }
         }
     }
@@ -70,7 +69,7 @@ class OrderServiceTest : BehaviorSpec({
     Given("주문 완료(completeOrder) 시나리오") {
         val orderId = 1L
         val userId = 1L
-        val orderItems = listOf(OrderItem(1L, "Product A", 10000, 1))
+        val orderItems = listOf(OrderItem(orderId = orderId, productId = 1L, quantity = 10000, pricePerItem = 1))
         val originalAmount = 10000
         val discountAmount = 0
         val finalAmount = 10000
@@ -81,7 +80,6 @@ class OrderServiceTest : BehaviorSpec({
             val pendingOrder = Order(
                 id = orderId,
                 userId = userId,
-                items = orderItems,
                 originalAmount = originalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
@@ -91,16 +89,24 @@ class OrderServiceTest : BehaviorSpec({
             )
             val completedOrder = pendingOrder.copy(status = OrderStatus.COMPLETED)
 
+            val completedOrderItems = orderItems.map { it.copy(status = OrderStatus.COMPLETED) }
+
+            every { orderItemRepository.saveAll(any()) } returns completedOrderItems
+
             every { orderRepository.findById(orderId) } returns pendingOrder
             every { orderRepository.save(any()) } returns completedOrder
+            every { orderItemRepository.findByOrderId(any()) } returns orderItems
+            every { orderItemRepository.saveAll(any()) } returns completedOrderItems
 
-            val result = orderService.completeOrder(orderId)
+            val result = orderService.completePayment(orderId)
 
             Then("주문 상태가 COMPLETED로 변경되고, 업데이트된 주문 정보가 반환된다") {
                 result.id shouldBe orderId
-                result.orderStatus shouldBe OrderStatus.COMPLETED
+                result.status shouldBe OrderStatus.COMPLETED
                 verify(exactly = 1) { orderRepository.findById(orderId) }
                 verify(exactly = 1) { orderRepository.save(any()) }
+                verify(exactly = 1) { orderItemRepository.findByOrderId(orderId) }
+                verify(exactly = 1) { orderItemRepository.saveAll(any()) }
             }
         }
 
@@ -108,7 +114,7 @@ class OrderServiceTest : BehaviorSpec({
             every { orderRepository.findById(orderId) } returns null
 
             val exception = shouldThrow<BusinessException> {
-                orderService.completeOrder(orderId)
+                orderService.completePayment(orderId)
             }
 
             Then("ORDER_NOT_FOUND 예외가 발생한다") {
@@ -122,7 +128,6 @@ class OrderServiceTest : BehaviorSpec({
             val completedOrder = Order(
                 id = orderId,
                 userId = userId,
-                items = orderItems,
                 originalAmount = originalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
@@ -133,7 +138,7 @@ class OrderServiceTest : BehaviorSpec({
             every { orderRepository.findById(orderId) } returns completedOrder
 
             val exception = shouldThrow<BusinessException> {
-                orderService.completeOrder(orderId)
+                orderService.completePayment(orderId)
             }
 
             Then("ORDER_ALREADY_PROCESSED 예외가 발생한다") {
@@ -147,7 +152,7 @@ class OrderServiceTest : BehaviorSpec({
     Given("주문 취소(cancelOrder) 시나리오") {
         val orderId = 1L
         val userId = 1L
-        val orderItems = listOf(OrderItem(1L, "Product A", 10000, 1))
+        val orderItems = listOf(OrderItem(orderId = orderId, productId = 1L, quantity = 10000, pricePerItem = 1))
         val originalAmount = 10000
         val discountAmount = 0
         val finalAmount = 10000
@@ -158,7 +163,6 @@ class OrderServiceTest : BehaviorSpec({
             val pendingOrder = Order(
                 id = orderId,
                 userId = userId,
-                items = orderItems,
                 originalAmount = originalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
@@ -168,16 +172,22 @@ class OrderServiceTest : BehaviorSpec({
             )
             val cancelledOrder = pendingOrder.copy(status = OrderStatus.CANCELLED)
 
+            val cancelledOrderItems = orderItems.map { it.copy(status = OrderStatus.CANCELLED) }
+
             every { orderRepository.findById(orderId) } returns pendingOrder
             every { orderRepository.save(any()) } returns cancelledOrder
+            every { orderItemRepository.findByOrderId(any()) } returns orderItems
+            every { orderItemRepository.saveAll(any()) } returns cancelledOrderItems
 
             val result = orderService.cancelOrder(orderId)
 
             Then("주문 상태가 CANCELLED로 변경되고, 업데이트된 주문 정보가 반환된다") {
                 result.id shouldBe orderId
-                result.orderStatus shouldBe OrderStatus.CANCELLED
+                result.status shouldBe OrderStatus.CANCELLED
                 verify(exactly = 1) { orderRepository.findById(orderId) }
                 verify(exactly = 1) { orderRepository.save(any()) }
+                verify(exactly = 1) { orderItemRepository.findByOrderId(orderId) }
+                verify(exactly = 1) { orderItemRepository.saveAll(any()) }
             }
         }
 
@@ -199,7 +209,6 @@ class OrderServiceTest : BehaviorSpec({
             val cancelledOrder = Order(
                 id = orderId,
                 userId = userId,
-                items = orderItems,
                 originalAmount = originalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
@@ -224,7 +233,7 @@ class OrderServiceTest : BehaviorSpec({
     Given("주문 조회(getOrder) 시나리오") {
         val orderId = 1L
         val userId = 1L
-        val orderItems = listOf(OrderItem(1L, "Product A", 10000, 1))
+        val orderItems = listOf(OrderItem(orderId = orderId, productId = 1L, quantity = 10000, pricePerItem = 1))
         val originalAmount = 10000
         val discountAmount = 0
         val finalAmount = 10000
@@ -235,7 +244,6 @@ class OrderServiceTest : BehaviorSpec({
             val order = Order(
                 id = orderId,
                 userId = userId,
-                items = orderItems,
                 originalAmount = originalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
@@ -244,6 +252,7 @@ class OrderServiceTest : BehaviorSpec({
                 orderedAt = now
             )
             every { orderRepository.findById(orderId) } returns order
+            every { orderItemRepository.findByOrderId(orderId) } returns orderItems
 
             val result = orderService.getOrder(orderId)
 
@@ -251,6 +260,7 @@ class OrderServiceTest : BehaviorSpec({
                 result.id shouldBe orderId
                 result.finalAmount shouldBe finalAmount
                 verify(exactly = 1) { orderRepository.findById(orderId) }
+                verify(exactly = 1) { orderItemRepository.findByOrderId(orderId) }
             }
         }
 
@@ -268,57 +278,10 @@ class OrderServiceTest : BehaviorSpec({
         }
     }
 
-    Given("업데이트를 위한 주문 조회(getOrderForUpdate) 시나리오") {
-        val orderId = 1L
-        val userId = 1L
-        val orderItems = listOf(OrderItem(1L, "Product A", 10000, 1))
-        val originalAmount = 10000
-        val discountAmount = 0
-        val finalAmount = 10000
-        val couponId = null
-        val now = LocalDateTime.now()
-
-        When("존재하는 주문 ID로 업데이트를 위한 조회를 요청하면") {
-            val order = Order(
-                id = orderId,
-                userId = userId,
-                items = orderItems,
-                originalAmount = originalAmount,
-                discountAmount = discountAmount,
-                finalAmount = finalAmount,
-                status = OrderStatus.PENDING,
-                userCouponId = couponId,
-                orderedAt = now
-            )
-            every { orderRepository.findByIdForUpdate(orderId) } returns order
-
-            val result = orderService.getOrderForUpdate(orderId)
-
-            Then("해당 주문 도메인 객체가 반환된다") {
-                result.id shouldBe orderId
-                result.status shouldBe OrderStatus.PENDING
-                verify(exactly = 1) { orderRepository.findByIdForUpdate(orderId) }
-            }
-        }
-
-        When("존재하지 않는 주문 ID로 업데이트를 위한 조회를 요청하면") {
-            every { orderRepository.findByIdForUpdate(orderId) } returns null
-
-            val exception = shouldThrow<BusinessException> {
-                orderService.getOrderForUpdate(orderId)
-            }
-
-            Then("ORDER_NOT_FOUND 예외가 발생한다") {
-                exception.errorCode shouldBe ErrorCode.ORDER_NOT_FOUND
-                verify(exactly = 1) { orderRepository.findByIdForUpdate(orderId) }
-            }
-        }
-    }
-
     Given("결제 완료(completePayment) 시나리오") {
         val orderId = 1L
         val userId = 1L
-        val orderItems = listOf(OrderItem(1L, "Product A", 10000, 1))
+        val orderItems = listOf(OrderItem(orderId = orderId, productId = 1L, quantity = 10000, pricePerItem = 1))
         val originalAmount = 10000
         val discountAmount = 0
         val finalAmount = 10000
@@ -329,7 +292,6 @@ class OrderServiceTest : BehaviorSpec({
             val pendingOrder = Order(
                 id = orderId,
                 userId = userId,
-                items = orderItems,
                 originalAmount = originalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
@@ -338,17 +300,22 @@ class OrderServiceTest : BehaviorSpec({
                 orderedAt = now
             )
             val completedOrder = pendingOrder.copy(status = OrderStatus.COMPLETED)
+            val completedOrderItems = orderItems.map { it.copy(status = OrderStatus.COMPLETED) }
 
             every { orderRepository.findById(orderId) } returns pendingOrder
             every { orderRepository.save(any()) } returns completedOrder
+            every { orderItemRepository.findByOrderId(any()) } returns orderItems
+            every { orderItemRepository.saveAll(any()) } returns completedOrderItems
 
             val result = orderService.completePayment(orderId)
 
             Then("주문 상태가 COMPLETED로 변경되고, 업데이트된 주문 정보가 반환된다") {
                 result.id shouldBe orderId
-                result.orderStatus shouldBe OrderStatus.COMPLETED
+                result.status shouldBe OrderStatus.COMPLETED
                 verify(exactly = 1) { orderRepository.findById(orderId) }
                 verify(exactly = 1) { orderRepository.save(any()) }
+                verify(exactly = 1) { orderItemRepository.findByOrderId(orderId) }
+                verify(exactly = 1) { orderItemRepository.saveAll(any()) }
             }
         }
 
@@ -370,7 +337,6 @@ class OrderServiceTest : BehaviorSpec({
             val completedOrder = Order(
                 id = orderId,
                 userId = userId,
-                items = orderItems,
                 originalAmount = originalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
