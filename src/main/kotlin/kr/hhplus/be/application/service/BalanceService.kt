@@ -1,15 +1,14 @@
 package kr.hhplus.be.application.service
 
-import kr.hhplus.be.adapter.out.persistence.entity.BalanceChargeHistoryEntity
-import kr.hhplus.be.adapter.out.persistence.entity.UserEntity
-import kr.hhplus.be.adapter.out.persistence.repository.BalanceChargeHistoryRepository
-import kr.hhplus.be.adapter.out.persistence.repository.UserRepository
-import kr.hhplus.be.application.dto.BalanceChargeCommand
-import kr.hhplus.be.application.dto.BalanceInfo
-import kr.hhplus.be.application.port.`in`.BalanceUseCase
+import kr.hhplus.be.application.balance.BalanceChargeCommand
+import kr.hhplus.be.application.balance.BalanceDeductCommand
+import kr.hhplus.be.application.balance.BalanceInfo
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
-import kr.hhplus.be.domain.model.BalanceChargeHistory
+import kr.hhplus.be.domain.user.BalanceHistory
+import kr.hhplus.be.domain.user.BalanceHistoryRepository
+import kr.hhplus.be.domain.user.TransactionType
+import kr.hhplus.be.domain.user.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -17,51 +16,63 @@ import java.time.LocalDateTime
 @Service
 class BalanceService(
     private val userRepository: UserRepository,
-    private val balanceChargeHistoryRepository: BalanceChargeHistoryRepository
-) : BalanceUseCase {
+    private val balanceHistoryRepository: BalanceHistoryRepository
+) {
 
     @Transactional
-    override fun charge(command: BalanceChargeCommand): BalanceInfo {
+    fun charge(command: BalanceChargeCommand): BalanceInfo {
         if (command.amount <= 0) {
-            throw BusinessException(ErrorCode.INVALID_INPUT_VALUE)
+            throw BusinessException(ErrorCode.CHARGE_INVALID_AMOUNT)
         }
 
-        val userEntity = userRepository.findByUserId(command.userId)
-        val user = userEntity?.toDomain() ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+        val user = userRepository.findById(command.userId) ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
 
         user.chargeBalance(command.amount)
-        val updatedUserEntity = userRepository.save(UserEntity.fromDomain(user))
-        val updatedUser = updatedUserEntity.toDomain()
+        val updatedUser = userRepository.save(user)
 
-        val history = BalanceChargeHistory(
-            userId = updatedUser.userId,
-            amount = command.amount,
-            chargedAt = LocalDateTime.now()
-        )
-        balanceChargeHistoryRepository.save(BalanceChargeHistoryEntity.fromDomain(history))
+        return BalanceInfo.from(updatedUser)
+    }
 
-        return BalanceInfo(
-            id = updatedUser.userId,
-            userId = updatedUser.userId,
-            amount = updatedUser.balance,
-            createdAt = updatedUser.createdAt,
-            updatedAt = updatedUser.updatedAt
-        )
+    @Transactional
+    fun use(command: BalanceDeductCommand): BalanceInfo {
+        val user = userRepository.findById(command.userId) ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+
+        user.deductBalance(command.amount)
+        val updatedUser = userRepository.save(user)
+
+        return BalanceInfo.from(updatedUser)
     }
 
     @Transactional(readOnly = true)
-    override fun getBalance(userId: Long): BalanceInfo {
-        val userEntity = userRepository.findByUserId(userId)
-            ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+    fun getBalance(userId: Long): BalanceInfo {
+        val user = userRepository.findById(userId) ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
 
-        val user = userEntity.toDomain()
+        return BalanceInfo.from(user)
+    }
 
-        return BalanceInfo(
-            id = user.userId,
-            userId = user.userId,
-            amount = user.balance,
-            createdAt = user.createdAt,
-            updatedAt = user.updatedAt
+    @Transactional
+    fun recordChargeHistory(userId: Long, currentAmount: Int, chargeAmount: Int) {
+        val history = BalanceHistory(
+            userId = userId,
+            amount = chargeAmount,
+            beforeAmount = currentAmount,
+            afterAmount = currentAmount + chargeAmount,
+            type = TransactionType.CHARGE,
+            transactionAt = LocalDateTime.now()
         )
+        balanceHistoryRepository.save(history)
+    }
+
+    @Transactional
+    fun recordDeductHistory(userId: Long, currentAmount: Int, deductAmount: Int) {
+        val history = BalanceHistory(
+            userId = userId,
+            amount = deductAmount,
+            beforeAmount = currentAmount,
+            afterAmount = currentAmount - deductAmount,
+            type = TransactionType.DEDUCT,
+            transactionAt = LocalDateTime.now()
+        )
+        balanceHistoryRepository.save(history)
     }
 }
