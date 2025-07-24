@@ -7,20 +7,17 @@ import io.kotest.extensions.spring.SpringExtension
 import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.verify
+import kr.hhplus.be.application.facade.ProductFacade
 import kr.hhplus.be.application.product.ProductDto
 import kr.hhplus.be.application.service.ProductRankingService
-import kr.hhplus.be.application.service.ProductService
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
-import org.springframework.data.domain.Pageable
 import org.springframework.http.MediaType
-import org.springframework.test.context.TestConstructor
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
@@ -34,7 +31,7 @@ class ProductControllerTest(
 ) : BehaviorSpec() {
 
     @MockkBean
-    private lateinit var productService: ProductService
+    private lateinit var productFacade: ProductFacade
 
     @MockkBean
     private lateinit var productRankingService: ProductRankingService
@@ -44,7 +41,7 @@ class ProductControllerTest(
     init {
         Given("상품 목록 조회 API") {
             When("기본 페이지네이션으로 상품 목록을 조회하면") {
-                clearMocks(productService)
+                clearMocks(productFacade)
                 
                 val now = LocalDateTime.now()
                 val mockProducts = listOf(
@@ -69,7 +66,7 @@ class ProductControllerTest(
                 val pageable = PageRequest.of(0, 10)
                 val page = PageImpl(mockProducts, pageable, mockProducts.size.toLong())
 
-                every { productService.getAllProducts(any()) } returns page
+                every { productFacade.getProducts(any(), null, null, null) } returns page
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -92,12 +89,12 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.data.pagination.size").value(10))
                         .andExpect(jsonPath("$.data.pagination.totalElements").value(2))
                     
-                    verify(exactly = 1) { productService.getAllProducts(any()) }
+                    verify(exactly = 1) { productFacade.getProducts(any(), null, null, null) }
                 }
             }
 
             When("검색 키워드로 상품을 조회하면") {
-                clearMocks(productService)
+                clearMocks(productFacade)
                 
                 val searchKeyword = "아이폰"
                 val now = LocalDateTime.now()
@@ -123,7 +120,7 @@ class ProductControllerTest(
                 val pageable = PageRequest.of(0, 10)
                 val page = PageImpl(mockProducts, pageable, mockProducts.size.toLong())
 
-                every { productService.searchProductsByName(any(), eq(searchKeyword)) } returns page
+                every { productFacade.getProducts(any(), eq(searchKeyword), null, null) } returns page
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -140,12 +137,12 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.data.products[0].name").value("아이폰 15"))
                         .andExpect(jsonPath("$.data.products[1].name").value("아이폰 14"))
                     
-                    verify(exactly = 1) { productService.searchProductsByName(any(), eq(searchKeyword)) }
+                    verify(exactly = 1) { productFacade.getProducts(any(), eq(searchKeyword), null, null) }
                 }
             }
 
             When("가격 범위로 상품을 조회하면") {
-                clearMocks(productService)
+                clearMocks(productFacade)
                 
                 val minPrice = 500000
                 val maxPrice = 1000000
@@ -164,7 +161,7 @@ class ProductControllerTest(
                 val pageable = PageRequest.of(0, 10)
                 val page = PageImpl(mockProducts, pageable, mockProducts.size.toLong())
 
-                every { productService.getProductsByPriceRange(any(), eq(minPrice), eq(maxPrice)) } returns page
+                every { productFacade.getProducts(any(), null, eq(minPrice), eq(maxPrice)) } returns page
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -182,18 +179,18 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.data.products[0].name").value("갤럭시 S24"))
                         .andExpect(jsonPath("$.data.products[0].price").value(1000000))
                     
-                    verify(exactly = 1) { productService.getProductsByPriceRange(any(), eq(minPrice), eq(maxPrice)) }
+                    verify(exactly = 1) { productFacade.getProducts(any(), null, eq(minPrice), eq(maxPrice)) }
                 }
             }
 
             When("검색 결과가 없는 키워드로 조회하면") {
-                clearMocks(productService)
+                clearMocks(productFacade)
                 
                 val searchKeyword = "존재하지않는상품"
                 val pageable = PageRequest.of(0, 10)
                 val emptyPage = PageImpl<ProductDto.ProductInfo>(emptyList(), pageable, 0)
 
-                every { productService.searchProductsByName(any(), eq(searchKeyword)) } returns emptyPage
+                every { productFacade.getProducts(any(), eq(searchKeyword), null, null) } returns emptyPage
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -209,12 +206,12 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.data.products.length()").value(0))
                         .andExpect(jsonPath("$.data.pagination.totalElements").value(0))
                     
-                    verify(exactly = 1) { productService.searchProductsByName(any(), eq(searchKeyword)) }
+                    verify(exactly = 1) { productFacade.getProducts(any(), eq(searchKeyword), null, null) }
                 }
             }
 
             When("커스텀 페이지 크기로 상품을 조회하면") {
-                clearMocks(productService)
+                clearMocks(productFacade)
                 
                 val now = LocalDateTime.now()
                 val mockProducts = listOf(
@@ -231,7 +228,7 @@ class ProductControllerTest(
                 val pageable = PageRequest.of(0, 5)
                 val page = PageImpl(mockProducts, pageable, mockProducts.size.toLong())
 
-                every { productService.getAllProducts(any()) } returns page
+                every { productFacade.getProducts(any(), null, null, null) } returns page
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -247,14 +244,14 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.data.pagination.size").value(5))
                         .andExpect(jsonPath("$.data.pagination.page").value(0))
                     
-                    verify(exactly = 1) { productService.getAllProducts(any()) }
+                    verify(exactly = 1) { productFacade.getProducts(any(), null, null, null) }
                 }
             }
         }
 
         Given("상품 상세 조회 API") {
             When("존재하는 상품 ID로 상세 정보를 조회하면") {
-                clearMocks(productService)
+                clearMocks(productFacade)
                 
                 val productId = 1L
                 val now = LocalDateTime.now()
@@ -267,7 +264,7 @@ class ProductControllerTest(
                     updatedAt = now.minusHours(2)
                 )
 
-                every { productService.getProduct(productId) } returns mockProduct
+                every { productFacade.getProduct(productId) } returns mockProduct
 
                 val result = mockMvc.perform(
                     get("/api/v1/products/{productId}", productId)
@@ -285,16 +282,16 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.data.createdAt").exists())
                         .andExpect(jsonPath("$.data.updatedAt").exists())
                     
-                    verify(exactly = 1) { productService.getProduct(productId) }
+                    verify(exactly = 1) { productFacade.getProduct(productId) }
                 }
             }
 
             When("존재하지 않는 상품 ID로 상세 정보를 조회하면") {
-                clearMocks(productService)
+                clearMocks(productFacade)
                 
                 val productId = 999L
 
-                every { productService.getProduct(productId) } throws BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+                every { productFacade.getProduct(productId) } throws BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
 
                 val result = mockMvc.perform(
                     get("/api/v1/products/{productId}", productId)
@@ -307,12 +304,12 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.success").value(false))
                         .andExpect(jsonPath("$.error.code").value("PRODUCT_NOT_FOUND"))
                     
-                    verify(exactly = 1) { productService.getProduct(productId) }
+                    verify(exactly = 1) { productFacade.getProduct(productId) }
                 }
             }
 
             When("잘못된 형식의 상품 ID로 조회하면") {
-                clearMocks(productService)
+                clearMocks(productFacade)
                 
                 val result = mockMvc.perform(
                     get("/api/v1/products/{productId}", "invalid_id")
@@ -325,11 +322,11 @@ class ProductControllerTest(
             }
 
             When("음수 상품 ID로 조회하면") {
-                clearMocks(productService)
+                clearMocks(productFacade)
                 
                 val productId = -1L
 
-                every { productService.getProduct(productId) } throws BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+                every { productFacade.getProduct(productId) } throws BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
 
                 val result = mockMvc.perform(
                     get("/api/v1/products/{productId}", productId)
@@ -342,14 +339,14 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.success").value(false))
                         .andExpect(jsonPath("$.error.code").value("PRODUCT_NOT_FOUND"))
                     
-                    verify(exactly = 1) { productService.getProduct(productId) }
+                    verify(exactly = 1) { productFacade.getProduct(productId) }
                 }
             }
         }
 
         Given("상품 검색 및 필터링") {
             When("빈 검색어로 검색하면") {
-                clearMocks(productService)
+                clearMocks(productFacade)
                 
                 val now = LocalDateTime.now()
                 val mockProducts = listOf(
@@ -366,7 +363,7 @@ class ProductControllerTest(
                 val pageable = PageRequest.of(0, 10)
                 val page = PageImpl(mockProducts, pageable, mockProducts.size.toLong())
 
-                every { productService.getAllProducts(any()) } returns page
+                every { productFacade.getProducts(any(), eq(""), null, null) } returns page
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -380,19 +377,19 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.success").value(true))
                         .andExpect(jsonPath("$.data.products").isArray)
                     
-                    verify(exactly = 1) { productService.getAllProducts(any()) }
+                    verify(exactly = 1) { productFacade.getProducts(any(), eq(""), null, null) }
                 }
             }
 
             When("잘못된 가격 범위로 조회하면 (minPrice > maxPrice)") {
-                clearMocks(productService)
+                clearMocks(productFacade)
                 
                 val minPrice = 1000000
                 val maxPrice = 500000
                 val pageable = PageRequest.of(0, 10)
                 val emptyPage = PageImpl<ProductDto.ProductInfo>(emptyList(), pageable, 0)
 
-                every { productService.getProductsByPriceRange(any(), eq(minPrice), eq(maxPrice)) } returns emptyPage
+                every { productFacade.getProducts(any(), null, eq(minPrice), eq(maxPrice)) } returns emptyPage
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -408,19 +405,19 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.data.products").isArray)
                         .andExpect(jsonPath("$.data.products.length()").value(0))
                     
-                    verify(exactly = 1) { productService.getProductsByPriceRange(any(), eq(minPrice), eq(maxPrice)) }
+                    verify(exactly = 1) { productFacade.getProducts(any(), null, eq(minPrice), eq(maxPrice)) }
                 }
             }
 
             When("음수 가격으로 조회하면") {
-                clearMocks(productService)
+                clearMocks(productFacade)
                 
                 val minPrice = -1000
                 val maxPrice = 50000
                 val pageable = PageRequest.of(0, 10)
                 val emptyPage = PageImpl<ProductDto.ProductInfo>(emptyList(), pageable, 0)
 
-                every { productService.getProductsByPriceRange(any(), eq(minPrice), eq(maxPrice)) } returns emptyPage
+                every { productFacade.getProducts(any(), null, eq(minPrice), eq(maxPrice)) } returns emptyPage
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -436,12 +433,12 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.data.products").isArray)
                         .andExpect(jsonPath("$.data.products.length()").value(0))
                     
-                    verify(exactly = 1) { productService.getProductsByPriceRange(any(), eq(minPrice), eq(maxPrice)) }
+                    verify(exactly = 1) { productFacade.getProducts(any(), null, eq(minPrice), eq(maxPrice)) }
                 }
             }
 
             When("잘못된 형식의 가격 파라미터로 조회하면") {
-                clearMocks(productService)
+                clearMocks(productFacade)
                 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -456,7 +453,7 @@ class ProductControllerTest(
             }
 
             When("minPrice만 제공하고 maxPrice는 누락하면") {
-                clearMocks(productService)
+                clearMocks(productFacade)
                 
                 val now = LocalDateTime.now()
                 val mockProducts = listOf(
@@ -473,7 +470,7 @@ class ProductControllerTest(
                 val pageable = PageRequest.of(0, 10)
                 val page = PageImpl(mockProducts, pageable, mockProducts.size.toLong())
 
-                every { productService.getAllProducts(any()) } returns page
+                every { productFacade.getProducts(any(), null, eq(50000), null) } returns page
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -487,19 +484,19 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.success").value(true))
                         .andExpect(jsonPath("$.data.products").isArray)
                     
-                    verify(exactly = 1) { productService.getAllProducts(any()) }
+                    verify(exactly = 1) { productFacade.getProducts(any(), null, eq(50000), null) }
                 }
             }
         }
 
         Given("페이지네이션 테스트") {
             When("큰 페이지 번호로 조회하면") {
-                clearMocks(productService)
+                clearMocks(productFacade)
                 
                 val pageable = PageRequest.of(100, 10)
                 val emptyPage = PageImpl<ProductDto.ProductInfo>(emptyList(), pageable, 0)
 
-                every { productService.getAllProducts(any()) } returns emptyPage
+                every { productFacade.getProducts(any(), null, null, null) } returns emptyPage
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -516,7 +513,7 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.data.products.length()").value(0))
                         .andExpect(jsonPath("$.data.pagination.page").value(100))
                     
-                    verify(exactly = 1) { productService.getAllProducts(any()) }
+                    verify(exactly = 1) { productFacade.getProducts(any(), null, null, null) }
                 }
             }
         }

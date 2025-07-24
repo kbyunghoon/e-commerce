@@ -8,7 +8,6 @@ import io.mockk.every
 import io.mockk.verify
 import kr.hhplus.be.application.balance.BalanceInfo
 import kr.hhplus.be.application.facade.BalanceFacade
-import kr.hhplus.be.application.service.BalanceService
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.presentation.dto.request.BalanceChargeRequest
@@ -32,9 +31,6 @@ class BalanceControllerTest(
 
     @MockkBean
     private lateinit var balanceFacade: BalanceFacade
-
-    @MockkBean
-    private lateinit var balanceService: BalanceService
 
     override fun extensions() = listOf(SpringExtension)
 
@@ -153,7 +149,7 @@ class BalanceControllerTest(
                     updatedAt = now.minusHours(1)
                 )
 
-                every { balanceService.getBalance(userId) } returns mockBalanceInfo
+                every { balanceFacade.getBalance(userId) } returns mockBalanceInfo
 
                 val result = mockMvc.perform(
                     get("/api/v1/balance")
@@ -169,7 +165,7 @@ class BalanceControllerTest(
                         .andExpect(jsonPath("$.data.balance").value(5000))
                         .andExpect(jsonPath("$.data.lastUpdatedAt").exists())
 
-                    verify(exactly = 1) { balanceService.getBalance(userId) }
+                    verify(exactly = 1) { balanceFacade.getBalance(userId) }
                 }
             }
 
@@ -184,7 +180,7 @@ class BalanceControllerTest(
                     updatedAt = now
                 )
 
-                every { balanceService.getBalance(userId) } returns mockBalanceInfo
+                every { balanceFacade.getBalance(userId) } returns mockBalanceInfo
 
                 val result = mockMvc.perform(
                     get("/api/v1/balance")
@@ -200,14 +196,14 @@ class BalanceControllerTest(
                         .andExpect(jsonPath("$.data.balance").value(0))
                         .andExpect(jsonPath("$.data.lastUpdatedAt").exists())
 
-                    verify(exactly = 1) { balanceService.getBalance(userId) }
+                    verify(exactly = 1) { balanceFacade.getBalance(userId) }
                 }
             }
 
             When("존재하지 않는 사용자 ID로 잔액을 조회하면") {
                 val userId = 999L
 
-                every { balanceService.getBalance(userId) } throws BusinessException(ErrorCode.USER_NOT_FOUND)
+                every { balanceFacade.getBalance(userId) } throws BusinessException(ErrorCode.USER_NOT_FOUND)
 
                 val result = mockMvc.perform(
                     get("/api/v1/balance")
@@ -218,7 +214,7 @@ class BalanceControllerTest(
                 Then("400 상태코드를 반환한다") {
                     result.andExpect(status().isBadRequest)
 
-                    verify(exactly = 1) { balanceService.getBalance(userId) }
+                    verify(exactly = 1) { balanceFacade.getBalance(userId) }
                 }
             }
 

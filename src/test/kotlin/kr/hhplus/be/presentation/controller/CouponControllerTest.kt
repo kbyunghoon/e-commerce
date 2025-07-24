@@ -8,7 +8,7 @@ import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.verify
 import kr.hhplus.be.application.coupon.UserCouponInfo
-import kr.hhplus.be.application.service.CouponService
+import kr.hhplus.be.application.facade.CouponFacade
 import kr.hhplus.be.domain.coupon.CouponStatus
 import kr.hhplus.be.domain.coupon.DiscountType
 import kr.hhplus.be.domain.exception.BusinessException
@@ -16,10 +16,8 @@ import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.presentation.dto.request.CouponIssueRequest
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
-import org.springframework.test.context.TestConstructor
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
@@ -33,14 +31,14 @@ class CouponControllerTest(
 ) : BehaviorSpec() {
 
     @MockkBean
-    private lateinit var couponService: CouponService
+    private lateinit var couponFacade: CouponFacade
 
     override fun extensions() = listOf(SpringExtension)
 
     init {
         Given("쿠폰 발급 API") {
             When("유효한 사용자 ID와 쿠폰 ID로 발급을 요청하면") {
-                clearMocks(couponService)
+                clearMocks(couponFacade)
                 
                 val userId = 1L
                 val couponId = 1L
@@ -60,7 +58,7 @@ class CouponControllerTest(
                     usedAt = null
                 )
 
-                every { couponService.issue(any()) } returns mockUserCouponInfo
+                every { couponFacade.issueCoupon(any()) } returns mockUserCouponInfo
 
                 val result = mockMvc.perform(
                     post("/api/v1/coupons/issue")
@@ -81,18 +79,18 @@ class CouponControllerTest(
                         .andExpect(jsonPath("$.data.expiresAt").exists())
                         .andExpect(jsonPath("$.data.issuedAt").exists())
                     
-                    verify(exactly = 1) { couponService.issue(any()) }
+                    verify(exactly = 1) { couponFacade.issueCoupon(any()) }
                 }
             }
 
             When("이미 발급받은 쿠폰을 다시 발급 요청하면") {
-                clearMocks(couponService)
+                clearMocks(couponFacade)
                 
                 val userId = 1L
                 val couponId = 1L
                 val request = CouponIssueRequest(userId, couponId)
 
-                every { couponService.issue(any()) } throws BusinessException(ErrorCode.COUPON_ALREADY_ISSUED)
+                every { couponFacade.issueCoupon(any()) } throws BusinessException(ErrorCode.COUPON_ALREADY_ISSUED)
 
                 val result = mockMvc.perform(
                     post("/api/v1/coupons/issue")
@@ -106,18 +104,18 @@ class CouponControllerTest(
                         .andExpect(jsonPath("$.success").value(false))
                         .andExpect(jsonPath("$.error.code").value("COUPON_ALREADY_ISSUED"))
                     
-                    verify(exactly = 1) { couponService.issue(any()) }
+                    verify(exactly = 1) { couponFacade.issueCoupon(any()) }
                 }
             }
 
             When("존재하지 않는 쿠폰 ID로 발급을 요청하면") {
-                clearMocks(couponService)
+                clearMocks(couponFacade)
                 
                 val userId = 1L
                 val couponId = 999L
                 val request = CouponIssueRequest(userId, couponId)
 
-                every { couponService.issue(any()) } throws BusinessException(ErrorCode.COUPON_NOT_FOUND)
+                every { couponFacade.issueCoupon(any()) } throws BusinessException(ErrorCode.COUPON_NOT_FOUND)
 
                 val result = mockMvc.perform(
                     post("/api/v1/coupons/issue")
@@ -131,18 +129,18 @@ class CouponControllerTest(
                         .andExpect(jsonPath("$.success").value(false))
                         .andExpect(jsonPath("$.error.code").value("COUPON_NOT_FOUND"))
                     
-                    verify(exactly = 1) { couponService.issue(any()) }
+                    verify(exactly = 1) { couponFacade.issueCoupon(any()) }
                 }
             }
 
             When("만료된 쿠폰을 발급 요청하면") {
-                clearMocks(couponService)
+                clearMocks(couponFacade)
                 
                 val userId = 1L
                 val couponId = 1L
                 val request = CouponIssueRequest(userId, couponId)
 
-                every { couponService.issue(any()) } throws BusinessException(ErrorCode.COUPON_EXPIRED)
+                every { couponFacade.issueCoupon(any()) } throws BusinessException(ErrorCode.COUPON_EXPIRED)
 
                 val result = mockMvc.perform(
                     post("/api/v1/coupons/issue")
@@ -156,18 +154,18 @@ class CouponControllerTest(
                         .andExpect(jsonPath("$.success").value(false))
                         .andExpect(jsonPath("$.error.code").value("COUPON_EXPIRED"))
                     
-                    verify(exactly = 1) { couponService.issue(any()) }
+                    verify(exactly = 1) { couponFacade.issueCoupon(any()) }
                 }
             }
 
             When("쿠폰이 모두 소진되었을 때 발급을 요청하면") {
-                clearMocks(couponService)
+                clearMocks(couponFacade)
                 
                 val userId = 1L
                 val couponId = 1L
                 val request = CouponIssueRequest(userId, couponId)
 
-                every { couponService.issue(any()) } throws BusinessException(ErrorCode.COUPON_SOLD_OUT)
+                every { couponFacade.issueCoupon(any()) } throws BusinessException(ErrorCode.COUPON_SOLD_OUT)
 
                 val result = mockMvc.perform(
                     post("/api/v1/coupons/issue")
@@ -181,12 +179,12 @@ class CouponControllerTest(
                         .andExpect(jsonPath("$.success").value(false))
                         .andExpect(jsonPath("$.error.code").value("COUPON_SOLD_OUT"))
                     
-                    verify(exactly = 1) { couponService.issue(any()) }
+                    verify(exactly = 1) { couponFacade.issueCoupon(any()) }
                 }
             }
 
             When("잘못된 JSON 형식으로 요청하면") {
-                clearMocks(couponService)
+                clearMocks(couponFacade)
                 
                 val invalidJson = "{ \"userId\": \"invalid\", \"couponId\": \"not_number\" }"
 
@@ -204,7 +202,7 @@ class CouponControllerTest(
 
         Given("사용자 쿠폰 목록 조회 API") {
             When("유효한 사용자 ID로 쿠폰 목록을 조회하면") {
-                clearMocks(couponService)
+                clearMocks(couponFacade)
                 
                 val userId = 1L
                 val now = LocalDateTime.now()
@@ -236,7 +234,7 @@ class CouponControllerTest(
                     )
                 )
 
-                every { couponService.getUserCoupons(userId) } returns mockUserCoupons
+                every { couponFacade.getUserCoupons(userId) } returns mockUserCoupons
 
                 val result = mockMvc.perform(
                     get("/api/v1/coupons")
@@ -257,17 +255,17 @@ class CouponControllerTest(
                         .andExpect(jsonPath("$.data.coupons[1].couponName").value("5000원 할인 쿠폰"))
                         .andExpect(jsonPath("$.data.coupons[1].status").value("USED"))
                     
-                    verify(exactly = 1) { couponService.getUserCoupons(userId) }
+                    verify(exactly = 1) { couponFacade.getUserCoupons(userId) }
                 }
             }
 
             When("쿠폰이 없는 사용자 ID로 조회하면") {
-                clearMocks(couponService)
+                clearMocks(couponFacade)
                 
                 val userId = 2L
                 val emptyList = emptyList<UserCouponInfo>()
 
-                every { couponService.getUserCoupons(userId) } returns emptyList
+                every { couponFacade.getUserCoupons(userId) } returns emptyList
 
                 val result = mockMvc.perform(
                     get("/api/v1/coupons")
@@ -282,12 +280,12 @@ class CouponControllerTest(
                         .andExpect(jsonPath("$.data.coupons").isArray)
                         .andExpect(jsonPath("$.data.coupons.length()").value(0))
                     
-                    verify(exactly = 1) { couponService.getUserCoupons(userId) }
+                    verify(exactly = 1) { couponFacade.getUserCoupons(userId) }
                 }
             }
 
             When("status 파라미터와 함께 쿠폰 목록을 조회하면") {
-                clearMocks(couponService)
+                clearMocks(couponFacade)
                 
                 val userId = 1L
                 val status = "AVAILABLE"
@@ -308,7 +306,7 @@ class CouponControllerTest(
                     )
                 )
 
-                every { couponService.getUserCoupons(userId) } returns mockAvailableCoupons
+                every { couponFacade.getUserCoupons(userId) } returns mockAvailableCoupons
 
                 val result = mockMvc.perform(
                     get("/api/v1/coupons")
@@ -325,12 +323,12 @@ class CouponControllerTest(
                         .andExpect(jsonPath("$.data.coupons.length()").value(1))
                         .andExpect(jsonPath("$.data.coupons[0].status").value("AVAILABLE"))
                     
-                    verify(exactly = 1) { couponService.getUserCoupons(userId) }
+                    verify(exactly = 1) { couponFacade.getUserCoupons(userId) }
                 }
             }
 
             When("userId 파라미터 없이 쿠폰 목록을 조회하면") {
-                clearMocks(couponService)
+                clearMocks(couponFacade)
                 
                 val result = mockMvc.perform(
                     get("/api/v1/coupons")
@@ -343,7 +341,7 @@ class CouponControllerTest(
             }
 
             When("잘못된 형식의 userId로 쿠폰 목록을 조회하면") {
-                clearMocks(couponService)
+                clearMocks(couponFacade)
                 
                 val result = mockMvc.perform(
                     get("/api/v1/coupons")
