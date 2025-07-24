@@ -3,6 +3,7 @@ package kr.hhplus.be.application.order
 import kr.hhplus.be.domain.order.Order
 import kr.hhplus.be.domain.order.OrderItem
 import kr.hhplus.be.domain.order.OrderStatus
+import kr.hhplus.be.application.product.ProductDto
 import java.time.LocalDateTime
 
 class OrderDto {
@@ -48,4 +49,20 @@ class OrderDto {
             }
         }
     }
+
+    data class CalculatedOrderDetails(
+        val totalAmount: Int,
+        val discountAmount: Int,
+        val finalAmount: Int,
+        val products: List<ProductDto.ProductInfo>
+    )
+
+    data class OrderCreateDto(
+        val userId: Long,
+        val items: List<OrderItem>,
+        val originalAmount: Int,
+        val discountAmount: Int,
+        val finalAmount: Int,
+        val couponId: Long? = null
+    )
 }

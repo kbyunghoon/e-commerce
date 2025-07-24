@@ -1,6 +1,6 @@
 package kr.hhplus.be.application.service
 
-import kr.hhplus.be.application.order.OrderCreateDto
+import kr.hhplus.be.application.order.OrderDto.OrderCreateDto
 import kr.hhplus.be.application.order.OrderDto.OrderInfo
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
