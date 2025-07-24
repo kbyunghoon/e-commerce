@@ -19,7 +19,6 @@ class BalanceService(
     private val balanceHistoryRepository: BalanceHistoryRepository
 ) {
 
-    @Transactional
     fun charge(command: BalanceChargeCommand): BalanceInfo {
         if (command.amount <= 0) {
             throw BusinessException(ErrorCode.CHARGE_INVALID_AMOUNT)
@@ -33,7 +32,6 @@ class BalanceService(
         return BalanceInfo.from(updatedUser)
     }
 
-    @Transactional
     fun use(command: BalanceDeductCommand): BalanceInfo {
         val user = userRepository.findById(command.userId) ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
 
@@ -43,14 +41,12 @@ class BalanceService(
         return BalanceInfo.from(updatedUser)
     }
 
-    @Transactional(readOnly = true)
     fun getBalance(userId: Long): BalanceInfo {
         val user = userRepository.findById(userId) ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
 
         return BalanceInfo.from(user)
     }
 
-    @Transactional
     fun recordChargeHistory(userId: Long, currentAmount: Int, chargeAmount: Int) {
         val history = BalanceHistory(
             userId = userId,
@@ -63,7 +59,6 @@ class BalanceService(
         balanceHistoryRepository.save(history)
     }
 
-    @Transactional
     fun recordDeductHistory(userId: Long, currentAmount: Int, deductAmount: Int) {
         val history = BalanceHistory(
             userId = userId,

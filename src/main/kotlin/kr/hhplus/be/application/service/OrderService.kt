@@ -14,7 +14,6 @@ class OrderService(
     private val orderRepository: OrderRepository
 ) {
 
-    @Transactional
     fun createOrder(dto: OrderCreateDto): OrderInfo {
         val order = Order.create(
             userId = dto.userId,
@@ -29,7 +28,6 @@ class OrderService(
         return OrderInfo.from(savedOrder)
     }
 
-    @Transactional
     fun completeOrder(orderId: Long): OrderInfo {
         val order = orderRepository.findById(orderId)
             ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
@@ -40,7 +38,6 @@ class OrderService(
         return OrderInfo.from(completedOrder)
     }
 
-    @Transactional
     fun cancelOrder(orderId: Long): OrderInfo {
         val order = orderRepository.findById(orderId)
             ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
@@ -51,7 +48,6 @@ class OrderService(
         return OrderInfo.from(cancelledOrder)
     }
 
-    @Transactional(readOnly = true)
     fun getOrder(orderId: Long): OrderInfo {
         val order = orderRepository.findById(orderId)
             ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)

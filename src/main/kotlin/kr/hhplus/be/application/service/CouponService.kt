@@ -20,7 +20,6 @@ class CouponService(
     private val userCouponRepository: UserCouponRepository
 ) {
 
-    @Transactional
     fun issue(command: CouponIssueCommand): UserCouponInfo {
         val coupon = couponRepository.findById(command.couponId)
             ?: throw BusinessException(ErrorCode.COUPON_NOT_FOUND)
@@ -46,7 +45,6 @@ class CouponService(
         return UserCouponInfo.from(savedUserCoupon, coupon)
     }
 
-    @Transactional(readOnly = true)
     fun getCoupons(userId: Long): List<UserCouponInfo> {
         val userCoupons = userCouponRepository.findByUserId(userId)
 
@@ -58,7 +56,6 @@ class CouponService(
         }
     }
 
-    @Transactional
     fun use(userId: Long, couponId: Long): UserCouponInfo {
         val (userCoupon, coupon) = findAndValidateUserCoupon(userId, couponId)
 
@@ -79,7 +76,6 @@ class CouponService(
         return discount.coerceAtMost(originalAmount)
     }
 
-    @Transactional(readOnly = true)
     fun getUserCoupons(userId: Long): List<UserCouponInfo> {
         val userCoupons = userCouponRepository.findByUserId(userId)
 

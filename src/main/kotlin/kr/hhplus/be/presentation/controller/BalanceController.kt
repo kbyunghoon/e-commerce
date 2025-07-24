@@ -2,7 +2,6 @@ package kr.hhplus.be.presentation.controller
 
 import kr.hhplus.be.application.balance.BalanceChargeCommand
 import kr.hhplus.be.application.facade.BalanceFacade
-import kr.hhplus.be.application.service.BalanceService
 import kr.hhplus.be.presentation.api.BalanceApi
 import kr.hhplus.be.presentation.dto.common.BaseResponse
 import kr.hhplus.be.presentation.dto.request.BalanceChargeRequest
@@ -13,7 +12,6 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/v1/balance")
 class BalanceController(
-    private val balanceService: BalanceService,
     private val balanceFacade: BalanceFacade
 ) : BalanceApi {
 
@@ -37,7 +35,7 @@ class BalanceController(
     override fun getBalance(
         @RequestParam userId: Long
     ): BaseResponse<BalanceQueryResponse> {
-        val balance = balanceService.getBalance(userId)
+        val balance = balanceFacade.getBalance(userId)
 
         return BaseResponse.success(
             BalanceQueryResponse(

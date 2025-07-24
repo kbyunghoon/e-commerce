@@ -44,6 +44,11 @@ class BalanceFacade(
         return balanceService.getBalance(request.userId)
     }
 
+    @Transactional(readOnly = true)
+    fun getBalance(userId: Long): BalanceInfo {
+        return balanceService.getBalance(userId)
+    }
+
     private fun recordDeductHistory(userId: Long, balanceBeforeDeduct: Int, deductAmount: Int) {
         balanceService.recordDeductHistory(userId, balanceBeforeDeduct, deductAmount)
     }

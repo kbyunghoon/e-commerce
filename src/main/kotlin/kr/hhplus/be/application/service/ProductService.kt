@@ -15,7 +15,6 @@ class ProductService(
     private val productRepository: ProductRepository
 ) {
 
-    @Transactional(readOnly = true)
     fun getProducts(
         pageable: Pageable,
         searchKeyword: String?,
@@ -27,13 +26,11 @@ class ProductService(
         }
     }
 
-    @Transactional(readOnly = true)
     fun getAllProducts(pagable: Pageable): Page<ProductDto.ProductInfo> {
         val products = productRepository.findAll(pagable)
         return products.map { ProductDto.ProductInfo.from(it) }
     }
 
-    @Transactional(readOnly = true)
     fun getProduct(productId: Long): ProductDto.ProductInfo {
         val product = productRepository.findById(productId)
             ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
@@ -41,25 +38,21 @@ class ProductService(
         return ProductDto.ProductInfo.from(product)
     }
 
-    @Transactional(readOnly = true)
     fun getProductsByIds(productIds: List<Long>): List<ProductDto.ProductInfo> {
         val products = productRepository.findByProductIds(productIds)
         return products.map { ProductDto.ProductInfo.from(it) }
     }
 
-    @Transactional(readOnly = true)
     fun searchProductsByName(pageable: Pageable, keyword: String): Page<ProductDto.ProductInfo> {
         val products = productRepository.findByNameContaining(pageable, keyword)
         return products.map { ProductDto.ProductInfo.from(it) }
     }
 
-    @Transactional(readOnly = true)
     fun getProductsByPriceRange(pageable: Pageable, minPrice: Int, maxPrice: Int): Page<ProductDto.ProductInfo> {
         val products = productRepository.findByPriceBetween(pageable, minPrice, maxPrice)
         return products.map { ProductDto.ProductInfo.from(it) }
     }
 
-    @Transactional(readOnly = true)
     fun validateOrderItems(items: List<OrderItemCreateCommand>): List<ProductDto.ProductInfo> {
         val productIds = items.map { it.productId }
         val products = productRepository.findByProductIds(productIds)
@@ -84,7 +77,6 @@ class ProductService(
         }
     }
 
-    @Transactional
     fun deductStock(productId: Long, quantity: Int) {
         val product = productRepository.findById(productId)
             ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
