@@ -2,7 +2,7 @@ package kr.hhplus.be.application.service
 
 import kr.hhplus.be.application.balance.BalanceChargeCommand
 import kr.hhplus.be.application.balance.BalanceDeductCommand
-import kr.hhplus.be.application.balance.BalanceInfo
+import kr.hhplus.be.application.balance.BalanceDto.BalanceInfo
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.user.BalanceHistory

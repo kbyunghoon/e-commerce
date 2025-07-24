@@ -1,61 +1,51 @@
 package kr.hhplus.be.application.order
 
-import kr.hhplus.be.application.balance.BalanceDeductCommand
-import kr.hhplus.be.presentation.dto.request.OrderRequest
-import kr.hhplus.be.presentation.dto.request.PaymentRequest
+import kr.hhplus.be.domain.order.Order
+import kr.hhplus.be.domain.order.OrderItem
+import kr.hhplus.be.domain.order.OrderStatus
+import java.time.LocalDateTime
 
 class OrderDto {
-}
 
-data class OrderItemCreateCommand(
-    val productId: Long,
-    val quantity: Int
-) {
-    companion object {
-        fun of(request: OrderItemCreateCommand): OrderItemCreateCommand {
-            return OrderItemCreateCommand(
-                productId = request.productId,
-                quantity = request.quantity
-            )
-        }
-    }
-}
-
-data class OrderCreateCommand(
-    val userId: Long,
-    val items: List<OrderItemCreateCommand>,
-    val couponId: Long?,
-) {
-    companion object {
-        fun of(request: OrderRequest): OrderCreateCommand {
-            return OrderCreateCommand(
-                userId = request.userId,
-                items = request.items.map { OrderItemCreateCommand.of(it) },
-                couponId = request.couponId
-            )
+    data class OrderInfo(
+        val id: Long?,
+        val userId: Long,
+        val orderStatus: OrderStatus,
+        val originalAmount: Int,
+        val discountAmount: Int,
+        val finalAmount: Int,
+        val orderedAt: LocalDateTime,
+        val orderItems: List<OrderItemInfo>
+    ) {
+        companion object {
+            fun from(order: Order): OrderInfo {
+                return OrderInfo(
+                    id = order.id,
+                    userId = order.userId,
+                    orderStatus = order.status,
+                    originalAmount = order.originalAmount,
+                    discountAmount = order.discountAmount,
+                    finalAmount = order.finalAmount,
+                    orderedAt = order.orderedAt,
+                    orderItems = order.items.map { OrderItemInfo.from(it) }
+                )
+            }
         }
     }
 
-    fun toBalanceDeductCommand(finalAmount: Int): BalanceDeductCommand {
-        return BalanceDeductCommand(
-            userId = this.userId,
-            amount = finalAmount
-        )
-    }
-}
-
-data class PaymentProcessCommand(
-    val orderId: Long,
-    val userId: Long,
-) {
-    companion object {
-        fun of(request: PaymentRequest): PaymentProcessCommand {
-            return PaymentProcessCommand(
-                orderId = request.orderId,
-                userId = request.userId
-            )
+    data class OrderItemInfo(
+        val productId: Long,
+        val quantity: Int,
+        val price: Int
+    ) {
+        companion object {
+            fun from(orderItem: OrderItem): OrderItemInfo {
+                return OrderItemInfo(
+                    productId = orderItem.productId,
+                    quantity = orderItem.quantity,
+                    price = orderItem.price
+                )
+            }
         }
     }
 }
-
-

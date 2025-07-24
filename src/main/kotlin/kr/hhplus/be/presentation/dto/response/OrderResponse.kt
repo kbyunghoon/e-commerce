@@ -1,7 +1,7 @@
 package kr.hhplus.be.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
-import kr.hhplus.be.application.order.OrderInfo
+import kr.hhplus.be.application.order.OrderDto.OrderInfo
 import kr.hhplus.be.domain.order.OrderStatus
 import java.time.LocalDateTime
 

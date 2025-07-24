@@ -40,6 +40,12 @@ class ProductDto {
         val page: Int = 0,
         val size: Int = 10
     )
+
+    data class ProductRankingInfo(
+        val productId: Long,
+        val productName: String,
+        val rank: Int,
+    )
 }
 
 typealias ProductInfo = ProductDto.ProductInfo

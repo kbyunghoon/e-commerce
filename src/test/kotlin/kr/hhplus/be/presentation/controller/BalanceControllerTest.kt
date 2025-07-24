@@ -6,7 +6,7 @@ import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.mockk.every
 import io.mockk.verify
-import kr.hhplus.be.application.balance.BalanceInfo
+import kr.hhplus.be.application.balance.BalanceDto.BalanceInfo
 import kr.hhplus.be.application.facade.BalanceFacade
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode

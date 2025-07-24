@@ -1,7 +1,7 @@
 package kr.hhplus.be.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
-import kr.hhplus.be.application.order.OrderItemInfo
+import kr.hhplus.be.application.order.OrderDto.OrderItemInfo
 
 @Schema(description = "주문 상품 항목")
 data class OrderItemResponse(

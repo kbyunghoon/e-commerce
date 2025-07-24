@@ -1,7 +1,7 @@
 package kr.hhplus.be.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
-import kr.hhplus.be.application.coupon.UserCouponInfo
+import kr.hhplus.be.application.coupon.CouponDto.UserCouponInfo
 
 @Schema(description = "쿠폰 목록 응답")
 data class CouponListResponse(

@@ -8,7 +8,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kr.hhplus.be.application.order.OrderCreateCommand
-import kr.hhplus.be.application.order.OrderInfo
+import kr.hhplus.be.application.order.OrderDto.OrderInfo
 import kr.hhplus.be.application.order.OrderItemCreateCommand
 import kr.hhplus.be.application.order.PaymentProcessCommand
 import kr.hhplus.be.application.product.ProductInfo

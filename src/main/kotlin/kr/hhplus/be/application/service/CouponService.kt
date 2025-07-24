@@ -1,7 +1,7 @@
 package kr.hhplus.be.application.service
 
 import kr.hhplus.be.application.coupon.CouponIssueCommand
-import kr.hhplus.be.application.coupon.UserCouponInfo
+import kr.hhplus.be.application.coupon.CouponDto.UserCouponInfo
 import kr.hhplus.be.domain.coupon.Coupon
 import kr.hhplus.be.domain.coupon.CouponRepository
 import kr.hhplus.be.domain.coupon.CouponStatus

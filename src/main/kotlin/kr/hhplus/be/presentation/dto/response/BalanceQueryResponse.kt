@@ -1,6 +1,6 @@
 package kr.hhplus.be.presentation.dto.response
 
-import kr.hhplus.be.application.balance.BalanceInfo
+import kr.hhplus.be.application.balance.BalanceDto.BalanceInfo
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDateTime
 

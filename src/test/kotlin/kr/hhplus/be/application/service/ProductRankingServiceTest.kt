@@ -5,7 +5,7 @@ import io.kotest.matchers.shouldBe
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
-import kr.hhplus.be.application.product.ProductRankingInfo
+import kr.hhplus.be.application.product.ProductDto.ProductRankingInfo
 import kr.hhplus.be.domain.product.ProductRankingRepository
 
 class ProductRankingServiceTest : BehaviorSpec({

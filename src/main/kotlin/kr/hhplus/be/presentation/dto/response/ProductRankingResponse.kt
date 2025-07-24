@@ -1,6 +1,6 @@
 package kr.hhplus.be.presentation.dto.response
 
-import kr.hhplus.be.application.product.ProductRankingInfo
+import kr.hhplus.be.application.product.ProductDto.ProductRankingInfo
 import io.swagger.v3.oas.annotations.media.Schema
 
 @Schema(description = "인기 상품 정보")

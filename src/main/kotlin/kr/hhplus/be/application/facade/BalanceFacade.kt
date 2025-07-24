@@ -2,7 +2,7 @@ package kr.hhplus.be.application.facade
 
 import kr.hhplus.be.application.balance.BalanceChargeCommand
 import kr.hhplus.be.application.balance.BalanceDeductCommand
-import kr.hhplus.be.application.balance.BalanceInfo
+import kr.hhplus.be.application.balance.BalanceDto.BalanceInfo
 import kr.hhplus.be.application.service.BalanceService
 import kr.hhplus.be.presentation.dto.response.BalanceChargeResponse
 import org.springframework.stereotype.Component

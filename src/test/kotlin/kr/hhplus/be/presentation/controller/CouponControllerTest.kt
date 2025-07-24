@@ -7,7 +7,7 @@ import io.kotest.extensions.spring.SpringExtension
 import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.verify
-import kr.hhplus.be.application.coupon.UserCouponInfo
+import kr.hhplus.be.application.coupon.CouponDto.UserCouponInfo
 import kr.hhplus.be.application.facade.CouponFacade
 import kr.hhplus.be.domain.coupon.CouponStatus
 import kr.hhplus.be.domain.coupon.DiscountType
