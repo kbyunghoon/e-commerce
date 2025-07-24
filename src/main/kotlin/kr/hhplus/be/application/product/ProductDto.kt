@@ -47,5 +47,3 @@ class ProductDto {
         val rank: Int,
     )
 }
-
-typealias ProductInfo = ProductDto.ProductInfo
