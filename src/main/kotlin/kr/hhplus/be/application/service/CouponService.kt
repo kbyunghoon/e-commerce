@@ -23,7 +23,7 @@ class CouponService(
         val coupon = couponRepository.findById(command.couponId)
             ?: throw BusinessException(ErrorCode.COUPON_NOT_FOUND)
 
-        if (coupon.expiresAt.isBefore(LocalDateTime.now())) {
+        if (coupon.isExpired()) {
             throw BusinessException(ErrorCode.COUPON_EXPIRED)
         }
 
@@ -91,7 +91,7 @@ class CouponService(
         val coupon = couponRepository.findById(userCoupon.couponId)
             ?: throw BusinessException(ErrorCode.COUPON_NOT_FOUND)
 
-        if (coupon.expiresAt.isBefore(LocalDateTime.now())) {
+        if (coupon.isExpired()) {
             userCoupon.expire()
             userCouponRepository.save(userCoupon)
             throw BusinessException(ErrorCode.COUPON_EXPIRED)

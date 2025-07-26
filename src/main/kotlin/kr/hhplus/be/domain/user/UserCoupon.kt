@@ -17,7 +17,7 @@ data class UserCoupon(
     val coupon: Coupon? = null
 ) {
     fun use() {
-        if (status != CouponStatus.AVAILABLE) {
+        if (!isAvailable()) {
             throw BusinessException(ErrorCode.COUPON_NOT_AVAILABLE)
         }
         this.status = CouponStatus.USED
@@ -25,12 +25,24 @@ data class UserCoupon(
     }
 
     fun restore() {
-        if (status != CouponStatus.USED) {
+        if (!isUsed()) {
             throw BusinessException(ErrorCode.COUPON_NOT_USED)
         }
         this.status = CouponStatus.AVAILABLE
         this.usedAt = null
     }
+
+    fun isAvailable(): Boolean = status == CouponStatus.AVAILABLE
+    
+    fun isUsed(): Boolean = status == CouponStatus.USED
+    
+    fun isExpired(): Boolean = status == CouponStatus.EXPIRED
+    
+    fun canBeUsed(): Boolean = isAvailable() && !isExpiredByTime()
+    
+    fun isExpiredByTime(): Boolean = coupon?.let { 
+        LocalDateTime.now().isAfter(it.expiresAt) 
+    } ?: false
 
     fun expire() {
         this.status = CouponStatus.EXPIRED

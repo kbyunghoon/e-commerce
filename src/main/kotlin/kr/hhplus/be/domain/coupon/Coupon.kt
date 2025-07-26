@@ -19,7 +19,7 @@ data class Coupon(
     var updatedAt: LocalDateTime = LocalDateTime.now()
 ) {
     fun issue() {
-        if (this.issuedQuantity >= this.totalQuantity) {
+        if (!canBeIssued()) {
             throw BusinessException(ErrorCode.COUPON_SOLD_OUT)
         }
         this.issuedQuantity++
@@ -27,7 +27,7 @@ data class Coupon(
     }
 
     fun restore() {
-        if (this.issuedQuantity <= 0) {
+        if (issuedQuantity <= 0) {
             throw BusinessException(ErrorCode.COUPON_NOT_FOUND)
         }
         this.issuedQuantity--
@@ -41,6 +41,18 @@ data class Coupon(
         }
         return min(amount, discount)
     }
+    
+    fun isAvailable(): Boolean = hasRemainingQuantity() && !isExpired()
+    
+    fun hasRemainingQuantity(): Boolean = issuedQuantity < totalQuantity
+    
+    fun isExpired(): Boolean = LocalDateTime.now().isAfter(expiresAt)
+    
+    fun isSoldOut(): Boolean = issuedQuantity >= totalQuantity
+    
+    fun canBeIssued(): Boolean = hasRemainingQuantity() && !isExpired()
+    
+    fun getRemainingQuantity(): Int = totalQuantity - issuedQuantity
 
     fun toEntity(): CouponEntity {
         return CouponEntity(

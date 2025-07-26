@@ -64,7 +64,7 @@ class OrderFacade(
             throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
         }
 
-        if (order.status != OrderStatus.PENDING) {
+        if (!order.isPending()) {
             throw BusinessException(ErrorCode.ORDER_ALREADY_PROCESSED)
         }
 

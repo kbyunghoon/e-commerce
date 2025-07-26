@@ -37,18 +37,28 @@ data class Order(
     }
 
     fun completeOrder() {
-        if (this.status != OrderStatus.PENDING) {
+        if (!isPending()) {
             throw BusinessException(ErrorCode.ORDER_ALREADY_PROCESSED)
         }
         this.status = OrderStatus.COMPLETED
     }
 
     fun cancelOrder() {
-        if (this.status == OrderStatus.CANCELLED) {
+        if (isCancelled()) {
             throw BusinessException(ErrorCode.ORDER_ALREADY_CANCELLED)
         }
         this.status = OrderStatus.CANCELLED
     }
+    
+    fun isPending(): Boolean = status == OrderStatus.PENDING
+    
+    fun isCompleted(): Boolean = status == OrderStatus.COMPLETED
+    
+    fun isCancelled(): Boolean = status == OrderStatus.CANCELLED
+    
+    fun canBeCompleted(): Boolean = isPending()
+    
+    fun canBeCancelled(): Boolean = !isCancelled()
 }
 
 data class OrderItem(
@@ -59,18 +69,28 @@ data class OrderItem(
     var status: OrderStatus = OrderStatus.PENDING,
 ) {
     fun completeOrder() {
-        if (this.status != OrderStatus.PENDING) {
+        if (!isPending()) {
             throw BusinessException(ErrorCode.ORDER_ALREADY_PROCESSED)
         }
         this.status = OrderStatus.COMPLETED
     }
 
     fun cancelOrder() {
-        if (this.status == OrderStatus.CANCELLED) {
+        if (isCancelled()) {
             throw BusinessException(ErrorCode.ORDER_ALREADY_CANCELLED)
         }
         this.status = OrderStatus.CANCELLED
     }
+    
+    fun isPending(): Boolean = status == OrderStatus.PENDING
+    
+    fun isCompleted(): Boolean = status == OrderStatus.COMPLETED
+    
+    fun isCancelled(): Boolean = status == OrderStatus.CANCELLED
+    
+    fun canBeCompleted(): Boolean = isPending()
+    
+    fun canBeCancelled(): Boolean = !isCancelled()
 }
 
 data class Payment(
