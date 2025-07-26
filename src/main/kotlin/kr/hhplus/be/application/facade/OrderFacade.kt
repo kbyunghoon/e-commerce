@@ -3,8 +3,7 @@ package kr.hhplus.be.application.facade
 import kr.hhplus.be.application.balance.BalanceDeductCommand
 import kr.hhplus.be.application.order.OrderCreateCommand
 import kr.hhplus.be.application.order.OrderDto
-import kr.hhplus.be.application.order.OrderDto.CalculatedOrderDetails
-import kr.hhplus.be.application.order.OrderDto.OrderCreateDto
+import kr.hhplus.be.application.order.OrderDto.*
 import kr.hhplus.be.application.order.PaymentOperationsStatus
 import kr.hhplus.be.application.order.PaymentProcessCommand
 import kr.hhplus.be.application.service.BalanceService
@@ -15,7 +14,6 @@ import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.OrderItem
 import kr.hhplus.be.domain.order.OrderStatus
-import kr.hhplus.be.presentation.dto.response.OrderResponse
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
@@ -28,13 +26,11 @@ class OrderFacade(
 ) {
 
     @Transactional
-    fun processOrder(request: OrderCreateCommand): OrderResponse {
+    fun processOrder(request: OrderCreateCommand): OrderDto.OrderInfo {
         val calculatedDetails = calculateOrderAmounts(request)
         val orderCreateDTO = toOrderCreateDto(request, calculatedDetails)
 
-        val createdOrder = orderService.createOrder(orderCreateDTO)
-
-        return OrderResponse.from(createdOrder)
+        return orderService.createOrder(orderCreateDTO)
     }
 
     private fun toOrderCreateDto(request: OrderCreateCommand, details: CalculatedOrderDetails): OrderCreateDto {
@@ -61,7 +57,7 @@ class OrderFacade(
     }
 
     @Transactional
-    fun processPayment(request: PaymentProcessCommand): OrderResponse {
+    fun processPayment(request: PaymentProcessCommand): OrderDto.OrderInfo {
         val order = orderService.getOrder(request.orderId)
 
         if (order.userId != request.userId) {
@@ -81,8 +77,8 @@ class OrderFacade(
                 items = order.orderItems,
                 paymentStatus = paymentStatus
             )
-            val completedOrder = orderService.completePayment(request.orderId)
-            return OrderResponse.from(completedOrder)
+
+            return orderService.completePayment(request.orderId)
         } catch (e: Exception) {
             rollbackPaymentOperations(
                 userId = order.userId,
@@ -150,9 +146,7 @@ class OrderFacade(
     }
 
     @Transactional(readOnly = true)
-    fun getOrder(userId: Long, orderId: Long): OrderResponse {
-        val order = orderService.getOrder(orderId)
-
-        return OrderResponse.from(order)
+    fun getOrder(userId: Long, orderId: Long): OrderDto.OrderInfo {
+        return orderService.getOrder(orderId)
     }
 }

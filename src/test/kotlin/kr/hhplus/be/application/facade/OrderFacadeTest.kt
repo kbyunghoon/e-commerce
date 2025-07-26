@@ -68,7 +68,7 @@ class OrderFacadeTest : BehaviorSpec({
             val response = orderFacade.processOrder(request)
 
             Then("할인 없이 주문이 생성되고, 생성된 주문 정보를 반환한다") {
-                response.orderId shouldBe orderId
+                response.id shouldBe orderId
                 response.finalAmount shouldBe totalAmount
                 response.status shouldBe OrderStatus.PENDING
 
@@ -102,7 +102,7 @@ class OrderFacadeTest : BehaviorSpec({
             val response = orderFacade.processOrder(request)
 
             Then("할인이 적용된 주문이 생성되고, 생성된 주문 정보를 반환한다") {
-                response.orderId shouldBe orderId
+                response.id shouldBe orderId
                 response.finalAmount shouldBe finalAmount
                 response.discountAmount shouldBe discountAmount
 
@@ -161,7 +161,7 @@ class OrderFacadeTest : BehaviorSpec({
 
             Then("결제 관련 작업(잔액 차감, 재고 차감, 쿠폰 사용)을 수행하고, 주문 상태를 COMPLETED로 변경한다") {
                 response.status shouldBe OrderStatus.COMPLETED
-                response.orderId shouldBe orderId
+                response.id shouldBe orderId
 
                 verify { orderService.getOrder(orderId) }
                 verify { balanceService.use(any()) }
@@ -288,7 +288,7 @@ class OrderFacadeTest : BehaviorSpec({
             val response = orderFacade.getOrder(userId, orderId)
 
             Then("해당 주문 정보를 반환한다") {
-                response.orderId shouldBe orderId
+                response.id shouldBe orderId
                 response.finalAmount shouldBe 10000
 
                 verify { orderService.getOrder(orderId) }

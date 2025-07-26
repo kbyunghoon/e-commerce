@@ -8,10 +8,10 @@ import io.mockk.every
 import io.mockk.verify
 import kr.hhplus.be.application.balance.BalanceDto.BalanceInfo
 import kr.hhplus.be.application.facade.BalanceFacade
+import kr.hhplus.be.application.facade.BalanceFacade.BalanceChargeResult
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.presentation.dto.request.BalanceChargeRequest
-import kr.hhplus.be.presentation.dto.response.BalanceChargeResponse
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -42,7 +42,7 @@ class BalanceControllerTest(
                 val request = BalanceChargeRequest(userId, chargeAmount)
                 val now = LocalDateTime.now()
 
-                val mockResponse = BalanceChargeResponse(
+                val mockResponse = BalanceChargeResult(
                     userId = userId,
                     balance = 15000,
                     chargedAmount = chargeAmount,
