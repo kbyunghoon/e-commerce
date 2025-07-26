@@ -87,9 +87,9 @@ class BalanceControllerTest(
                     result.andExpect(status().isBadRequest)
                         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                         .andExpect(jsonPath("$.success").value(false))
-                        .andExpect(jsonPath("$.error.code").value("CHARGE_INVALID_AMOUNT"))
+                        .andExpect(jsonPath("$.error.code").value("INVALID_INPUT_VALUE"))
 
-                    verify(exactly = 1) { balanceFacade.chargeBalance(any()) }
+                    verify(exactly = 0) { balanceFacade.chargeBalance(any()) }
                 }
             }
 
@@ -110,9 +110,9 @@ class BalanceControllerTest(
                     result.andExpect(status().isBadRequest)
                         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                         .andExpect(jsonPath("$.success").value(false))
-                        .andExpect(jsonPath("$.error.code").value("CHARGE_INVALID_AMOUNT"))
+                        .andExpect(jsonPath("$.error.code").value("INVALID_INPUT_VALUE"))
 
-                    verify(exactly = 1) { balanceFacade.chargeBalance(any()) }
+                    verify(exactly = 0) { balanceFacade.chargeBalance(any()) }
                 }
             }
 

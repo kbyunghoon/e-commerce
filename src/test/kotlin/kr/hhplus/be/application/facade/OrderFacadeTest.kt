@@ -151,7 +151,7 @@ class OrderFacadeTest : BehaviorSpec({
         When("유효한 결제 요청을 처리하면") {
             val request = PaymentProcessCommand(userId = userId, orderId = orderId)
 
-            every { orderService.getOrder(orderId) } returns pendingOrder
+            every { orderService.getOrderForPayment(orderId = orderId, userId = userId) } returns pendingOrder
             every { balanceService.use(any()) } returns mockk()
             every { productService.deductStock(any(), any()) } returns Unit
             every { couponService.use(userId, couponId) } returns mockk()
@@ -163,7 +163,7 @@ class OrderFacadeTest : BehaviorSpec({
                 response.status shouldBe OrderStatus.COMPLETED
                 response.id shouldBe orderId
 
-                verify { orderService.getOrder(orderId) }
+                verify { orderService.getOrderForPayment(orderId = orderId, userId = userId) }
                 verify { balanceService.use(any()) }
                 verify { productService.deductStock(1L, 1) }
                 verify { productService.deductStock(2L, 1) }
@@ -175,7 +175,7 @@ class OrderFacadeTest : BehaviorSpec({
         When("결제 처리 중 첫 번째 상품의 재고 차감에 실패하면") {
             val request = PaymentProcessCommand(userId = userId, orderId = orderId)
 
-            every { orderService.getOrder(orderId) } returns pendingOrder
+            every { orderService.getOrderForPayment(orderId = orderId, userId = userId) } returns pendingOrder
             every { balanceService.use(any()) } returns mockk()
             every {
                 productService.deductStock(
@@ -195,7 +195,7 @@ class OrderFacadeTest : BehaviorSpec({
             Then("잔액이 복구되고, 재고 및 쿠폰은 복구되지 않으며 예외가 다시 발생한다") {
                 exception.errorCode shouldBe ErrorCode.INSUFFICIENT_STOCK
 
-                verify { orderService.getOrder(orderId) }
+                verify { orderService.getOrderForPayment(orderId = orderId, userId = userId) }
                 verify { balanceService.use(any()) }
                 verify { productService.deductStock(orderItems[0].productId, orderItems[0].quantity) }
 
@@ -208,7 +208,7 @@ class OrderFacadeTest : BehaviorSpec({
         When("결제 처리 중 쿠폰 사용에 실패하면") {
             val request = PaymentProcessCommand(userId = userId, orderId = orderId)
 
-            every { orderService.getOrder(orderId) } returns pendingOrder
+            every { orderService.getOrderForPayment(orderId = orderId, userId = userId) } returns pendingOrder
             every { balanceService.use(any()) } returns mockk()
             every { productService.deductStock(any(), any()) } returns Unit
             every { couponService.use(userId, couponId) } throws BusinessException(ErrorCode.COUPON_NOT_AVAILABLE)
@@ -224,7 +224,7 @@ class OrderFacadeTest : BehaviorSpec({
             Then("잔액과 모든 상품 재고가 복구되고 예외가 다시 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_NOT_AVAILABLE
 
-                verify { orderService.getOrder(orderId) }
+                verify { orderService.getOrderForPayment(orderId = orderId, userId = userId) }
                 verify { balanceService.use(any()) }
                 verify { productService.deductStock(orderItems[0].productId, orderItems[0].quantity) }
                 verify { productService.deductStock(orderItems[1].productId, orderItems[1].quantity) }
@@ -241,7 +241,7 @@ class OrderFacadeTest : BehaviorSpec({
             val anotherUserId = 2L
             val request = PaymentProcessCommand(userId = anotherUserId, orderId = orderId)
 
-            every { orderService.getOrder(orderId) } returns pendingOrder
+            every { orderService.getOrderForPayment(orderId = orderId, userId = anotherUserId) } throws BusinessException(ErrorCode.ORDER_NOT_FOUND)
 
             val exception = shouldThrow<BusinessException> {
                 orderFacade.processPayment(request)
@@ -249,14 +249,15 @@ class OrderFacadeTest : BehaviorSpec({
 
             Then("ORDER_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.ORDER_NOT_FOUND
+                
+                verify { orderService.getOrderForPayment(orderId = orderId, userId = anotherUserId) }
             }
         }
 
         When("이미 처리된 주문에 대해 결제를 시도하면") {
             val request = PaymentProcessCommand(userId = userId, orderId = orderId)
-            val alreadyProcessedOrder = pendingOrder.copy(status = OrderStatus.COMPLETED)
 
-            every { orderService.getOrder(orderId) } returns alreadyProcessedOrder
+            every { orderService.getOrderForPayment(orderId = orderId, userId = userId) } throws BusinessException(ErrorCode.ORDER_ALREADY_PROCESSED)
 
             val exception = shouldThrow<BusinessException> {
                 orderFacade.processPayment(request)
@@ -264,6 +265,8 @@ class OrderFacadeTest : BehaviorSpec({
 
             Then("ORDER_ALREADY_PROCESSED 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.ORDER_ALREADY_PROCESSED
+                
+                verify { orderService.getOrderForPayment(orderId = orderId, userId = userId) }
             }
         }
     }

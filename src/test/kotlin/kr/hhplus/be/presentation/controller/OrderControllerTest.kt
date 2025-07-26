@@ -14,6 +14,7 @@ import kr.hhplus.be.application.order.OrderItemCreateCommand
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.OrderStatus
+import kr.hhplus.be.presentation.dto.request.OrderItemRequest
 import kr.hhplus.be.presentation.dto.request.OrderRequest
 import kr.hhplus.be.presentation.dto.request.PaymentRequest
 import org.springframework.beans.factory.annotation.Autowired
@@ -45,8 +46,8 @@ class OrderControllerTest(
 
                 val userId = 1L
                 val items = listOf(
-                    OrderItemCreateCommand(productId = 1L, quantity = 2),
-                    OrderItemCreateCommand(productId = 2L, quantity = 1)
+                    OrderItemRequest(productId = 1L, quantity = 2),
+                    OrderItemRequest(productId = 2L, quantity = 1)
                 )
                 val request = OrderRequest(
                     userId = userId,
@@ -108,7 +109,7 @@ class OrderControllerTest(
                 val userId = 1L
                 val couponId = 1L
                 val items = listOf(
-                    OrderItemCreateCommand(productId = 1L, quantity = 1)
+                    OrderItemRequest(productId = 1L, quantity = 1)
                 )
                 val request = OrderRequest(
                     userId = userId,
@@ -178,9 +179,9 @@ class OrderControllerTest(
                     result.andExpect(status().isBadRequest)
                         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                         .andExpect(jsonPath("$.success").value(false))
-                        .andExpect(jsonPath("$.error.code").value("ORDER_ITEMS_CANNOT_BE_EMPTY"))
+                        .andExpect(jsonPath("$.error.code").value("INVALID_INPUT_VALUE"))
 
-                    verify(exactly = 1) { orderFacade.processOrder(any()) }
+                    verify(exactly = 0) { orderFacade.processOrder(any()) }
                 }
             }
 
@@ -189,7 +190,7 @@ class OrderControllerTest(
 
                 val userId = 1L
                 val items = listOf(
-                    OrderItemCreateCommand(productId = 999L, quantity = 1)
+                    OrderItemRequest(productId = 999L, quantity = 1)
                 )
                 val request = OrderRequest(
                     userId = userId,
@@ -220,7 +221,7 @@ class OrderControllerTest(
 
                 val userId = 1L
                 val items = listOf(
-                    OrderItemCreateCommand(productId = 1L, quantity = 100)
+                    OrderItemRequest(productId = 1L, quantity = 100)
                 )
                 val request = OrderRequest(
                     userId = userId,

@@ -24,7 +24,7 @@ class OrderServiceTest : BehaviorSpec({
 
     Given("주문 생성(createOrder) 시나리오") {
         val userId = 1L
-        val orderItems = listOf(OrderItem(productId = 1L, quantity = 10000, pricePerItem = 1))
+        val orderItems = listOf(OrderItem(productId = 1L, quantity = 10, pricePerItem = 10000))
         val originalAmount = 10000
         val discountAmount = 0
         val finalAmount = 10000
@@ -69,7 +69,7 @@ class OrderServiceTest : BehaviorSpec({
     Given("주문 완료(completeOrder) 시나리오") {
         val orderId = 1L
         val userId = 1L
-        val orderItems = listOf(OrderItem(orderId = orderId, productId = 1L, quantity = 10000, pricePerItem = 1))
+        val orderItems = listOf(OrderItem(orderId = orderId, productId = 1L, quantity = 10, pricePerItem = 10000))
         val originalAmount = 10000
         val discountAmount = 0
         val finalAmount = 10000
@@ -152,7 +152,7 @@ class OrderServiceTest : BehaviorSpec({
     Given("주문 취소(cancelOrder) 시나리오") {
         val orderId = 1L
         val userId = 1L
-        val orderItems = listOf(OrderItem(orderId = orderId, productId = 1L, quantity = 10000, pricePerItem = 1))
+        val orderItems = listOf(OrderItem(orderId = orderId, productId = 1L, quantity = 10, pricePerItem = 10000))
         val originalAmount = 10000
         val discountAmount = 0
         val finalAmount = 10000
@@ -233,7 +233,7 @@ class OrderServiceTest : BehaviorSpec({
     Given("주문 조회(getOrder) 시나리오") {
         val orderId = 1L
         val userId = 1L
-        val orderItems = listOf(OrderItem(orderId = orderId, productId = 1L, quantity = 10000, pricePerItem = 1))
+        val orderItems = listOf(OrderItem(orderId = orderId, productId = 1L, quantity = 10, pricePerItem = 10000))
         val originalAmount = 10000
         val discountAmount = 0
         val finalAmount = 10000
@@ -281,7 +281,7 @@ class OrderServiceTest : BehaviorSpec({
     Given("결제 완료(completePayment) 시나리오") {
         val orderId = 1L
         val userId = 1L
-        val orderItems = listOf(OrderItem(orderId = orderId, productId = 1L, quantity = 10000, pricePerItem = 1))
+        val orderItems = listOf(OrderItem(orderId = orderId, productId = 1L, quantity = 10, pricePerItem = 10000))
         val originalAmount = 10000
         val discountAmount = 0
         val finalAmount = 10000
