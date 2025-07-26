@@ -1,5 +1,6 @@
 package kr.hhplus.be.presentation.controller
 
+import jakarta.validation.Valid
 import kr.hhplus.be.application.facade.OrderFacade
 import kr.hhplus.be.application.order.OrderCreateCommand
 import kr.hhplus.be.application.order.OrderItemCreateCommand
@@ -21,15 +22,10 @@ class OrderController(
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    override fun createOrder(@RequestBody request: OrderRequest): BaseResponse<OrderResponse> {
+    override fun createOrder(@RequestBody @Valid request: OrderRequest): BaseResponse<OrderResponse> {
         val command = OrderCreateCommand(
             userId = request.userId,
-            items = request.items.map { 
-                OrderItemCreateCommand(
-                    productId = it.productId,
-                    quantity = it.quantity
-                )
-            },
+            items = request.items.map { it.toCommand() },
             couponId = request.couponId
         )
         
@@ -42,7 +38,7 @@ class OrderController(
     @PostMapping("/{orderId}/pay")
     override fun pay(
         @PathVariable orderId: String,
-        @RequestBody request: PaymentRequest
+        @RequestBody @Valid request: PaymentRequest
     ): BaseResponse<PaymentResponse> {
         val command = PaymentProcessCommand(
             orderId = request.orderId,

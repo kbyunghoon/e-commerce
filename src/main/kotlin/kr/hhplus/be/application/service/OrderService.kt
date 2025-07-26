@@ -25,12 +25,11 @@ class OrderService(
         val savedOrder = orderRepository.save(order)
 
         val orderItems = dto.items.map { itemDto ->
-            OrderItem(
-                orderId = savedOrder.id!!,
+            OrderItem.create(
                 productId = itemDto.productId,
                 quantity = itemDto.quantity,
                 pricePerItem = itemDto.pricePerItem,
-                status = OrderStatus.PENDING
+                orderId = savedOrder.id!!
             )
         }
 
@@ -64,6 +63,27 @@ class OrderService(
 
         val orderItems = orderItemRepository.findByOrderId(orderId)
 
+        return OrderInfo.from(order, orderItems)
+    }
+    
+    fun getDomainOrder(orderId: Long): Order {
+        return orderRepository.findById(orderId)
+            ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+    }
+    
+    fun getOrderForPayment(orderId: Long, userId: Long): OrderInfo {
+        val order = orderRepository.findById(orderId)
+            ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+
+        if (order.userId != userId) {
+            throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+        }
+
+        if (!order.isPending()) {
+            throw BusinessException(ErrorCode.ORDER_ALREADY_PROCESSED)
+        }
+
+        val orderItems = orderItemRepository.findByOrderId(orderId)
         return OrderInfo.from(order, orderItems)
     }
 

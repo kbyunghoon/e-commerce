@@ -24,5 +24,9 @@ data class BaseResponse<T>(
         fun <T> error(errorCode: ErrorCode): BaseResponse<T> {
             return BaseResponse(success = false, error = ErrorResponse(errorCode))
         }
+        
+        fun <T> error(code: String, message: String): BaseResponse<T> {
+            return BaseResponse(success = false, error = ErrorResponse(code, message))
+        }
     }
 }

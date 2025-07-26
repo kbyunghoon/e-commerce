@@ -58,15 +58,7 @@ class OrderFacade(
 
     @Transactional
     fun processPayment(request: PaymentProcessCommand): OrderDto.OrderInfo {
-        val order = orderService.getOrder(request.orderId)
-
-        if (order.userId != request.userId) {
-            throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
-        }
-
-        if (!order.isPending()) {
-            throw BusinessException(ErrorCode.ORDER_ALREADY_PROCESSED)
-        }
+        val order = orderService.getOrderForPayment(request.orderId, request.userId)
 
         val paymentStatus = PaymentOperationsStatus()
         try {
