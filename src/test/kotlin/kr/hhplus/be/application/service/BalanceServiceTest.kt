@@ -35,7 +35,7 @@ class BalanceServiceTest : BehaviorSpec({
             val command = BalanceChargeCommand(userId, chargeAmount)
             val expectedBalance = initialBalance + chargeAmount
 
-            every { userRepository.findById(userId) } returns user
+            every { userRepository.findByIdOrThrow(userId) } returns user
             every { userRepository.save(any()) } answers { it.invocation.args[0] as User }
 
             val result = balanceService.charge(command)
@@ -43,7 +43,7 @@ class BalanceServiceTest : BehaviorSpec({
             Then("사용자의 잔액이 증가하고, 업데이트된 잔액 정보가 반환된다") {
                 result.userId shouldBe userId
                 result.amount shouldBe expectedBalance
-                verify(exactly = 1) { userRepository.findById(userId) }
+                verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
                 verify(exactly = 1) { userRepository.save(any()) }
             }
         }
@@ -58,7 +58,7 @@ class BalanceServiceTest : BehaviorSpec({
 
             Then("CHARGE_INVALID_AMOUNT 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.CHARGE_INVALID_AMOUNT
-                verify(exactly = 0) { userRepository.findById(any()) }
+                verify(exactly = 0) { userRepository.findByIdOrThrow(any()) }
                 verify(exactly = 0) { userRepository.save(any()) }
             }
         }
@@ -67,7 +67,7 @@ class BalanceServiceTest : BehaviorSpec({
             val chargeAmount = 5000
             val command = BalanceChargeCommand(userId, chargeAmount)
 
-            every { userRepository.findById(userId) } returns null
+            every { userRepository.findByIdOrThrow(userId) } throws BusinessException(ErrorCode.USER_NOT_FOUND)
 
             val exception = shouldThrow<BusinessException> {
                 balanceService.charge(command)
@@ -75,7 +75,7 @@ class BalanceServiceTest : BehaviorSpec({
 
             Then("USER_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.USER_NOT_FOUND
-                verify(exactly = 1) { userRepository.findById(userId) }
+                verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
                 verify(exactly = 0) { userRepository.save(any()) }
             }
         }
@@ -91,7 +91,7 @@ class BalanceServiceTest : BehaviorSpec({
             val command = BalanceDeductCommand(userId, deductAmount)
             val expectedBalance = initialBalance - deductAmount
 
-            every { userRepository.findById(userId) } returns user
+            every { userRepository.findByIdOrThrow(userId) } returns user
             every { userRepository.save(any()) } answers { it.invocation.args[0] as User }
 
             val result = balanceService.use(command)
@@ -99,7 +99,7 @@ class BalanceServiceTest : BehaviorSpec({
             Then("사용자의 잔액이 감소하고, 업데이트된 잔액 정보가 반환된다") {
                 result.userId shouldBe userId
                 result.amount shouldBe expectedBalance
-                verify(exactly = 1) { userRepository.findById(userId) }
+                verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
                 verify(exactly = 1) { userRepository.save(any()) }
             }
         }
@@ -108,14 +108,14 @@ class BalanceServiceTest : BehaviorSpec({
             val deductAmount = 0
             val command = BalanceDeductCommand(userId, deductAmount)
 
-            every { userRepository.findById(userId) } returns user
+            every { userRepository.findByIdOrThrow(userId) } returns user
             val exception = shouldThrow<BusinessException> {
                 balanceService.use(command)
             }
 
             Then("DEDUCT_INVALID_AMOUNT 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.DEDUCT_INVALID_AMOUNT
-                verify(exactly = 1) { userRepository.findById(any()) }
+                verify(exactly = 1) { userRepository.findByIdOrThrow(any()) }
                 verify(exactly = 0) { userRepository.save(any()) }
             }
         }
@@ -124,7 +124,7 @@ class BalanceServiceTest : BehaviorSpec({
             val deductAmount = 15000
             val command = BalanceDeductCommand(userId, deductAmount)
 
-            every { userRepository.findById(userId) } returns user
+            every { userRepository.findByIdOrThrow(userId) } returns user
 
             val exception = shouldThrow<BusinessException> {
                 balanceService.use(command)
@@ -132,7 +132,7 @@ class BalanceServiceTest : BehaviorSpec({
 
             Then("INSUFFICIENT_BALANCE 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.INSUFFICIENT_BALANCE
-                verify(exactly = 1) { userRepository.findById(userId) }
+                verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
                 verify(exactly = 0) { userRepository.save(any()) }
             }
         }
@@ -141,7 +141,8 @@ class BalanceServiceTest : BehaviorSpec({
             val deductAmount = 5000
             val command = BalanceDeductCommand(userId, deductAmount)
 
-            every { userRepository.findById(userId) } returns null
+            every { userRepository.findByIdOrThrow(userId) } throws BusinessException(ErrorCode.USER_NOT_FOUND)
+
 
             val exception = shouldThrow<BusinessException> {
                 balanceService.use(command)
@@ -149,7 +150,7 @@ class BalanceServiceTest : BehaviorSpec({
 
             Then("USER_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.USER_NOT_FOUND
-                verify(exactly = 1) { userRepository.findById(userId) }
+                verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
                 verify(exactly = 0) { userRepository.save(any()) }
             }
         }
@@ -161,19 +162,19 @@ class BalanceServiceTest : BehaviorSpec({
         val user = User(id = userId, name = "Test User", email = "test@test.com", balance = balance)
 
         When("존재하는 사용자 ID로 잔액 조회를 요청하면") {
-            every { userRepository.findById(userId) } returns user
+            every { userRepository.findByIdOrThrow(userId) } returns user
 
             val result = balanceService.getBalance(userId)
 
             Then("사용자의 현재 잔액 정보가 반환된다") {
                 result.userId shouldBe userId
                 result.amount shouldBe balance
-                verify(exactly = 1) { userRepository.findById(userId) }
+                verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
             }
         }
 
         When("존재하지 않는 사용자 ID로 잔액 조회를 요청하면") {
-            every { userRepository.findById(userId) } returns null
+            every { userRepository.findByIdOrThrow(userId) } throws BusinessException(ErrorCode.USER_NOT_FOUND)
 
             val exception = shouldThrow<BusinessException> {
                 balanceService.getBalance(userId)
@@ -181,7 +182,7 @@ class BalanceServiceTest : BehaviorSpec({
 
             Then("USER_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.USER_NOT_FOUND
-                verify(exactly = 1) { userRepository.findById(userId) }
+                verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
             }
         }
     }

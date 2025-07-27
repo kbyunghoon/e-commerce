@@ -20,8 +20,7 @@ class CouponService(
 ) {
 
     fun issue(command: CouponIssueCommand): UserCouponInfo {
-        val coupon = couponRepository.findById(command.couponId)
-            ?: throw BusinessException(ErrorCode.COUPON_NOT_FOUND)
+        val coupon = couponRepository.findByIdOrThrow(command.couponId)
 
         if (coupon.isExpired()) {
             throw BusinessException(ErrorCode.COUPON_EXPIRED)
@@ -63,7 +62,7 @@ class CouponService(
     }
 
     fun calculateDiscount(userId: Long, couponId: Long, originalAmount: Int): Int {
-        val coupon = couponRepository.findById(couponId) ?: throw BusinessException(ErrorCode.COUPON_NOT_FOUND)
+        val coupon = couponRepository.findByIdOrThrow(couponId)
 
         val discount = when (coupon.discountType) {
             DiscountType.PERCENTAGE -> originalAmount * coupon.discountValue / 100
@@ -77,8 +76,7 @@ class CouponService(
         val userCoupons = userCouponRepository.findByUserId(userId)
 
         return userCoupons.map { userCoupon ->
-            val coupon = couponRepository.findById(userCoupon.couponId)
-                ?: throw BusinessException(ErrorCode.COUPON_NOT_FOUND)
+            val coupon = couponRepository.findByIdOrThrow(userCoupon.couponId)
 
             UserCouponInfo.from(userCoupon, coupon)
         }
@@ -88,8 +86,7 @@ class CouponService(
         val userCoupon = userCouponRepository.findByUserIdAndCouponId(userId, couponId)
             ?: throw BusinessException(ErrorCode.USER_COUPON_NOT_FOUND)
 
-        val coupon = couponRepository.findById(userCoupon.couponId)
-            ?: throw BusinessException(ErrorCode.COUPON_NOT_FOUND)
+        val coupon = couponRepository.findByIdOrThrow(userCoupon.couponId)
 
         if (coupon.isExpired()) {
             userCoupon.expire()

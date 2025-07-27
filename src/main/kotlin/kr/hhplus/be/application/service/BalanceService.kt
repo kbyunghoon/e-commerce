@@ -23,7 +23,7 @@ class BalanceService(
             throw BusinessException(ErrorCode.CHARGE_INVALID_AMOUNT)
         }
 
-        val user = userRepository.findById(command.userId) ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+        val user = userRepository.findByIdOrThrow(command.userId)
 
         user.chargeBalance(command.amount)
         val updatedUser = userRepository.save(user)
@@ -32,7 +32,7 @@ class BalanceService(
     }
 
     fun use(command: BalanceDeductCommand): BalanceInfo {
-        val user = userRepository.findById(command.userId) ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+        val user = userRepository.findByIdOrThrow(command.userId)
 
         user.deductBalance(command.amount)
         val updatedUser = userRepository.save(user)
@@ -41,7 +41,7 @@ class BalanceService(
     }
 
     fun getBalance(userId: Long): BalanceInfo {
-        val user = userRepository.findById(userId) ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+        val user = userRepository.findByIdOrThrow(userId)
 
         return BalanceInfo.from(user)
     }
@@ -71,7 +71,7 @@ class BalanceService(
     }
 
     fun refund(userId: Long, amount: Int): BalanceInfo {
-        val user = userRepository.findById(userId) ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+        val user = userRepository.findByIdOrThrow(userId)
         val currentAmount = user.balance
         user.chargeBalance(amount)
         val updatedUser = userRepository.save(user)

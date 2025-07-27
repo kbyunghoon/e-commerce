@@ -31,8 +31,7 @@ class ProductService(
     }
 
     fun getProduct(productId: Long): ProductDto.ProductInfo {
-        val product = productRepository.findById(productId)
-            ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+        val product = productRepository.findByIdOrThrow(productId)
 
         return ProductDto.ProductInfo.from(product)
     }
@@ -77,16 +76,14 @@ class ProductService(
     }
 
     fun deductStock(productId: Long, quantity: Int) {
-        val product = productRepository.findById(productId)
-            ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+        val product = productRepository.findByIdOrThrow(productId)
 
         product.deductStock(quantity)
         productRepository.save(product)
     }
 
     fun restoreStock(productId: Long, quantity: Int) {
-        val product = productRepository.findById(productId)
-            ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+        val product = productRepository.findByIdOrThrow(productId)
 
         product.addStock(quantity)
         productRepository.save(product)

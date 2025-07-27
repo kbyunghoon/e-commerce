@@ -93,7 +93,7 @@ class OrderServiceTest : BehaviorSpec({
 
             every { orderItemRepository.saveAll(any()) } returns completedOrderItems
 
-            every { orderRepository.findById(orderId) } returns pendingOrder
+            every { orderRepository.findByIdOrThrow(orderId) } returns pendingOrder
             every { orderRepository.save(any()) } returns completedOrder
             every { orderItemRepository.findByOrderId(any()) } returns orderItems
             every { orderItemRepository.saveAll(any()) } returns completedOrderItems
@@ -103,7 +103,7 @@ class OrderServiceTest : BehaviorSpec({
             Then("주문 상태가 COMPLETED로 변경되고, 업데이트된 주문 정보가 반환된다") {
                 result.id shouldBe orderId
                 result.status shouldBe OrderStatus.COMPLETED
-                verify(exactly = 1) { orderRepository.findById(orderId) }
+                verify(exactly = 1) { orderRepository.findByIdOrThrow(orderId) }
                 verify(exactly = 1) { orderRepository.save(any()) }
                 verify(exactly = 1) { orderItemRepository.findByOrderId(orderId) }
                 verify(exactly = 1) { orderItemRepository.saveAll(any()) }
@@ -111,7 +111,7 @@ class OrderServiceTest : BehaviorSpec({
         }
 
         When("존재하지 않는 주문 ID로 주문 완료를 요청하면") {
-            every { orderRepository.findById(orderId) } returns null
+            every { orderRepository.findByIdOrThrow(orderId) } throws BusinessException(ErrorCode.ORDER_NOT_FOUND)
 
             val exception = shouldThrow<BusinessException> {
                 orderService.completePayment(orderId)
@@ -119,7 +119,7 @@ class OrderServiceTest : BehaviorSpec({
 
             Then("ORDER_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.ORDER_NOT_FOUND
-                verify(exactly = 1) { orderRepository.findById(orderId) }
+                verify(exactly = 1) { orderRepository.findByIdOrThrow(orderId) }
                 verify(exactly = 0) { orderRepository.save(any()) }
             }
         }
@@ -135,7 +135,7 @@ class OrderServiceTest : BehaviorSpec({
                 userCouponId = couponId,
                 orderedAt = now
             )
-            every { orderRepository.findById(orderId) } returns completedOrder
+            every { orderRepository.findByIdOrThrow(orderId) } returns completedOrder
 
             val exception = shouldThrow<BusinessException> {
                 orderService.completePayment(orderId)
@@ -143,7 +143,7 @@ class OrderServiceTest : BehaviorSpec({
 
             Then("ORDER_ALREADY_PROCESSED 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.ORDER_ALREADY_PROCESSED
-                verify(exactly = 1) { orderRepository.findById(orderId) }
+                verify(exactly = 1) { orderRepository.findByIdOrThrow(orderId) }
                 verify(exactly = 0) { orderRepository.save(any()) }
             }
         }
@@ -174,7 +174,7 @@ class OrderServiceTest : BehaviorSpec({
 
             val cancelledOrderItems = orderItems.map { it.copy(status = OrderStatus.CANCELLED) }
 
-            every { orderRepository.findById(orderId) } returns pendingOrder
+            every { orderRepository.findByIdOrThrow(orderId) } returns pendingOrder
             every { orderRepository.save(any()) } returns cancelledOrder
             every { orderItemRepository.findByOrderId(any()) } returns orderItems
             every { orderItemRepository.saveAll(any()) } returns cancelledOrderItems
@@ -184,7 +184,7 @@ class OrderServiceTest : BehaviorSpec({
             Then("주문 상태가 CANCELLED로 변경되고, 업데이트된 주문 정보가 반환된다") {
                 result.id shouldBe orderId
                 result.status shouldBe OrderStatus.CANCELLED
-                verify(exactly = 1) { orderRepository.findById(orderId) }
+                verify(exactly = 1) { orderRepository.findByIdOrThrow(orderId) }
                 verify(exactly = 1) { orderRepository.save(any()) }
                 verify(exactly = 1) { orderItemRepository.findByOrderId(orderId) }
                 verify(exactly = 1) { orderItemRepository.saveAll(any()) }
@@ -192,7 +192,7 @@ class OrderServiceTest : BehaviorSpec({
         }
 
         When("존재하지 않는 주문 ID로 주문 취소를 요청하면") {
-            every { orderRepository.findById(orderId) } returns null
+            every { orderRepository.findByIdOrThrow(orderId) } throws BusinessException(ErrorCode.ORDER_NOT_FOUND)
 
             val exception = shouldThrow<BusinessException> {
                 orderService.cancelOrder(orderId)
@@ -200,7 +200,7 @@ class OrderServiceTest : BehaviorSpec({
 
             Then("ORDER_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.ORDER_NOT_FOUND
-                verify(exactly = 1) { orderRepository.findById(orderId) }
+                verify(exactly = 1) { orderRepository.findByIdOrThrow(orderId) }
                 verify(exactly = 0) { orderRepository.save(any()) }
             }
         }
@@ -216,7 +216,7 @@ class OrderServiceTest : BehaviorSpec({
                 userCouponId = couponId,
                 orderedAt = now
             )
-            every { orderRepository.findById(orderId) } returns cancelledOrder
+            every { orderRepository.findByIdOrThrow(orderId) } returns cancelledOrder
 
             val exception = shouldThrow<BusinessException> {
                 orderService.cancelOrder(orderId)
@@ -224,7 +224,7 @@ class OrderServiceTest : BehaviorSpec({
 
             Then("ORDER_ALREADY_CANCELLED 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.ORDER_ALREADY_CANCELLED
-                verify(exactly = 1) { orderRepository.findById(orderId) }
+                verify(exactly = 1) { orderRepository.findByIdOrThrow(orderId) }
                 verify(exactly = 0) { orderRepository.save(any()) }
             }
         }
@@ -251,7 +251,7 @@ class OrderServiceTest : BehaviorSpec({
                 userCouponId = couponId,
                 orderedAt = now
             )
-            every { orderRepository.findById(orderId) } returns order
+            every { orderRepository.findByIdOrThrow(orderId) } returns order
             every { orderItemRepository.findByOrderId(orderId) } returns orderItems
 
             val result = orderService.getOrder(orderId)
@@ -259,13 +259,13 @@ class OrderServiceTest : BehaviorSpec({
             Then("해당 주문 정보가 반환된다") {
                 result.id shouldBe orderId
                 result.finalAmount shouldBe finalAmount
-                verify(exactly = 1) { orderRepository.findById(orderId) }
+                verify(exactly = 1) { orderRepository.findByIdOrThrow(orderId) }
                 verify(exactly = 1) { orderItemRepository.findByOrderId(orderId) }
             }
         }
 
         When("존재하지 않는 주문 ID로 조회를 요청하면") {
-            every { orderRepository.findById(orderId) } returns null
+            every { orderRepository.findByIdOrThrow(orderId) } throws BusinessException(ErrorCode.ORDER_NOT_FOUND)
 
             val exception = shouldThrow<BusinessException> {
                 orderService.getOrder(orderId)
@@ -273,7 +273,7 @@ class OrderServiceTest : BehaviorSpec({
 
             Then("ORDER_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.ORDER_NOT_FOUND
-                verify(exactly = 1) { orderRepository.findById(orderId) }
+                verify(exactly = 1) { orderRepository.findByIdOrThrow(orderId) }
             }
         }
     }
@@ -302,7 +302,7 @@ class OrderServiceTest : BehaviorSpec({
             val completedOrder = pendingOrder.copy(status = OrderStatus.COMPLETED)
             val completedOrderItems = orderItems.map { it.copy(status = OrderStatus.COMPLETED) }
 
-            every { orderRepository.findById(orderId) } returns pendingOrder
+            every { orderRepository.findByIdOrThrow(orderId) } returns pendingOrder
             every { orderRepository.save(any()) } returns completedOrder
             every { orderItemRepository.findByOrderId(any()) } returns orderItems
             every { orderItemRepository.saveAll(any()) } returns completedOrderItems
@@ -312,7 +312,7 @@ class OrderServiceTest : BehaviorSpec({
             Then("주문 상태가 COMPLETED로 변경되고, 업데이트된 주문 정보가 반환된다") {
                 result.id shouldBe orderId
                 result.status shouldBe OrderStatus.COMPLETED
-                verify(exactly = 1) { orderRepository.findById(orderId) }
+                verify(exactly = 1) { orderRepository.findByIdOrThrow(orderId) }
                 verify(exactly = 1) { orderRepository.save(any()) }
                 verify(exactly = 1) { orderItemRepository.findByOrderId(orderId) }
                 verify(exactly = 1) { orderItemRepository.saveAll(any()) }
@@ -320,7 +320,7 @@ class OrderServiceTest : BehaviorSpec({
         }
 
         When("존재하지 않는 주문 ID로 결제 완료를 요청하면") {
-            every { orderRepository.findById(orderId) } returns null
+            every { orderRepository.findByIdOrThrow(orderId) } throws BusinessException(ErrorCode.ORDER_NOT_FOUND)
 
             val exception = shouldThrow<BusinessException> {
                 orderService.completePayment(orderId)
@@ -328,7 +328,7 @@ class OrderServiceTest : BehaviorSpec({
 
             Then("ORDER_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.ORDER_NOT_FOUND
-                verify(exactly = 1) { orderRepository.findById(orderId) }
+                verify(exactly = 1) { orderRepository.findByIdOrThrow(orderId) }
                 verify(exactly = 0) { orderRepository.save(any()) }
             }
         }
@@ -344,7 +344,7 @@ class OrderServiceTest : BehaviorSpec({
                 userCouponId = couponId,
                 orderedAt = now
             )
-            every { orderRepository.findById(orderId) } returns completedOrder
+            every { orderRepository.findByIdOrThrow(orderId) } returns completedOrder
 
             val exception = shouldThrow<BusinessException> {
                 orderService.completePayment(orderId)
@@ -352,7 +352,7 @@ class OrderServiceTest : BehaviorSpec({
 
             Then("ORDER_ALREADY_PROCESSED 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.ORDER_ALREADY_PROCESSED
-                verify(exactly = 1) { orderRepository.findById(orderId) }
+                verify(exactly = 1) { orderRepository.findByIdOrThrow(orderId) }
                 verify(exactly = 0) { orderRepository.save(any()) }
             }
         }

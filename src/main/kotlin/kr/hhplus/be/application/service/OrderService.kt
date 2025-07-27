@@ -39,8 +39,7 @@ class OrderService(
     }
 
     fun cancelOrder(orderId: Long): OrderInfo {
-        val order = orderRepository.findById(orderId)
-            ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+        val order = orderRepository.findByIdOrThrow(orderId)
 
         order.cancelOrder()
         val cancelledOrder = orderRepository.save(order)
@@ -58,8 +57,7 @@ class OrderService(
     }
 
     fun getOrder(orderId: Long): OrderInfo {
-        val order = orderRepository.findById(orderId)
-            ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+        val order = orderRepository.findByIdOrThrow(orderId)
 
         val orderItems = orderItemRepository.findByOrderId(orderId)
 
@@ -67,13 +65,11 @@ class OrderService(
     }
     
     fun getDomainOrder(orderId: Long): Order {
-        return orderRepository.findById(orderId)
-            ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+        return orderRepository.findByIdOrThrow(orderId)
     }
     
     fun getOrderForPayment(orderId: Long, userId: Long): OrderInfo {
-        val order = orderRepository.findById(orderId)
-            ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+        val order = orderRepository.findByIdOrThrow(orderId)
 
         if (order.userId != userId) {
             throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
@@ -88,8 +84,7 @@ class OrderService(
     }
 
     fun completePayment(orderId: Long): OrderInfo {
-        val order = orderRepository.findById(orderId)
-            ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+        val order = orderRepository.findByIdOrThrow(orderId)
 
         order.completeOrder()
         val completedOrder = orderRepository.save(order)
