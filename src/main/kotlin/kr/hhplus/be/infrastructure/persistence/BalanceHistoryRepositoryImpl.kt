@@ -10,10 +10,10 @@ class BalanceHistoryRepositoryImpl(
     private val balanceHistoryJpaRepository: BalanceHistoryJpaRepository
 ) : BalanceHistoryRepository {
     override fun save(balanceHistory: BalanceHistory): BalanceHistory {
-        TODO("구현 예정")
+        return balanceHistoryJpaRepository.save(balanceHistory.toEntity()).toDomain()
     }
 
     override fun findByUserId(userId: Long): List<BalanceHistory> {
-        TODO("구현 예정")
+        return balanceHistoryJpaRepository.findByUserId(userId).map { it.toDomain() }
     }
 }

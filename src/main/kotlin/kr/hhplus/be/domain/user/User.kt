@@ -2,12 +2,11 @@ package kr.hhplus.be.domain.user
 
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
+import kr.hhplus.be.infrastructure.entity.UserEntity
 import java.time.LocalDateTime
 
 data class User(
     val id: Long = 0,
-    val name: String,
-    val email: String,
     var balance: Int,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now()
@@ -29,5 +28,13 @@ data class User(
         }
         this.balance -= amount
         this.updatedAt = LocalDateTime.now()
+    }
+
+    fun toEntity(): UserEntity {
+        return UserEntity(
+            id = this.id,
+            balance = this.balance,
+            updatedAt = this.updatedAt
+        )
     }
 }

@@ -22,14 +22,7 @@ class BalanceController(
     ): BaseResponse<BalanceChargeResponse> {
         val result = balanceService.charge(BalanceChargeCommand(request.userId, request.amount))
 
-        return BaseResponse.success(
-            BalanceChargeResponse(
-                userId = result.userId,
-                balance = result.amount,
-                chargedAmount = request.amount,
-                chargedAt = java.time.LocalDateTime.now()
-            )
-        )
+        return BaseResponse.success(BalanceChargeResponse.from(result))
     }
 
     @GetMapping
@@ -39,11 +32,7 @@ class BalanceController(
         val balance = balanceService.getBalance(userId)
 
         return BaseResponse.success(
-            BalanceQueryResponse(
-                userId = userId,
-                balance = balance.amount,
-                lastUpdatedAt = balance.updatedAt
-            )
+            BalanceQueryResponse.from(balance)
         )
     }
 }

@@ -1,6 +1,7 @@
 package kr.hhplus.be.infrastructure.entity
 
 import jakarta.persistence.*
+import kr.hhplus.be.domain.user.User
 import java.time.LocalDateTime
 
 @Entity
@@ -10,12 +11,6 @@ class UserEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-    @Column(name = "name", nullable = false)
-    val name: String,
-
-    @Column(name = "email", nullable = false, unique = true)
-    val email: String,
-
     @Column(name = "balance", nullable = false)
     var balance: Int = 0,
 
@@ -24,4 +19,13 @@ class UserEntity(
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
-)
+) {
+    fun toDomain(): User {
+        return User(
+            id = this.id,
+            balance = this.balance,
+            createdAt = this.createdAt,
+            updatedAt = this.updatedAt
+        )
+    }
+}

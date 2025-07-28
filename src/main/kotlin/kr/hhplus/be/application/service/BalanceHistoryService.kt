@@ -10,10 +10,6 @@ import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-/**
- * 잔액 히스토리 관리 전용 서비스
- * SRP: 히스토리 기록의 단일 책임만 담당
- */
 @Service
 class BalanceHistoryService(
     private val balanceHistoryRepository: BalanceHistoryRepository
