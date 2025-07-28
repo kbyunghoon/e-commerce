@@ -6,6 +6,8 @@ enum class ErrorCode(val status: HttpStatus, val code: String, val message: Stri
     // 공통
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "INVALID_INPUT_VALUE", "잘못된 값을 입력했습니다."),
     UNKNOWN_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "UNKNOWN_ERROR", "알 수 없는 오류가 발생했습니다."),
+    METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED", "지원하지 않는 HTTP 메서드입니다."),
+    UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "UNSUPPORTED_MEDIA_TYPE", "지원하지 않는 미디어 타입입니다."),
 
     // 잔액
     CHARGE_INVALID_AMOUNT(HttpStatus.BAD_REQUEST, "CHARGE_INVALID_AMOUNT", "충전 금액은 0보다 커야 합니다."),
