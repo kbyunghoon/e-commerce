@@ -8,28 +8,31 @@ import kr.hhplus.be.domain.product.ProductRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class ProductService(
     private val productRepository: ProductRepository
 ) {
 
+    @Transactional(readOnly = true)
     fun getProducts(
         pageable: Pageable,
         searchKeyword: String?,
         minPrice: Int?,
         maxPrice: Int?
     ): Page<ProductDto.ProductInfo> {
-        return productRepository.findAvailableProducts(pageable, searchKeyword, minPrice, maxPrice).map { product ->
-            ProductDto.ProductInfo.from(product)
-        }
+        return productRepository.findAvailableProducts(pageable, searchKeyword, minPrice, maxPrice)
+            .map { ProductDto.ProductInfo.from(it) }
     }
 
+    @Transactional(readOnly = true)
     fun getAllProducts(pageable: Pageable): Page<ProductDto.ProductInfo> {
         val products = productRepository.findAll(pageable)
         return products.map { ProductDto.ProductInfo.from(it) }
     }
 
+    @Transactional(readOnly = true)
     fun getProduct(productId: Long): ProductDto.ProductInfo {
         val product = productRepository.findByIdOrThrow(productId)
 
@@ -38,16 +41,6 @@ class ProductService(
 
     fun getProductsByIds(productIds: List<Long>): List<ProductDto.ProductInfo> {
         val products = productRepository.findByProductIds(productIds)
-        return products.map { ProductDto.ProductInfo.from(it) }
-    }
-
-    fun searchProductsByName(pageable: Pageable, keyword: String): Page<ProductDto.ProductInfo> {
-        val products = productRepository.findByNameContaining(pageable, keyword)
-        return products.map { ProductDto.ProductInfo.from(it) }
-    }
-
-    fun getProductsByPriceRange(pageable: Pageable, minPrice: Int, maxPrice: Int): Page<ProductDto.ProductInfo> {
-        val products = productRepository.findByPriceBetween(pageable, minPrice, maxPrice)
         return products.map { ProductDto.ProductInfo.from(it) }
     }
 
@@ -75,6 +68,7 @@ class ProductService(
         }
     }
 
+    @Transactional
     fun deductStock(productId: Long, quantity: Int) {
         val product = productRepository.findByIdOrThrow(productId)
 
@@ -82,6 +76,7 @@ class ProductService(
         productRepository.save(product)
     }
 
+    @Transactional
     fun restoreStock(productId: Long, quantity: Int) {
         val product = productRepository.findByIdOrThrow(productId)
 

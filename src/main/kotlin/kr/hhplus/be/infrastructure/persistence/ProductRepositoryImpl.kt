@@ -36,12 +36,4 @@ class ProductRepositoryImpl(
     override fun findAll(pageable: Pageable): Page<Product> {
         TODO("구현 예정")
     }
-
-    override fun findByNameContaining(pageable: Pageable, name: String): Page<Product> {
-        TODO("구현 예정")
-    }
-
-    override fun findByPriceBetween(pageable: Pageable, minPrice: Int, maxPrice: Int): Page<Product> {
-        TODO("구현 예정")
-    }
 }

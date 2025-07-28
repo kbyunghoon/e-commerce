@@ -296,14 +296,14 @@ class ProductServiceTest : BehaviorSpec({
         val productsPage = PageImpl(listOf(product1, product2), pageable, 2)
 
         When("유효한 키워드로 검색을 요청하면") {
-            every { productRepository.findByNameContaining(pageable, keyword) } returns productsPage
+            every { productRepository.findAvailableProducts(pageable, keyword, null, null) } returns productsPage
 
-            val result = productService.searchProductsByName(pageable, keyword)
+            val result = productService.getProducts(pageable, keyword, null, null)
 
             Then("검색 결과에 해당하는 페이징된 상품 정보가 반환된다") {
                 result.content.size shouldBe 2
                 result.totalElements shouldBe 2
-                verify(exactly = 1) { productRepository.findByNameContaining(pageable, keyword) }
+                verify(exactly = 1) { productRepository.findAvailableProducts(pageable, keyword, null, null) }
             }
         }
     }
@@ -318,14 +318,14 @@ class ProductServiceTest : BehaviorSpec({
         val productsPage = PageImpl(listOf(product1, product2), pageable, 2)
 
         When("유효한 가격 범위로 필터링을 요청하면") {
-            every { productRepository.findByPriceBetween(pageable, minPrice, maxPrice) } returns productsPage
+            every { productRepository.findAvailableProducts(pageable, null, minPrice, maxPrice) } returns productsPage
 
-            val result = productService.getProductsByPriceRange(pageable, minPrice, maxPrice)
+            val result = productService.getProducts(pageable, null, minPrice, maxPrice)
 
             Then("가격 범위에 해당하는 페이징된 상품 정보가 반환된다") {
                 result.content.size shouldBe 2
                 result.totalElements shouldBe 2
-                verify(exactly = 1) { productRepository.findByPriceBetween(pageable, minPrice, maxPrice) }
+                verify(exactly = 1) { productRepository.findAvailableProducts(pageable, null, minPrice, maxPrice) }
             }
         }
     }
