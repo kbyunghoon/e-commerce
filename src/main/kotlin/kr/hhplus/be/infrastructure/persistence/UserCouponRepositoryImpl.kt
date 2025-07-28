@@ -10,18 +10,18 @@ class UserCouponRepositoryImpl(
     private val userCouponJpaRepository: UserCouponJpaRepository
 ) : UserCouponRepository {
     override fun save(userCoupon: UserCoupon): UserCoupon {
-        TODO("구현 예정")
+        return userCouponJpaRepository.save(userCoupon.toEntity()).toDomain()
     }
 
     override fun existsByUserIdAndCouponId(userId: Long, couponId: Long): Boolean {
-        TODO("구현 예정")
+        return userCouponJpaRepository.existsByUserIdAndCouponId(userId, couponId)
     }
 
     override fun findByUserId(userId: Long): List<UserCoupon> {
-        TODO("구현 예정")
+        return userCouponJpaRepository.findByUserId(userId).map { it.toDomain() }
     }
 
     override fun findByUserIdAndCouponId(userId: Long, couponId: Long): UserCoupon? {
-        TODO("구현 예정")
+        return userCouponJpaRepository.findByUserIdAndCouponId(userId, couponId)?.toDomain()
     }
 }

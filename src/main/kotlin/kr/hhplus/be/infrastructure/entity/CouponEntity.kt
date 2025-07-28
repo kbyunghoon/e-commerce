@@ -1,6 +1,7 @@
 package kr.hhplus.be.infrastructure.entity
 
 import jakarta.persistence.*
+import kr.hhplus.be.domain.coupon.Coupon
 import kr.hhplus.be.domain.coupon.DiscountType
 import java.time.LocalDateTime
 
@@ -39,4 +40,19 @@ class CouponEntity(
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
-)
+) {
+    fun toDomain(): Coupon {
+        return Coupon(
+            id = this.id,
+            name = this.name,
+            code = this.code,
+            discountType = this.discountType,
+            discountValue = this.discountValue,
+            expiresAt = this.expiresAt,
+            totalQuantity = this.totalQuantity,
+            issuedQuantity = this.issuedQuantity,
+            createdAt = this.createdAt,
+            updatedAt = this.updatedAt,
+        )
+    }
+}
