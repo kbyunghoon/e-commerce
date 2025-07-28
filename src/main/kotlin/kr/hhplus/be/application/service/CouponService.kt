@@ -24,8 +24,13 @@ class CouponService(
     fun issue(command: CouponIssueCommand): UserCouponInfo {
         val coupon = couponRepository.findByIdOrThrow(command.couponId)
 
-        if (coupon.isExpired()) {
-            throw BusinessException(ErrorCode.COUPON_EXPIRED)
+        if (!coupon.canBeIssued()) {
+            if (coupon.isExpired()) {
+                throw BusinessException(ErrorCode.COUPON_EXPIRED)
+            }
+            if (coupon.isSoldOut()) {
+                throw BusinessException(ErrorCode.COUPON_SOLD_OUT)
+            }
         }
 
         if (userCouponRepository.existsByUserIdAndCouponId(command.userId, command.couponId)) {
@@ -68,13 +73,7 @@ class CouponService(
     @Transactional(readOnly = true)
     fun calculateDiscount(userId: Long, couponId: Long, originalAmount: Int): Int {
         val coupon = couponRepository.findByIdOrThrow(couponId)
-
-        val discount = when (coupon.discountType) {
-            DiscountType.PERCENTAGE -> originalAmount * coupon.discountValue / 100
-            DiscountType.FIXED -> coupon.discountValue
-        }
-
-        return discount.coerceAtMost(originalAmount)
+        return coupon.calculateDiscount(originalAmount)
     }
 
     @Transactional(readOnly = true)
