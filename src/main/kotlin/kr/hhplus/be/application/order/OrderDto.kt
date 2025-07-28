@@ -8,7 +8,7 @@ import java.time.LocalDateTime
 
 class OrderDto {
 
-    data class OrderInfo(
+    data class OrderDetails(
         val id: Long? = null,
         val userId: Long,
         val userCouponId: Long? = null,
@@ -16,12 +16,12 @@ class OrderDto {
         val discountAmount: Int,
         val finalAmount: Int,
         val orderedAt: LocalDateTime,
-        val orderItems: List<OrderItemInfo>,
+        val orderItems: List<OrderItemDetails>,
         val status: OrderStatus
     ) {
         companion object {
-            fun from(order: Order, items: List<OrderItem>): OrderInfo {
-                return OrderInfo(
+            fun from(order: Order, items: List<OrderItem>): OrderDetails {
+                return OrderDetails(
                     id = order.id,
                     userId = order.userId,
                     userCouponId = order.userCouponId,
@@ -29,21 +29,21 @@ class OrderDto {
                     discountAmount = order.discountAmount,
                     finalAmount = order.finalAmount,
                     orderedAt = order.orderedAt,
-                    orderItems = items.map { OrderItemInfo.from(it) },
+                    orderItems = items.map { OrderItemDetails.from(it) },
                     status = order.status
                 )
             }
         }
     }
 
-    data class OrderItemInfo(
+    data class OrderItemDetails(
         val productId: Long,
         val quantity: Int,
         val price: Int
     ) {
         companion object {
-            fun from(orderItem: OrderItem): OrderItemInfo {
-                return OrderItemInfo(
+            fun from(orderItem: OrderItem): OrderItemDetails {
+                return OrderItemDetails(
                     productId = orderItem.productId,
                     quantity = orderItem.quantity,
                     price = orderItem.pricePerItem

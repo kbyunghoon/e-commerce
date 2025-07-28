@@ -1,7 +1,7 @@
 package kr.hhplus.be.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
-import kr.hhplus.be.application.order.OrderDto.OrderItemInfo
+import kr.hhplus.be.application.order.OrderDto.OrderItemDetails
 
 @Schema(description = "주문 상품 항목")
 data class OrderItemResponse(
@@ -21,7 +21,7 @@ data class OrderItemResponse(
     val totalPrice: Int
 ) {
     companion object {
-        fun from(orderItemInfo: OrderItemInfo): OrderItemResponse {
+        fun from(orderItemInfo: OrderItemDetails): OrderItemResponse {
             return OrderItemResponse(
                 productId = orderItemInfo.productId,
                 productName = "상품명", // TODO: Product 정보를 함께 조회하여 실제 상품명 설정

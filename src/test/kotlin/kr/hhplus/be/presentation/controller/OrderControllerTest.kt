@@ -49,7 +49,7 @@ class OrderControllerTest : BehaviorSpec({
                 couponId = couponId
             )
 
-            val orderInfo = OrderDto.OrderInfo(
+            val orderInfo = OrderDto.OrderDetails(
                 id = 1L,
                 userId = userId,
                 userCouponId = couponId,
@@ -58,7 +58,7 @@ class OrderControllerTest : BehaviorSpec({
                 finalAmount = 19000,
                 orderedAt = LocalDateTime.now(),
                 orderItems = listOf(
-                    OrderDto.OrderItemInfo(
+                    OrderDto.OrderItemDetails(
                         productId = productId,
                         quantity = quantity,
                         price = 10000
@@ -117,7 +117,7 @@ class OrderControllerTest : BehaviorSpec({
                 userId = userId
             )
 
-            val completedOrderInfo = OrderDto.OrderInfo(
+            val completedOrderInfo = OrderDto.OrderDetails(
                 id = orderId,
                 userId = userId,
                 userCouponId = null,
@@ -126,7 +126,7 @@ class OrderControllerTest : BehaviorSpec({
                 finalAmount = 20000,
                 orderedAt = LocalDateTime.now(),
                 orderItems = listOf(
-                    OrderDto.OrderItemInfo(
+                    OrderDto.OrderItemDetails(
                         productId = 1L,
                         quantity = 2,
                         price = 10000
@@ -159,7 +159,7 @@ class OrderControllerTest : BehaviorSpec({
         val userId = 1L
 
         When("유효한 주문 조회 요청을 보내면") {
-            val orderInfo = OrderDto.OrderInfo(
+            val orderInfo = OrderDto.OrderDetails(
                 id = orderId,
                 userId = userId,
                 userCouponId = null,
@@ -168,7 +168,7 @@ class OrderControllerTest : BehaviorSpec({
                 finalAmount = 20000,
                 orderedAt = LocalDateTime.now(),
                 orderItems = listOf(
-                    OrderDto.OrderItemInfo(
+                    OrderDto.OrderItemDetails(
                         productId = 1L,
                         quantity = 2,
                         price = 10000

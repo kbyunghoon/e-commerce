@@ -4,7 +4,7 @@ import kr.hhplus.be.application.balance.BalanceDeductCommand
 import kr.hhplus.be.application.order.OrderCreateCommand
 import kr.hhplus.be.application.order.OrderDto
 import kr.hhplus.be.application.order.OrderDto.OrderCreateDto
-import kr.hhplus.be.application.order.OrderDto.OrderInfo
+import kr.hhplus.be.application.order.OrderDto.OrderDetails
 import kr.hhplus.be.application.order.PaymentOperationsStatus
 import kr.hhplus.be.application.order.PaymentProcessCommand
 import kr.hhplus.be.domain.exception.BusinessException
@@ -23,14 +23,14 @@ class OrderService(
 ) {
 
     @Transactional
-    fun processOrder(request: OrderCreateCommand): OrderInfo {
+    fun processOrder(request: OrderCreateCommand): OrderDetails {
         val calculatedDetails = calculateOrderAmounts(request)
         val orderCreateDTO = toOrderCreateDto(request, calculatedDetails)
         return createOrder(orderCreateDTO)
     }
 
     @Transactional
-    fun processPayment(request: PaymentProcessCommand): OrderInfo {
+    fun processPayment(request: PaymentProcessCommand): OrderDetails {
         val order = getOrderForPayment(request.orderId, request.userId)
 
         val paymentStatus = PaymentOperationsStatus()
@@ -99,7 +99,7 @@ class OrderService(
         userId: Long,
         finalAmount: Int,
         userCouponId: Long?,
-        items: List<OrderDto.OrderItemInfo>,
+        items: List<OrderDto.OrderItemDetails>,
         paymentStatus: PaymentOperationsStatus
     ) {
         balanceService.use(BalanceDeductCommand(userId = userId, amount = finalAmount))
@@ -133,7 +133,7 @@ class OrderService(
         }
     }
 
-    fun createOrder(dto: OrderCreateDto): OrderInfo {
+    fun createOrder(dto: OrderCreateDto): OrderDetails {
         val order = Order.create(
             userId = dto.userId,
             originalAmount = dto.originalAmount,
@@ -155,10 +155,10 @@ class OrderService(
 
         val savedOrderItems = orderItemRepository.saveAll(orderItems)
 
-        return OrderInfo.from(savedOrder, savedOrderItems)
+        return OrderDetails.from(savedOrder, savedOrderItems)
     }
 
-    fun cancelOrder(orderId: Long): OrderInfo {
+    fun cancelOrder(orderId: Long): OrderDetails {
         val order = orderRepository.findByIdOrThrow(orderId)
 
         order.cancelOrder()
@@ -173,22 +173,22 @@ class OrderService(
 
         val cancelledOrderItems = orderItemRepository.saveAll(updatedOrderItems)
 
-        return OrderInfo.from(cancelledOrder, cancelledOrderItems)
+        return OrderDetails.from(cancelledOrder, cancelledOrderItems)
     }
 
-    fun getOrder(orderId: Long): OrderInfo {
+    fun getOrder(orderId: Long): OrderDetails {
         val order = orderRepository.findByIdOrThrow(orderId)
 
         val orderItems = orderItemRepository.findByOrderId(orderId)
 
-        return OrderInfo.from(order, orderItems)
+        return OrderDetails.from(order, orderItems)
     }
     
     fun getDomainOrder(orderId: Long): Order {
         return orderRepository.findByIdOrThrow(orderId)
     }
     
-    fun getOrderForPayment(orderId: Long, userId: Long): OrderInfo {
+    fun getOrderForPayment(orderId: Long, userId: Long): OrderDetails {
         val order = orderRepository.findByIdOrThrow(orderId)
 
         if (order.userId != userId) {
@@ -200,10 +200,10 @@ class OrderService(
         }
 
         val orderItems = orderItemRepository.findByOrderId(orderId)
-        return OrderInfo.from(order, orderItems)
+        return OrderDetails.from(order, orderItems)
     }
 
-    fun completePayment(orderId: Long): OrderInfo {
+    fun completePayment(orderId: Long): OrderDetails {
         val order = orderRepository.findByIdOrThrow(orderId)
 
         order.completeOrder()
@@ -218,11 +218,11 @@ class OrderService(
 
         val completedOrderItems = orderItemRepository.saveAll(updatedOrderItems)
 
-        return OrderInfo.from(completedOrder, completedOrderItems)
+        return OrderDetails.from(completedOrder, completedOrderItems)
     }
 
     @Transactional(readOnly = true)
-    fun getOrder(userId: Long, orderId: Long): OrderInfo {
+    fun getOrder(userId: Long, orderId: Long): OrderDetails {
         return getOrder(orderId)
     }
 }

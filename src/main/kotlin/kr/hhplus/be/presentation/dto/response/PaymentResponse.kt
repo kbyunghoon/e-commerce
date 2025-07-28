@@ -1,7 +1,7 @@
 package kr.hhplus.be.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
-import kr.hhplus.be.application.order.OrderDto.OrderInfo
+import kr.hhplus.be.application.order.OrderDto.OrderDetails
 import kr.hhplus.be.domain.order.OrderStatus
 import java.time.LocalDateTime
 
@@ -26,7 +26,7 @@ data class PaymentResponse(
     val orderedAt: LocalDateTime
 ) {
     companion object {
-        fun from(orderInfo: OrderInfo): PaymentResponse {
+        fun from(orderInfo: OrderDetails): PaymentResponse {
             return PaymentResponse(
                 orderId = orderInfo.id!!,
                 orderNumber = orderInfo.id.toString(), // TODO: 주문 번호는 임시로 orderId로 설정

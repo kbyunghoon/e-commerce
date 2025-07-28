@@ -1,7 +1,7 @@
 package kr.hhplus.be.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
-import kr.hhplus.be.application.order.OrderDto.OrderInfo
+import kr.hhplus.be.application.order.OrderDto.OrderDetails
 import kr.hhplus.be.domain.order.OrderStatus
 import java.time.LocalDateTime
 
@@ -32,7 +32,7 @@ data class OrderResponse(
     val orderedAt: LocalDateTime
 ) {
     companion object {
-        fun from(orderData: OrderInfo): OrderResponse {
+        fun from(orderData: OrderDetails): OrderResponse {
             val webOrderItems = orderData.orderItems.map { OrderItemResponse.from(it) }
             return OrderResponse(
                 orderId = orderData.id ?: 0L,
