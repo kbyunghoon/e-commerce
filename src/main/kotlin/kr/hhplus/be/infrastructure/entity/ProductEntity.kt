@@ -9,7 +9,8 @@ import java.time.LocalDateTime
 class ProductEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val productId: Long = 0,
+    @Column(name = "product_id")
+    val id: Long = 0,
 
     @Column(name = "name", nullable = false)
     val name: String,

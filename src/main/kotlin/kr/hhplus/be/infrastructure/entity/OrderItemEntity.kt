@@ -9,6 +9,7 @@ import java.time.LocalDateTime
 class OrderItemEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "order_item_id")
     val orderItemId: Long = 0,
 
     @Column(name = "order_id", nullable = false)

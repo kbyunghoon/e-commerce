@@ -37,7 +37,7 @@ class BalanceControllerTest(
         Given("잔액 충전 API") {
             When("유효한 사용자 ID와 금액으로 충전을 요청하면") {
                 val userId = 1L
-                val chargeAmount = 10000
+                val chargeAmount = 15000
                 val request = BalanceChargeRequest(userId, chargeAmount)
                 val now = LocalDateTime.now()
 

@@ -3,7 +3,7 @@ erDiagram
     USERS {
         bigint user_id PK "사용자 ID"
         string name "이름"
-        string email "이메일 (Unique)"
+        string email "이메일"
         int balance "현재 잔액"
         datetime created_at "생성일시"
         datetime updated_at "수정일시"

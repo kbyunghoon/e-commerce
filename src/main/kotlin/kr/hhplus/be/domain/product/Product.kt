@@ -30,7 +30,7 @@ data class Product(
 
     fun toEntity(): ProductEntity {
         return ProductEntity(
-            productId = this.id,
+            id = this.id,
             name = this.name,
             price = this.price,
             stock = this.stock,

@@ -9,6 +9,7 @@ import java.time.LocalDateTime
 class CouponEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "coupon_id")
     val id: Long = 0,
 
     @Column(name = "name", nullable = false)

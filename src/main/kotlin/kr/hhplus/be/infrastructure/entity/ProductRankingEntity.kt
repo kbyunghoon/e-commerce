@@ -8,7 +8,8 @@ import java.time.LocalDateTime
 class ProductRankingEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val rankingId: Long = 0,
+    @Column(name = "ranking_id")
+    val id: Long = 0,
 
     @Column(name = "product_id", nullable = false, unique = true)
     val productId: Long,

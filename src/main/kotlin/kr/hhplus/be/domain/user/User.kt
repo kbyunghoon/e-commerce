@@ -8,6 +8,8 @@ import java.time.LocalDateTime
 data class User(
     val id: Long = 0,
     var balance: Int,
+    var name: String,
+    var email: String,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now()
 ) {

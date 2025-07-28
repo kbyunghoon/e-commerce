@@ -10,6 +10,7 @@ import java.time.LocalDateTime
 class BalanceHistoryEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "balance_history_id")
     val id: Long = 0,
 
     @Column(name = "user_id", nullable = false)
