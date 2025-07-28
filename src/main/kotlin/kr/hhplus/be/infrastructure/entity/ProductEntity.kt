@@ -1,6 +1,7 @@
 package kr.hhplus.be.infrastructure.entity
 
 import jakarta.persistence.*
+import kr.hhplus.be.domain.product.Product
 import kr.hhplus.be.domain.product.ProductStatus
 import java.time.LocalDateTime
 
@@ -29,4 +30,15 @@ class ProductEntity(
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
-)
+) {
+    fun toDomain(): Product {
+        return Product(
+            id = this.id,
+            name = this.name,
+            price = this.price,
+            stock = this.stock,
+            createdAt = this.createdAt,
+            updatedAt = this.updatedAt,
+        )
+    }
+}

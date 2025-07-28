@@ -5,6 +5,7 @@ import kr.hhplus.be.domain.product.ProductRepository
 import kr.hhplus.be.infrastructure.persistence.repository.ProductJpaRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
@@ -13,11 +14,11 @@ class ProductRepositoryImpl(
 ) : ProductRepository {
 
     override fun findById(id: Long): Product? {
-        TODO("구현 예정")
+        return productJpaRepository.findByIdOrNull(id)?.toDomain()
     }
 
     override fun save(product: Product): Product {
-        TODO("구현 예정")
+        return productJpaRepository.save(product.toEntity()).toDomain()
     }
 
     override fun findAvailableProducts(
@@ -26,14 +27,14 @@ class ProductRepositoryImpl(
         minPrice: Int?,
         maxPrice: Int?
     ): Page<Product> {
-        TODO("구현 예정")
+        return productJpaRepository.findAvailableProducts(pageable, search, minPrice, maxPrice).map { it.toDomain() }
     }
 
     override fun findByProductIds(productIds: List<Long>): List<Product> {
-        TODO("구현 예정")
+        return productJpaRepository.findByIdIn(productIds).map { it.toDomain() }
     }
 
     override fun findAll(pageable: Pageable): Page<Product> {
-        TODO("구현 예정")
+        return productJpaRepository.findAll(pageable).map { it.toDomain() }
     }
 }
