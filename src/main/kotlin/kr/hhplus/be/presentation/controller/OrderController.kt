@@ -1,10 +1,10 @@
 package kr.hhplus.be.presentation.controller
 
 import jakarta.validation.Valid
-import kr.hhplus.be.application.facade.OrderFacade
 import kr.hhplus.be.application.order.OrderCreateCommand
 import kr.hhplus.be.application.order.OrderItemCreateCommand
 import kr.hhplus.be.application.order.PaymentProcessCommand
+import kr.hhplus.be.application.service.OrderService
 import kr.hhplus.be.presentation.api.OrderApi
 import kr.hhplus.be.presentation.dto.common.BaseResponse
 import kr.hhplus.be.presentation.dto.request.OrderRequest
@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/v1/orders")
 class OrderController(
-    private val orderFacade: OrderFacade
+    private val orderService: OrderService
 ) : OrderApi {
 
     @PostMapping
@@ -29,7 +29,7 @@ class OrderController(
             couponId = request.couponId
         )
         
-        val orderData = orderFacade.processOrder(command)
+        val orderData = orderService.processOrder(command)
         val response = OrderResponse.from(orderData)
 
         return BaseResponse.success(response)
@@ -45,7 +45,7 @@ class OrderController(
             userId = request.userId
         )
         
-        val orderData = orderFacade.processPayment(command)
+        val orderData = orderService.processPayment(command)
 
         return BaseResponse.success(
             PaymentResponse.from(orderData)
@@ -57,7 +57,7 @@ class OrderController(
         @PathVariable orderId: Long,
         @RequestParam userId: Long
     ): BaseResponse<OrderResponse> {
-        val orderData = orderFacade.getOrder(userId, orderId)
+        val orderData = orderService.getOrder(userId, orderId)
         val response = OrderResponse.from(orderData)
 
         return BaseResponse.success(response)
