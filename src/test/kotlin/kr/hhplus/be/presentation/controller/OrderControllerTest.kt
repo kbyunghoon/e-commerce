@@ -56,7 +56,7 @@ class OrderControllerTest : BehaviorSpec({
                 originalAmount = 20000,
                 discountAmount = 1000,
                 finalAmount = 19000,
-                orderedAt = LocalDateTime.now(),
+                orderDate = LocalDateTime.now(),
                 orderItems = listOf(
                     OrderDto.OrderItemDetails(
                         productId = productId,
@@ -124,7 +124,7 @@ class OrderControllerTest : BehaviorSpec({
                 originalAmount = 20000,
                 discountAmount = 0,
                 finalAmount = 20000,
-                orderedAt = LocalDateTime.now(),
+                orderDate = LocalDateTime.now(),
                 orderItems = listOf(
                     OrderDto.OrderItemDetails(
                         productId = 1L,
@@ -166,7 +166,7 @@ class OrderControllerTest : BehaviorSpec({
                 originalAmount = 20000,
                 discountAmount = 0,
                 finalAmount = 20000,
-                orderedAt = LocalDateTime.now(),
+                orderDate = LocalDateTime.now(),
                 orderItems = listOf(
                     OrderDto.OrderItemDetails(
                         productId = 1L,
@@ -187,7 +187,7 @@ class OrderControllerTest : BehaviorSpec({
             Then("주문 정보가 성공적으로 반환되고 200 상태코드가 반환된다") {
                 result.andExpect(status().isOk)
                     .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.data.orderId").value(orderId))
+                    .andExpect(jsonPath("$.data.id").value(orderId))
                     .andExpect(jsonPath("$.data.userId").value(userId))
                     .andExpect(jsonPath("$.data.status").value("COMPLETED"))
 

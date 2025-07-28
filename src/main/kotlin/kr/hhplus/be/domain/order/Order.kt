@@ -2,18 +2,37 @@ package kr.hhplus.be.domain.order
 
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
+import kr.hhplus.be.infrastructure.entity.OrderEntity
 import java.time.LocalDateTime
 
 data class Order(
-    val id: Long? = null,
+    val id: Long = 0,
     val userId: Long,
     val userCouponId: Long?,
     val originalAmount: Int,
     val discountAmount: Int,
     val finalAmount: Int,
     var status: OrderStatus = OrderStatus.PENDING,
-    val orderedAt: LocalDateTime = LocalDateTime.now()
+    val orderDate: LocalDateTime?,
+    val expireDate: LocalDateTime? = null,
+    val createdAt: LocalDateTime = LocalDateTime.now(),
 ) {
+    fun toEntity(): OrderEntity {
+        return OrderEntity(
+            id = this.id,
+            userId = this.userId,
+            userCouponId = this.userCouponId,
+            originalAmount = this.originalAmount,
+            discountAmount = this.discountAmount,
+            finalAmount = this.finalAmount,
+            status = this.status,
+            orderDate = this.orderDate,
+            expiresAt = this.expireDate,
+            createdAt = this.createdAt,
+            updatedAt = LocalDateTime.now()
+        )
+    }
+
     companion object {
         const val MIN_ORDER_AMOUNT = 1
         const val MAX_ORDER_AMOUNT = 1_000_000
@@ -30,14 +49,16 @@ data class Order(
             validateBusinessRules(userId, originalAmount, discountAmount, finalAmount)
 
             return Order(
-                id = null,
+                id = 0,
                 userId = userId,
                 originalAmount = originalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
                 status = OrderStatus.PENDING,
                 userCouponId = userCouponId,
-                orderedAt = orderedAt
+                expireDate = LocalDateTime.now().plusMinutes(30),
+                orderDate = null,
+                createdAt = LocalDateTime.now(),
             )
         }
 

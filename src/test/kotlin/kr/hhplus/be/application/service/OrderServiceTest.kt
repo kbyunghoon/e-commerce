@@ -76,7 +76,7 @@ class OrderServiceTest : BehaviorSpec({
                 finalAmount = finalAmount,
                 status = OrderStatus.PENDING,
                 userCouponId = userCouponId,
-                orderedAt = LocalDateTime.now()
+                orderDate = LocalDateTime.now(),
             )
 
             val orderItems = listOf(
@@ -149,7 +149,7 @@ class OrderServiceTest : BehaviorSpec({
                 finalAmount = totalAmount,
                 status = OrderStatus.PENDING,
                 userCouponId = null,
-                orderedAt = LocalDateTime.now()
+                orderDate = LocalDateTime.now()
             )
 
             val orderItems = listOf(
@@ -224,7 +224,7 @@ class OrderServiceTest : BehaviorSpec({
                 finalAmount = finalAmount,
                 status = OrderStatus.PENDING,
                 userCouponId = couponId,
-                orderedAt = now
+                orderDate = now
             )
 
             every { orderRepository.save(any()) } returns createdOrder
@@ -261,7 +261,7 @@ class OrderServiceTest : BehaviorSpec({
                 finalAmount = finalAmount,
                 status = OrderStatus.PENDING,
                 userCouponId = couponId,
-                orderedAt = now
+                orderDate = now
             )
             val completedOrder = pendingOrder.copy(status = OrderStatus.COMPLETED)
             val completedOrderItems = orderItems.map { it.copy(status = OrderStatus.COMPLETED) }
@@ -317,7 +317,7 @@ class OrderServiceTest : BehaviorSpec({
                 finalAmount = finalAmount,
                 status = OrderStatus.COMPLETED,
                 userCouponId = couponId,
-                orderedAt = now
+                orderDate = now
             )
             every { orderRepository.findByIdOrThrow(orderId) } returns order
             every { orderItemRepository.findByOrderId(orderId) } returns orderItems

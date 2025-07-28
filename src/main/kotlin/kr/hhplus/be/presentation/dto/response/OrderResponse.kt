@@ -8,7 +8,7 @@ import java.time.LocalDateTime
 @Schema(description = "주문 응답")
 data class OrderResponse(
     @field:Schema(description = "주문 ID", example = "1")
-    val orderId: Long,
+    val id: Long,
 
     @field:Schema(description = "사용자 ID", example = "1")
     val userId: Long,
@@ -29,20 +29,20 @@ data class OrderResponse(
     val status: OrderStatus,
 
     @field:Schema(description = "주문 일시")
-    val orderedAt: LocalDateTime
+    val orderDate: LocalDateTime?
 ) {
     companion object {
         fun from(orderData: OrderDetails): OrderResponse {
             val webOrderItems = orderData.orderItems.map { OrderItemResponse.from(it) }
             return OrderResponse(
-                orderId = orderData.id ?: 0L,
+                id = orderData.id ?: 0L,
                 userId = orderData.userId,
                 items = webOrderItems,
                 originalAmount = orderData.originalAmount,
                 discountAmount = orderData.discountAmount,
                 finalAmount = orderData.finalAmount,
                 status = orderData.status,
-                orderedAt = orderData.orderedAt
+                orderDate = orderData.orderDate
             )
         }
     }

@@ -33,7 +33,7 @@ data class PaymentResponse(
                 userId = orderInfo.userId,
                 finalAmount = orderInfo.finalAmount,
                 status = orderInfo.status,
-                orderedAt = orderInfo.orderedAt
+                orderedAt = orderInfo.orderDate!!
             )
         }
     }

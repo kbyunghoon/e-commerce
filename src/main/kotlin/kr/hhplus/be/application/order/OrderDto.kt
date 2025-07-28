@@ -15,7 +15,7 @@ class OrderDto {
         val originalAmount: Int,
         val discountAmount: Int,
         val finalAmount: Int,
-        val orderedAt: LocalDateTime,
+        val orderDate: LocalDateTime?,
         val orderItems: List<OrderItemDetails>,
         val status: OrderStatus
     ) {
@@ -28,7 +28,7 @@ class OrderDto {
                     originalAmount = order.originalAmount,
                     discountAmount = order.discountAmount,
                     finalAmount = order.finalAmount,
-                    orderedAt = order.orderedAt,
+                    orderDate = order.orderDate,
                     orderItems = items.map { OrderItemDetails.from(it) },
                     status = order.status
                 )

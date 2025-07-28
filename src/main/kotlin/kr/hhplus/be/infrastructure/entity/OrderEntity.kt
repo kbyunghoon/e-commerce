@@ -1,6 +1,7 @@
 package kr.hhplus.be.infrastructure.entity
 
 import jakarta.persistence.*
+import kr.hhplus.be.domain.order.Order
 import kr.hhplus.be.domain.order.OrderStatus
 import java.time.LocalDateTime
 
@@ -31,15 +32,30 @@ class OrderEntity(
     @Enumerated(EnumType.STRING)
     val status: OrderStatus,
 
-    @Column(name = "order_date", nullable = false)
-    val orderDate: LocalDateTime = LocalDateTime.now(),
+    @Column(name = "order_date")
+    val orderDate: LocalDateTime?,
 
-    @Column(name = "expires_at", nullable = false)
-    val expiresAt: LocalDateTime = LocalDateTime.now(),
+    @Column(name = "expires_at")
+    val expiresAt: LocalDateTime? = null,
 
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
-)
+) {
+    fun toDomain(): Order {
+        return Order(
+            id = id,
+            userId = userId,
+            userCouponId = userCouponId,
+            originalAmount = originalAmount,
+            discountAmount = discountAmount,
+            finalAmount = finalAmount,
+            status = status,
+            orderDate = orderDate,
+            expireDate = expiresAt,
+            createdAt = createdAt,
+        )
+    }
+}
