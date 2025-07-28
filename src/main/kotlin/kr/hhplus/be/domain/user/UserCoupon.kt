@@ -1,6 +1,5 @@
 package kr.hhplus.be.domain.user
 
-import kr.hhplus.be.domain.coupon.Coupon
 import kr.hhplus.be.domain.coupon.CouponStatus
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
@@ -14,7 +13,6 @@ data class UserCoupon(
     var status: CouponStatus,
     val issuedAt: LocalDateTime = LocalDateTime.now(),
     var usedAt: LocalDateTime? = null,
-    val coupon: Coupon? = null
 ) {
     fun use() {
         if (!isAvailable()) {
@@ -38,12 +36,6 @@ data class UserCoupon(
     
     fun isExpired(): Boolean = status == CouponStatus.EXPIRED
     
-    fun canBeUsed(): Boolean = isAvailable() && !isExpiredByTime()
-    
-    fun isExpiredByTime(): Boolean = coupon?.let { 
-        LocalDateTime.now().isAfter(it.expiresAt) 
-    } ?: false
-
     fun expire() {
         this.status = CouponStatus.EXPIRED
     }

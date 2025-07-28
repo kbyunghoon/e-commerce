@@ -7,14 +7,18 @@ import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kr.hhplus.be.application.coupon.CouponDto
 import kr.hhplus.be.application.order.OrderCreateCommand
 import kr.hhplus.be.application.order.OrderDto.OrderCreateDto
 import kr.hhplus.be.application.order.OrderItemCreateCommand
-import kr.hhplus.be.application.order.PaymentProcessCommand
 import kr.hhplus.be.application.product.ProductDto
+import kr.hhplus.be.domain.coupon.Coupon
+import kr.hhplus.be.domain.coupon.CouponStatus
+import kr.hhplus.be.domain.coupon.DiscountType
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.*
+import kr.hhplus.be.domain.user.UserCoupon
 import java.time.LocalDateTime
 
 class OrderServiceTest : BehaviorSpec({
@@ -23,7 +27,7 @@ class OrderServiceTest : BehaviorSpec({
     val productService: ProductService = mockk()
     val balanceService: BalanceService = mockk()
     val couponService: CouponService = mockk()
-    
+
     val orderService = OrderService(
         orderRepository,
         orderItemRepository,
@@ -42,14 +46,15 @@ class OrderServiceTest : BehaviorSpec({
         val quantity = 2
         val productPrice = 10000
         val couponId = 1L
+        val userCouponId = 1L
         val discountAmount = 1000
-        
+
         val orderCreateCommand = OrderCreateCommand(
             userId = userId,
             items = listOf(OrderItemCreateCommand(productId = productId, quantity = quantity)),
-            couponId = couponId
+            userCouponId = userCouponId
         )
-        
+
         val productInfo = ProductDto.ProductInfo(
             id = productId,
             name = "테스트 상품",
@@ -62,7 +67,7 @@ class OrderServiceTest : BehaviorSpec({
         When("유효한 주문 처리 요청을 하면") {
             val totalAmount = productPrice * quantity
             val finalAmount = totalAmount - discountAmount
-            
+
             val createdOrder = Order(
                 id = 1L,
                 userId = userId,
@@ -70,10 +75,10 @@ class OrderServiceTest : BehaviorSpec({
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
                 status = OrderStatus.PENDING,
-                userCouponId = couponId,
+                userCouponId = userCouponId,
                 orderedAt = LocalDateTime.now()
             )
-            
+
             val orderItems = listOf(
                 OrderItem(
                     orderId = 1L,
@@ -84,9 +89,34 @@ class OrderServiceTest : BehaviorSpec({
                 )
             )
 
+            val userCoupon = UserCoupon(
+                id = userCouponId,
+                userId = userId,
+                couponId = couponId,
+                status = CouponStatus.AVAILABLE,
+                issuedAt = LocalDateTime.now().minusDays(1),
+                usedAt = null,
+            )
+
+            val coupon = Coupon(
+                id = couponId,
+                name = "테스트 쿠폰",
+                code = "test-coupon",
+                discountType = DiscountType.FIXED,
+                discountValue = 1000,
+                expiresAt = LocalDateTime.now().plusDays(1),
+                totalQuantity = 100,
+                issuedQuantity = 1,
+            )
+
+            val validatedUserCoupon = CouponDto.ValidatedUserCoupon(
+                userCoupon = userCoupon,
+                coupon = coupon,
+            )
+
             every { productService.validateOrderItems(any()) } returns listOf(productInfo)
-            every { couponService.findAndValidateUserCoupon(userId, couponId) } returns Pair(mockk(), mockk())
-            every { couponService.calculateDiscount(userId, couponId, totalAmount) } returns discountAmount
+            every { couponService.findAndValidateUserCoupon(any(), any()) } returns validatedUserCoupon
+            every { couponService.calculateDiscount(userId, userCouponId, totalAmount) } returns discountAmount
             every { orderRepository.save(any()) } returns createdOrder
             every { orderItemRepository.saveAll(any()) } returns orderItems
 
@@ -98,19 +128,19 @@ class OrderServiceTest : BehaviorSpec({
                 result.discountAmount shouldBe discountAmount
                 result.finalAmount shouldBe finalAmount
                 result.status shouldBe OrderStatus.PENDING
-                
+
                 verify(exactly = 1) { productService.validateOrderItems(any()) }
-                verify(exactly = 1) { couponService.findAndValidateUserCoupon(userId, couponId) }
-                verify(exactly = 1) { couponService.calculateDiscount(userId, couponId, totalAmount) }
+                verify(exactly = 1) { couponService.findAndValidateUserCoupon(any(), any()) }
+                verify(exactly = 1) { couponService.calculateDiscount(userId, userCouponId, totalAmount) }
                 verify(exactly = 1) { orderRepository.save(any()) }
                 verify(exactly = 1) { orderItemRepository.saveAll(any()) }
             }
         }
 
         When("쿠폰 없이 주문 처리 요청을 하면") {
-            val orderCreateCommandWithoutCoupon = orderCreateCommand.copy(couponId = null)
+            val orderCreateCommandWithoutCoupon = orderCreateCommand.copy(userCouponId = null)
             val totalAmount = productPrice * quantity
-            
+
             val createdOrder = Order(
                 id = 1L,
                 userId = userId,
@@ -121,7 +151,7 @@ class OrderServiceTest : BehaviorSpec({
                 userCouponId = null,
                 orderedAt = LocalDateTime.now()
             )
-            
+
             val orderItems = listOf(
                 OrderItem(
                     orderId = 1L,
@@ -144,7 +174,7 @@ class OrderServiceTest : BehaviorSpec({
                 result.discountAmount shouldBe 0
                 result.finalAmount shouldBe totalAmount
                 result.status shouldBe OrderStatus.PENDING
-                
+
                 verify(exactly = 1) { productService.validateOrderItems(any()) }
                 verify(exactly = 0) { couponService.findAndValidateUserCoupon(any(), any()) }
                 verify(exactly = 0) { couponService.calculateDiscount(any(), any(), any()) }

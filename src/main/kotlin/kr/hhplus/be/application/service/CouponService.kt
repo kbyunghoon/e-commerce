@@ -1,18 +1,16 @@
 package kr.hhplus.be.application.service
 
-import kr.hhplus.be.application.coupon.CouponIssueCommand
+import kr.hhplus.be.application.coupon.CouponDto
 import kr.hhplus.be.application.coupon.CouponDto.UserCouponInfo
-import kr.hhplus.be.domain.coupon.Coupon
+import kr.hhplus.be.application.coupon.CouponIssueCommand
 import kr.hhplus.be.domain.coupon.CouponRepository
 import kr.hhplus.be.domain.coupon.CouponStatus
-import kr.hhplus.be.domain.coupon.DiscountType
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.user.UserCoupon
 import kr.hhplus.be.domain.user.UserCouponRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
 
 @Service
 class CouponService(
@@ -52,22 +50,22 @@ class CouponService(
 
     @Transactional
     fun use(userId: Long, couponId: Long): UserCouponInfo {
-        val (userCoupon, coupon) = findAndValidateUserCoupon(userId, couponId)
+        val validated = findAndValidateUserCoupon(userId, couponId)
 
-        userCoupon.use()
-        val updatedUserCoupon = userCouponRepository.save(userCoupon)
+        validated.userCoupon.use()
+        val updatedUserCoupon = userCouponRepository.save(validated.userCoupon)
 
-        return UserCouponInfo.from(updatedUserCoupon, coupon)
+        return UserCouponInfo.from(updatedUserCoupon, validated.coupon)
     }
 
     @Transactional
     fun restore(userId: Long, couponId: Long): UserCouponInfo {
-        val (userCoupon, coupon) = findAndValidateUserCoupon(userId, couponId)
+        val validated = findAndValidateUserCoupon(userId, couponId)
 
-        userCoupon.restore()
-        val updatedUserCoupon = userCouponRepository.save(userCoupon)
+        validated.userCoupon.restore()
+        val updatedUserCoupon = userCouponRepository.save(validated.userCoupon)
 
-        return UserCouponInfo.from(updatedUserCoupon, coupon)
+        return UserCouponInfo.from(updatedUserCoupon, validated.coupon)
     }
 
     @Transactional(readOnly = true)
@@ -87,7 +85,7 @@ class CouponService(
         }
     }
 
-    fun findAndValidateUserCoupon(userId: Long, couponId: Long): Pair<UserCoupon, Coupon> {
+    fun findAndValidateUserCoupon(userId: Long, couponId: Long): CouponDto.ValidatedUserCoupon {
         val userCoupon = userCouponRepository.findByUserIdAndCouponId(userId, couponId)
             ?: throw BusinessException(ErrorCode.USER_COUPON_NOT_FOUND)
 
@@ -99,6 +97,6 @@ class CouponService(
             throw BusinessException(ErrorCode.COUPON_EXPIRED)
         }
 
-        return Pair(userCoupon, coupon)
+        return CouponDto.ValidatedUserCoupon(userCoupon, coupon)
     }
 }

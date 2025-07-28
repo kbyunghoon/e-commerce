@@ -2,7 +2,6 @@ package kr.hhplus.be.presentation.controller
 
 import jakarta.validation.Valid
 import kr.hhplus.be.application.order.OrderCreateCommand
-import kr.hhplus.be.application.order.OrderItemCreateCommand
 import kr.hhplus.be.application.order.PaymentProcessCommand
 import kr.hhplus.be.application.service.OrderService
 import kr.hhplus.be.presentation.api.OrderApi
@@ -26,7 +25,7 @@ class OrderController(
         val command = OrderCreateCommand(
             userId = request.userId,
             items = request.items.map { it.toCommand() },
-            couponId = request.couponId
+            userCouponId = request.couponId
         )
         
         val orderData = orderService.processOrder(command)

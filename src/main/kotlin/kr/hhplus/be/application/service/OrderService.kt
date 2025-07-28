@@ -63,7 +63,7 @@ class OrderService(
             product.price * orderItem.quantity
         }
 
-        val discountAmount = request.couponId?.let { couponId ->
+        val discountAmount = request.userCouponId?.let { couponId ->
             couponService.findAndValidateUserCoupon(request.userId, couponId)
             couponService.calculateDiscount(request.userId, couponId, totalAmount)
         } ?: 0
@@ -91,7 +91,7 @@ class OrderService(
             originalAmount = details.totalAmount,
             discountAmount = details.discountAmount,
             finalAmount = details.finalAmount,
-            couponId = request.couponId
+            couponId = request.userCouponId
         )
     }
 
