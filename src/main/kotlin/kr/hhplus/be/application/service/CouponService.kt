@@ -11,6 +11,7 @@ import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.user.UserCoupon
 import kr.hhplus.be.domain.user.UserCouponRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 @Service
@@ -19,6 +20,7 @@ class CouponService(
     private val userCouponRepository: UserCouponRepository
 ) {
 
+    @Transactional
     fun issue(command: CouponIssueCommand): UserCouponInfo {
         val coupon = couponRepository.findByIdOrThrow(command.couponId)
 
@@ -43,6 +45,7 @@ class CouponService(
         return UserCouponInfo.from(savedUserCoupon, coupon)
     }
 
+    @Transactional
     fun use(userId: Long, couponId: Long): UserCouponInfo {
         val (userCoupon, coupon) = findAndValidateUserCoupon(userId, couponId)
 
@@ -52,6 +55,7 @@ class CouponService(
         return UserCouponInfo.from(updatedUserCoupon, coupon)
     }
 
+    @Transactional
     fun restore(userId: Long, couponId: Long): UserCouponInfo {
         val (userCoupon, coupon) = findAndValidateUserCoupon(userId, couponId)
 
@@ -61,6 +65,7 @@ class CouponService(
         return UserCouponInfo.from(updatedUserCoupon, coupon)
     }
 
+    @Transactional(readOnly = true)
     fun calculateDiscount(userId: Long, couponId: Long, originalAmount: Int): Int {
         val coupon = couponRepository.findByIdOrThrow(couponId)
 
@@ -72,6 +77,7 @@ class CouponService(
         return discount.coerceAtMost(originalAmount)
     }
 
+    @Transactional(readOnly = true)
     fun getUserCoupons(userId: Long): List<UserCouponInfo> {
         val userCoupons = userCouponRepository.findByUserId(userId)
 
