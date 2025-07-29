@@ -39,7 +39,7 @@ class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
 
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
-            .body(BaseResponse.error<Any>(ErrorCode.INVALID_INPUT_VALUE.code, errorMessage))
+            .body(BaseResponse.error<Any>(ErrorCode.INVALID_INPUT_VALUE.name, errorMessage))
     }
 
     override fun handleMissingServletRequestParameter(
@@ -51,7 +51,7 @@ class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
         val errorMessage = "필수 파라미터가 누락되었습니다: ${ex.parameterName}"
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
-            .body(BaseResponse.error<Any>(ErrorCode.INVALID_INPUT_VALUE.code, errorMessage))
+            .body(BaseResponse.error<Any>(ErrorCode.INVALID_INPUT_VALUE.name, errorMessage))
     }
 
     override fun handleHttpMessageNotReadable(
@@ -63,7 +63,7 @@ class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
         val errorMessage = "요청 본문을 읽을 수 없습니다. JSON 형식을 확인해주세요"
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
-            .body(BaseResponse.error<Any>(ErrorCode.INVALID_INPUT_VALUE.code, errorMessage))
+            .body(BaseResponse.error<Any>(ErrorCode.INVALID_INPUT_VALUE.name, errorMessage))
     }
 
     override fun handleHttpRequestMethodNotSupported(
@@ -75,7 +75,7 @@ class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
         val errorMessage = "지원하지 않는 HTTP 메서드입니다: ${ex.method}"
         return ResponseEntity
             .status(HttpStatus.METHOD_NOT_ALLOWED)
-            .body(BaseResponse.error<Any>(ErrorCode.METHOD_NOT_ALLOWED.code, errorMessage))
+            .body(BaseResponse.error<Any>(ErrorCode.METHOD_NOT_ALLOWED.name, errorMessage))
     }
 
     override fun handleHttpMediaTypeNotSupported(
@@ -87,7 +87,7 @@ class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
         val errorMessage = "지원하지 않는 미디어 타입입니다: ${ex.contentType}"
         return ResponseEntity
             .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-            .body(BaseResponse.error<Any>(ErrorCode.UNSUPPORTED_MEDIA_TYPE.code, errorMessage))
+            .body(BaseResponse.error<Any>(ErrorCode.UNSUPPORTED_MEDIA_TYPE.name, errorMessage))
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException::class)
@@ -95,7 +95,7 @@ class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
         val errorMessage = "파라미터 타입이 올바르지 않습니다: ${e.name}"
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
-            .body(BaseResponse.error<Any>(ErrorCode.INVALID_INPUT_VALUE.code, errorMessage))
+            .body(BaseResponse.error<Any>(ErrorCode.INVALID_INPUT_VALUE.name, errorMessage))
     }
 
     @ExceptionHandler(Exception::class)
