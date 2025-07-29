@@ -55,4 +55,21 @@ class CouponEntity(
             updatedAt = this.updatedAt,
         )
     }
+
+    companion object {
+        fun from(coupon: Coupon): CouponEntity {
+            return CouponEntity(
+                id = coupon.id,
+                name = coupon.name,
+                code = coupon.code,
+                discountType = coupon.discountType,
+                discountValue = coupon.discountValue,
+                expiresAt = coupon.expiresAt,
+                totalQuantity = coupon.totalQuantity,
+                issuedQuantity = coupon.issuedQuantity,
+                createdAt = coupon.createdAt,
+                updatedAt = coupon.updatedAt,
+            )
+        }
+    }
 }

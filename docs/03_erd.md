@@ -46,6 +46,7 @@ erDiagram
         bigint order_item_id PK "주문 항목 ID"
         bigint order_id FK "주문 ID"
         bigint product_id FK "주문된 상품 ID"
+        string product_name "상품명"
         int quantity "주문 수량"
         int price_per_item "주문 시점의 개당 가격"
     }

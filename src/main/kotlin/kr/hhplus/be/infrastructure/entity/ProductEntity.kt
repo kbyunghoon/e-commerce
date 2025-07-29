@@ -42,7 +42,23 @@ class ProductEntity(
             stock = this.stock,
             createdAt = this.createdAt,
             updatedAt = this.updatedAt,
+            status = this.status,
             version = this.version
         )
+    }
+
+    companion object {
+        fun from(product: Product): ProductEntity {
+            return ProductEntity(
+                id = product.id,
+                name = product.name,
+                price = product.price,
+                stock = product.stock,
+                status = product.status,
+                createdAt = product.createdAt,
+                updatedAt = product.updatedAt,
+                version = product.version
+            )
+        }
     }
 }

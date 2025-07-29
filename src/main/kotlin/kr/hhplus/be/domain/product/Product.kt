@@ -2,7 +2,6 @@ package kr.hhplus.be.domain.product
 
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
-import kr.hhplus.be.infrastructure.entity.ProductEntity
 import java.time.LocalDateTime
 
 data class Product(
@@ -12,6 +11,7 @@ data class Product(
     val price: Int,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
+    val status: ProductStatus,
     val version: Long = 0L
 ) {
     fun validateStock(quantity: Int) {
@@ -27,19 +27,6 @@ data class Product(
 
     fun addStock(quantity: Int) {
         this.stock += quantity
-    }
-
-    fun toEntity(): ProductEntity {
-        return ProductEntity(
-            id = this.id,
-            name = this.name,
-            price = this.price,
-            stock = this.stock,
-            status = ProductStatus.ACTIVE,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt,
-            version = this.version
-        )
     }
 }
 

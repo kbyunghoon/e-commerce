@@ -2,7 +2,6 @@ package kr.hhplus.be.domain.order
 
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
-import kr.hhplus.be.infrastructure.entity.OrderEntity
 import java.time.LocalDateTime
 
 data class Order(
@@ -17,21 +16,6 @@ data class Order(
     val expireDate: LocalDateTime? = null,
     val createdAt: LocalDateTime = LocalDateTime.now(),
 ) {
-    fun toEntity(): OrderEntity {
-        return OrderEntity(
-            id = this.id,
-            userId = this.userId,
-            userCouponId = this.userCouponId,
-            originalAmount = this.originalAmount,
-            discountAmount = this.discountAmount,
-            finalAmount = this.finalAmount,
-            status = this.status,
-            orderDate = this.orderDate,
-            expiresAt = this.expireDate,
-            createdAt = this.createdAt,
-            updatedAt = LocalDateTime.now()
-        )
-    }
 
     companion object {
         const val MIN_ORDER_AMOUNT = 1
@@ -155,8 +139,10 @@ data class Order(
 }
 
 data class OrderItem(
+    val id: Long? = 0,
     val orderId: Long? = null,
     val productId: Long,
+    val productName: String,
     val quantity: Int,
     val pricePerItem: Int,
     var status: OrderStatus = OrderStatus.PENDING,
@@ -165,19 +151,21 @@ data class OrderItem(
         const val MIN_QUANTITY = 1
         const val MAX_QUANTITY = 100
         const val MIN_PRICE = 1
-        const val MAX_PRICE = 1_000_000
+        const val MAX_PRICE = 100_000_000
 
         fun create(
             productId: Long,
             quantity: Int,
+            productName: String,
             pricePerItem: Int,
-            orderId: Long? = null
+            orderId: Long
         ): OrderItem {
             validateBusinessRules(productId, quantity, pricePerItem)
 
             return OrderItem(
                 orderId = orderId,
                 productId = productId,
+                productName = productName,
                 quantity = quantity,
                 pricePerItem = pricePerItem,
                 status = OrderStatus.PENDING

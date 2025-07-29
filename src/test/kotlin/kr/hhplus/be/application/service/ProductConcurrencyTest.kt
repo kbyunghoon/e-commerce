@@ -5,9 +5,9 @@ import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.ints.shouldBeLessThanOrEqual
 import kr.hhplus.be.domain.product.Product
 import kr.hhplus.be.domain.product.ProductRepository
+import kr.hhplus.be.domain.product.ProductStatus
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.LocalDateTime
@@ -36,6 +36,7 @@ class ProductConcurrencyTest @Autowired constructor(
                     price = 1000,
                     createdAt = LocalDateTime.now(),
                     updatedAt = LocalDateTime.now(),
+                    status = ProductStatus.ACTIVE,
                     version = 0L
                 )
                 productRepository.save(product).id

@@ -24,7 +24,7 @@ data class OrderItemResponse(
         fun from(orderItemInfo: OrderItemDetails): OrderItemResponse {
             return OrderItemResponse(
                 productId = orderItemInfo.productId,
-                productName = "상품명", // TODO: Product 정보를 함께 조회하여 실제 상품명 설정
+                productName = orderItemInfo.productName,
                 price = orderItemInfo.price,
                 quantity = orderItemInfo.quantity,
                 totalPrice = orderItemInfo.price * orderItemInfo.quantity

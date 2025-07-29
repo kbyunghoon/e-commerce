@@ -9,7 +9,6 @@ import io.mockk.mockk
 import io.mockk.verify
 import kr.hhplus.be.application.coupon.CouponDto
 import kr.hhplus.be.application.order.OrderCreateCommand
-import kr.hhplus.be.application.order.OrderDto.OrderCreateDto
 import kr.hhplus.be.application.order.OrderItemCreateCommand
 import kr.hhplus.be.application.product.ProductDto
 import kr.hhplus.be.domain.coupon.Coupon
@@ -83,6 +82,7 @@ class OrderServiceTest : BehaviorSpec({
                 OrderItem(
                     orderId = 1L,
                     productId = productId,
+                    productName = productInfo.name,
                     quantity = quantity,
                     pricePerItem = productPrice,
                     status = OrderStatus.PENDING
@@ -156,6 +156,7 @@ class OrderServiceTest : BehaviorSpec({
                 OrderItem(
                     orderId = 1L,
                     productId = productId,
+                    productName = productInfo.name,
                     quantity = quantity,
                     pricePerItem = productPrice,
                     status = OrderStatus.PENDING
@@ -198,54 +199,19 @@ class OrderServiceTest : BehaviorSpec({
         }
     }
 
-    Given("주문 생성(createOrder) 시나리오") {
-        val userId = 1L
-        val orderItems = listOf(OrderItem(productId = 1L, quantity = 10, pricePerItem = 10000))
-        val originalAmount = 10000
-        val discountAmount = 0
-        val finalAmount = 10000
-        val couponId = null
-        val now = LocalDateTime.now()
-
-        When("유효한 주문 생성 DTO로 주문을 생성하면") {
-            val orderCreateDto = OrderCreateDto(
-                userId = userId,
-                items = orderItems,
-                originalAmount = originalAmount,
-                discountAmount = discountAmount,
-                finalAmount = finalAmount,
-                couponId = couponId
-            )
-            val createdOrder = Order(
-                id = 1L,
-                userId = userId,
-                originalAmount = originalAmount,
-                discountAmount = discountAmount,
-                finalAmount = finalAmount,
-                status = OrderStatus.PENDING,
-                userCouponId = couponId,
-                orderDate = now
-            )
-
-            every { orderRepository.save(any()) } returns createdOrder
-            every { orderItemRepository.saveAll(any()) } returns orderItems
-
-            val result = orderService.createOrder(orderCreateDto)
-
-            Then("주문이 성공적으로 생성되고, 생성된 주문 정보가 반환된다") {
-                result.userId shouldBe userId
-                result.finalAmount shouldBe finalAmount
-                result.status shouldBe OrderStatus.PENDING
-                verify(exactly = 1) { orderRepository.save(any()) }
-                verify(exactly = 1) { orderItemRepository.saveAll(any()) }
-            }
-        }
-    }
-
     Given("주문 완료(completePayment) 시나리오") {
         val orderId = 1L
         val userId = 1L
-        val orderItems = listOf(OrderItem(orderId = orderId, productId = 1L, quantity = 10, pricePerItem = 10000))
+        val orderItems =
+            listOf(
+                OrderItem(
+                    orderId = orderId,
+                    productId = 1L,
+                    productName = "상품 테스트",
+                    quantity = 10,
+                    pricePerItem = 10000
+                )
+            )
         val originalAmount = 10000
         val discountAmount = 0
         val finalAmount = 10000
@@ -301,7 +267,15 @@ class OrderServiceTest : BehaviorSpec({
     Given("주문 조회(getOrder) 시나리오") {
         val orderId = 1L
         val userId = 1L
-        val orderItems = listOf(OrderItem(orderId = orderId, productId = 1L, quantity = 10, pricePerItem = 10000))
+        val orderItems = listOf(
+            OrderItem(
+                orderId = orderId,
+                productId = 1L,
+                productName = "상품 테스트",
+                quantity = 10,
+                pricePerItem = 10000
+            )
+        )
         val originalAmount = 10000
         val discountAmount = 0
         val finalAmount = 10000

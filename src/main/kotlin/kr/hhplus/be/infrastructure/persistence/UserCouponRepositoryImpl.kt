@@ -2,6 +2,7 @@ package kr.hhplus.be.infrastructure.persistence
 
 import kr.hhplus.be.domain.user.UserCoupon
 import kr.hhplus.be.domain.user.UserCouponRepository
+import kr.hhplus.be.infrastructure.entity.UserCouponEntity
 import kr.hhplus.be.infrastructure.persistence.repository.UserCouponJpaRepository
 import org.springframework.stereotype.Component
 
@@ -10,7 +11,7 @@ class UserCouponRepositoryImpl(
     private val userCouponJpaRepository: UserCouponJpaRepository
 ) : UserCouponRepository {
     override fun save(userCoupon: UserCoupon): UserCoupon {
-        return userCouponJpaRepository.save(userCoupon.toEntity()).toDomain()
+        return userCouponJpaRepository.save(UserCouponEntity.from(userCoupon)).toDomain()
     }
 
     override fun existsByUserIdAndCouponId(userId: Long, couponId: Long): Boolean {

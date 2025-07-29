@@ -39,4 +39,17 @@ class UserCouponEntity(
             usedAt = usedAt,
         )
     }
+
+    companion object {
+        fun from(userCoupon: UserCoupon): UserCouponEntity {
+            return UserCouponEntity(
+                id = userCoupon.id,
+                userId = userCoupon.userId,
+                couponId = userCoupon.couponId,
+                status = userCoupon.status,
+                issuedAt = userCoupon.issuedAt,
+                usedAt = userCoupon.usedAt
+            )
+        }
+    }
 }

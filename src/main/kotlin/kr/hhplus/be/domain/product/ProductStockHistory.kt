@@ -1,6 +1,5 @@
 package kr.hhplus.be.domain.product
 
-import kr.hhplus.be.infrastructure.entity.ProductStockHistoryEntity
 import java.time.LocalDateTime
 
 data class ProductStockHistory(
@@ -12,17 +11,4 @@ data class ProductStockHistory(
     val currentStock: Int,
     val reason: String,
     val createdAt: LocalDateTime = LocalDateTime.now()
-) {
-    fun toEntity(): ProductStockHistoryEntity {
-        return ProductStockHistoryEntity(
-            id = this.id,
-            productId = productId,
-            changeType = this.changeType,
-            changeQuantity = this.changeQuantity,
-            previousStock = this.previousStock,
-            currentStock = this.currentStock,
-            reason = this.reason,
-            createdAt = this.createdAt
-        )
-    }
-}
+)

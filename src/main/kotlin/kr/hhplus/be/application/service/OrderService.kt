@@ -3,7 +3,6 @@ package kr.hhplus.be.application.service
 import kr.hhplus.be.application.balance.BalanceDeductCommand
 import kr.hhplus.be.application.order.OrderCreateCommand
 import kr.hhplus.be.application.order.OrderDto
-import kr.hhplus.be.application.order.OrderDto.OrderCreateDto
 import kr.hhplus.be.application.order.OrderDto.OrderDetails
 import kr.hhplus.be.application.order.PaymentOperationsStatus
 import kr.hhplus.be.application.order.PaymentProcessCommand
@@ -25,8 +24,33 @@ class OrderService(
     @Transactional
     fun processOrder(request: OrderCreateCommand): OrderDetails {
         val calculatedDetails = calculateOrderAmounts(request)
-        val orderCreateDTO = toOrderCreateDto(request, calculatedDetails)
-        return createOrder(orderCreateDTO)
+
+        val order = Order.create(
+            userId = request.userId,
+            originalAmount = calculatedDetails.totalAmount,
+            discountAmount = calculatedDetails.discountAmount,
+            finalAmount = calculatedDetails.finalAmount,
+            userCouponId = request.userCouponId
+        )
+
+        val savedOrder = orderRepository.save(order)
+
+        val orderItems = request.items.map { orderItemRequest ->
+            val product = calculatedDetails.products.find { it.id == orderItemRequest.productId }
+                ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+
+            OrderItem(
+                productId = orderItemRequest.productId,
+                quantity = orderItemRequest.quantity,
+                productName = product.name,
+                pricePerItem = product.price,
+                status = OrderStatus.PENDING
+            )
+        }
+
+        val savedOrderItems = orderItemRepository.saveAll(orderItems)
+
+        return OrderDetails.from(savedOrder, savedOrderItems)
     }
 
     @Transactional
@@ -72,29 +96,6 @@ class OrderService(
         return OrderDto.CalculatedOrderDetails(totalAmount, discountAmount, finalAmount, products)
     }
 
-    private fun toOrderCreateDto(request: OrderCreateCommand, details: OrderDto.CalculatedOrderDetails): OrderCreateDto {
-        val orderItems = request.items.map { orderItemRequest ->
-            val product = details.products.find { it.id == orderItemRequest.productId }
-                ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
-
-            OrderItem(
-                productId = orderItemRequest.productId,
-                quantity = orderItemRequest.quantity,
-                pricePerItem = product.price,
-                status = OrderStatus.PENDING
-            )
-        }
-
-        return OrderCreateDto(
-            userId = request.userId,
-            items = orderItems,
-            originalAmount = details.totalAmount,
-            discountAmount = details.discountAmount,
-            finalAmount = details.finalAmount,
-            couponId = request.userCouponId
-        )
-    }
-
     private fun performPaymentOperations(
         userId: Long,
         finalAmount: Int,
@@ -133,31 +134,6 @@ class OrderService(
         }
     }
 
-    fun createOrder(dto: OrderCreateDto): OrderDetails {
-        val order = Order.create(
-            userId = dto.userId,
-            originalAmount = dto.originalAmount,
-            discountAmount = dto.discountAmount,
-            finalAmount = dto.finalAmount,
-            userCouponId = dto.couponId
-        )
-
-        val savedOrder = orderRepository.save(order)
-
-        val orderItems = dto.items.map { itemDto ->
-            OrderItem.create(
-                productId = itemDto.productId,
-                quantity = itemDto.quantity,
-                pricePerItem = itemDto.pricePerItem,
-                orderId = savedOrder.id!!
-            )
-        }
-
-        val savedOrderItems = orderItemRepository.saveAll(orderItems)
-
-        return OrderDetails.from(savedOrder, savedOrderItems)
-    }
-
     fun cancelOrder(orderId: Long): OrderDetails {
         val order = orderRepository.findByIdOrThrow(orderId)
 
@@ -183,11 +159,11 @@ class OrderService(
 
         return OrderDetails.from(order, orderItems)
     }
-    
+
     fun getDomainOrder(orderId: Long): Order {
         return orderRepository.findByIdOrThrow(orderId)
     }
-    
+
     fun getOrderForPayment(orderId: Long, userId: Long): OrderDetails {
         val order = orderRepository.findByIdOrThrow(orderId)
 

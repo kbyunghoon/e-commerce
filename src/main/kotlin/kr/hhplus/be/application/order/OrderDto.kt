@@ -38,6 +38,7 @@ class OrderDto {
 
     data class OrderItemDetails(
         val productId: Long,
+        val productName: String,
         val quantity: Int,
         val price: Int
     ) {
@@ -45,6 +46,7 @@ class OrderDto {
             fun from(orderItem: OrderItem): OrderItemDetails {
                 return OrderItemDetails(
                     productId = orderItem.productId,
+                    productName = orderItem.productName,
                     quantity = orderItem.quantity,
                     price = orderItem.pricePerItem
                 )

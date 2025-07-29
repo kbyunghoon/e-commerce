@@ -58,4 +58,21 @@ class OrderEntity(
             createdAt = createdAt,
         )
     }
+
+    companion object {
+        fun from(order: Order): OrderEntity {
+            return OrderEntity(
+                id = order.id,
+                userId = order.userId,
+                userCouponId = order.userCouponId,
+                originalAmount = order.originalAmount,
+                discountAmount = order.discountAmount,
+                finalAmount = order.finalAmount,
+                status = order.status,
+                orderDate = order.orderDate,
+                expiresAt = order.expireDate,
+                createdAt = order.createdAt,
+            )
+        }
+    }
 }

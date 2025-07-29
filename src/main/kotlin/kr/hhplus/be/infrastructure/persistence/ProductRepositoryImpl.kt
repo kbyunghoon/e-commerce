@@ -2,6 +2,7 @@ package kr.hhplus.be.infrastructure.persistence
 
 import kr.hhplus.be.domain.product.Product
 import kr.hhplus.be.domain.product.ProductRepository
+import kr.hhplus.be.infrastructure.entity.ProductEntity
 import kr.hhplus.be.infrastructure.persistence.repository.ProductJpaRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -18,7 +19,7 @@ class ProductRepositoryImpl(
     }
 
     override fun save(product: Product): Product {
-        return productJpaRepository.save(product.toEntity()).toDomain()
+        return productJpaRepository.save(ProductEntity.from(product)).toDomain()
     }
 
     override fun findAvailableProducts(

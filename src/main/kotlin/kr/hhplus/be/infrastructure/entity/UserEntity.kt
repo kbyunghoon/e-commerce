@@ -37,4 +37,17 @@ class UserEntity(
             updatedAt = this.updatedAt
         )
     }
+
+    companion object {
+        fun from(user: User): UserEntity {
+            return UserEntity(
+                id = user.id,
+                balance = user.balance,
+                name = user.name,
+                email = user.email,
+                createdAt = user.createdAt,
+                updatedAt = user.updatedAt
+            )
+        }
+    }
 }

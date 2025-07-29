@@ -42,4 +42,17 @@ class BalanceHistoryEntity(
             type = type,
         )
     }
+
+    companion object {
+        fun from(balanceHistory: BalanceHistory): BalanceHistoryEntity {
+            return BalanceHistoryEntity(
+                id = balanceHistory.id,
+                userId = balanceHistory.userId,
+                amount = balanceHistory.amount,
+                beforeAmount = balanceHistory.beforeAmount,
+                afterAmount = balanceHistory.afterAmount,
+                type = balanceHistory.type,
+            )
+        }
+    }
 }

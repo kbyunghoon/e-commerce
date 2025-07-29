@@ -3,17 +3,13 @@ package kr.hhplus.be.application.service
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
-import io.mockk.clearAllMocks
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
-import io.mockk.slot
+import io.mockk.*
 import kr.hhplus.be.application.order.OrderItemCreateCommand
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.product.Product
 import kr.hhplus.be.domain.product.ProductRepository
-import kr.hhplus.be.domain.product.ProductStockHistoryRepository
+import kr.hhplus.be.domain.product.ProductStatus
 import kr.hhplus.be.domain.product.StockChangeType
 import kr.hhplus.be.domain.product.events.StockChangedEvent
 import org.springframework.context.ApplicationEventPublisher
@@ -34,7 +30,15 @@ class ProductServiceTest : BehaviorSpec({
     Given("상품 상세 조회(getProduct) 시나리오") {
         val productId = 1L
         val now = LocalDateTime.now()
-        val product = Product(productId, "Test Product", 100, 10000, now, now)
+        val product = Product(
+            id = productId,
+            name = "상품 테스트",
+            stock = 100,
+            price = 10000,
+            status = ProductStatus.ACTIVE,
+            createdAt = now,
+            updatedAt = now,
+        )
 
         When("존재하는 상품 ID로 조회를 요청하면") {
             every { productRepository.findByIdOrThrow(productId) } returns product
@@ -43,7 +47,7 @@ class ProductServiceTest : BehaviorSpec({
 
             Then("해당 상품 정보가 반환된다") {
                 result.id shouldBe productId
-                result.name shouldBe "Test Product"
+                result.name shouldBe "상품 테스트"
                 verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
             }
         }
@@ -66,10 +70,26 @@ class ProductServiceTest : BehaviorSpec({
         val productId = 1L
         val quantity = 5
         val now = LocalDateTime.now()
-        val product = Product(productId, "Test Product", 10, 10000, now, now)
+        val product = Product(
+            id = productId,
+            name = "상품 테스트",
+            stock = 10,
+            price = 10000,
+            status = ProductStatus.ACTIVE,
+            createdAt = now,
+            updatedAt = now,
+        )
 
         When("충분한 재고가 있는 상품의 재고 차감을 요청하면") {
-            val updatedProduct = Product(productId, "Test Product", 5, 10000, now, now)
+            val updatedProduct = Product(
+                id = productId,
+                name = "상품 테스트",
+                stock = 5,
+                price = 10000,
+                status = ProductStatus.ACTIVE,
+                createdAt = now,
+                updatedAt = now,
+            )
             every { productRepository.findByIdOrThrow(productId) } returns product
             every { productRepository.save(any()) } returns updatedProduct
 
@@ -79,10 +99,10 @@ class ProductServiceTest : BehaviorSpec({
                 product.stock shouldBe 5
                 verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
                 verify(exactly = 1) { productRepository.save(any()) }
-                
+
                 val eventSlot = slot<StockChangedEvent>()
                 verify(exactly = 1) { applicationEventPublisher.publishEvent(capture(eventSlot)) }
-                
+
                 val capturedEvent = eventSlot.captured
                 capturedEvent.productId shouldBe productId
                 capturedEvent.changeType shouldBe StockChangeType.DEDUCT
@@ -94,7 +114,15 @@ class ProductServiceTest : BehaviorSpec({
         }
 
         When("재고가 부족한 상품의 재고 차감을 요청하면") {
-            val insufficientStockProduct = Product(productId, "Test Product", 3, 10000, now, now)
+            val insufficientStockProduct = Product(
+                id = productId,
+                name = "상품 테스트",
+                stock = 3,
+                price = 10000,
+                status = ProductStatus.ACTIVE,
+                createdAt = now,
+                updatedAt = now,
+            )
             every { productRepository.findByIdOrThrow(productId) } returns insufficientStockProduct
 
             val exception = shouldThrow<BusinessException> {
@@ -129,10 +157,26 @@ class ProductServiceTest : BehaviorSpec({
         val productId = 1L
         val quantity = 5
         val now = LocalDateTime.now()
-        val product = Product(productId, "Test Product", 10, 10000, now, now)
+        val product = Product(
+            id = productId,
+            name = "상품 테스트",
+            stock = 10,
+            price = 10000,
+            status = ProductStatus.ACTIVE,
+            createdAt = now,
+            updatedAt = now,
+        )
 
         When("재고 복원을 요청하면") {
-            val updatedProduct = Product(productId, "Test Product", 15, 10000, now, now)
+            val updatedProduct = Product(
+                id = productId,
+                name = "상품 테스트",
+                stock = 15,
+                price = 10000,
+                status = ProductStatus.ACTIVE,
+                createdAt = now,
+                updatedAt = now,
+            )
             every { productRepository.findByIdOrThrow(productId) } returns product
             every { productRepository.save(any()) } returns updatedProduct
 
@@ -142,10 +186,10 @@ class ProductServiceTest : BehaviorSpec({
                 product.stock shouldBe 15
                 verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
                 verify(exactly = 1) { productRepository.save(any()) }
-                
+
                 val eventSlot = slot<StockChangedEvent>()
                 verify(exactly = 1) { applicationEventPublisher.publishEvent(capture(eventSlot)) }
-                
+
                 val capturedEvent = eventSlot.captured
                 capturedEvent.productId shouldBe productId
                 capturedEvent.changeType shouldBe StockChangeType.RESTORE
@@ -161,8 +205,24 @@ class ProductServiceTest : BehaviorSpec({
         val productId1 = 1L
         val productId2 = 2L
         val now = LocalDateTime.now()
-        val product1 = Product(productId1, "Product A", 10, 1000, now, now)
-        val product2 = Product(productId2, "Product B", 5, 2000, now, now)
+        val product1 = Product(
+            id = productId1,
+            name = "상품 A",
+            stock = 10,
+            price = 1000,
+            status = ProductStatus.ACTIVE,
+            createdAt = now,
+            updatedAt = now,
+        )
+        val product2 = Product(
+            id = productId2,
+            name = "상품 B",
+            stock = 5,
+            price = 2000,
+            status = ProductStatus.ACTIVE,
+            createdAt = now,
+            updatedAt = now,
+        )
 
         When("모든 주문 아이템이 유효하고 재고가 충분하면") {
             val items = listOf(
@@ -225,8 +285,24 @@ class ProductServiceTest : BehaviorSpec({
     Given("페이징된 상품 목록 조회(getProducts) 시나리오") {
         val pageable: Pageable = PageRequest.of(0, 10)
         val now = LocalDateTime.now()
-        val product1 = Product(1L, "Product A", 10, 1000, now, now)
-        val product2 = Product(2L, "Product B", 20, 2000, now, now)
+        val product1 = Product(
+            id = 1L,
+            name = "상품 A",
+            stock = 10,
+            price = 1000,
+            status = ProductStatus.ACTIVE,
+            createdAt = now,
+            updatedAt = now,
+        )
+        val product2 = Product(
+            id = 2L,
+            name = "상품 B",
+            stock = 20,
+            price = 2000,
+            status = ProductStatus.ACTIVE,
+            createdAt = now,
+            updatedAt = now,
+        )
         val productsPage = PageImpl(listOf(product1, product2), pageable, 2)
 
         When("검색 조건 없이 상품 목록 조회를 요청하면") {
@@ -243,7 +319,7 @@ class ProductServiceTest : BehaviorSpec({
         }
 
         When("검색 키워드를 포함하여 상품 목록 조회를 요청하면") {
-            val searchKeyword = "Product A"
+            val searchKeyword = "상품 A"
             val filteredProductsPage = PageImpl(listOf(product1), pageable, 1)
             every {
                 productRepository.findAvailableProducts(
@@ -258,7 +334,7 @@ class ProductServiceTest : BehaviorSpec({
 
             Then("검색 키워드에 해당하는 페이징된 상품 정보가 반환된다") {
                 result.content.size shouldBe 1
-                result.content[0].name shouldBe "Product A"
+                result.content[0].name shouldBe "상품 A"
                 verify(exactly = 1) { productRepository.findAvailableProducts(pageable, searchKeyword, null, null) }
             }
         }
@@ -289,8 +365,24 @@ class ProductServiceTest : BehaviorSpec({
     Given("모든 상품 목록 조회(getAllProducts) 시나리오") {
         val pageable: Pageable = PageRequest.of(0, 10)
         val now = LocalDateTime.now()
-        val product1 = Product(1L, "Product A", 10, 1000, now, now)
-        val product2 = Product(2L, "Product B", 20, 2000, now, now)
+        val product1 = Product(
+            id = 1L,
+            name = "상품 A",
+            stock = 10,
+            price = 1000,
+            status = ProductStatus.ACTIVE,
+            createdAt = now,
+            updatedAt = now,
+        )
+        val product2 = Product(
+            id = 2L,
+            name = "상품 B",
+            stock = 20,
+            price = 2000,
+            status = ProductStatus.ACTIVE,
+            createdAt = now,
+            updatedAt = now,
+        )
         val productsPage = PageImpl(listOf(product1, product2), pageable, 2)
 
         When("모든 상품 목록 조회를 요청하면") {
@@ -309,8 +401,24 @@ class ProductServiceTest : BehaviorSpec({
     Given("여러 상품 ID로 조회(getProductsByIds) 시나리오") {
         val productIds = listOf(1L, 2L)
         val now = LocalDateTime.now()
-        val product1 = Product(1L, "Product A", 10, 1000, now, now)
-        val product2 = Product(2L, "Product B", 20, 2000, now, now)
+        val product1 = Product(
+            id = 1L,
+            name = "상품 A",
+            stock = 10,
+            price = 1000,
+            status = ProductStatus.ACTIVE,
+            createdAt = now,
+            updatedAt = now,
+        )
+        val product2 = Product(
+            id = 2L,
+            name = "상품 B",
+            stock = 20,
+            price = 2000,
+            status = ProductStatus.ACTIVE,
+            createdAt = now,
+            updatedAt = now,
+        )
 
         When("유효한 상품 ID 목록으로 조회를 요청하면") {
             every { productRepository.findByProductIds(productIds) } returns listOf(product1, product2)

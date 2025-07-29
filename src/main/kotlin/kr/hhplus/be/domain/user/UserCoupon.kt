@@ -3,7 +3,6 @@ package kr.hhplus.be.domain.user
 import kr.hhplus.be.domain.coupon.CouponStatus
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
-import kr.hhplus.be.infrastructure.entity.UserCouponEntity
 import java.time.LocalDateTime
 
 data class UserCoupon(
@@ -31,23 +30,12 @@ data class UserCoupon(
     }
 
     fun isAvailable(): Boolean = status == CouponStatus.AVAILABLE
-    
+
     fun isUsed(): Boolean = status == CouponStatus.USED
-    
+
     fun isExpired(): Boolean = status == CouponStatus.EXPIRED
-    
+
     fun expire() {
         this.status = CouponStatus.EXPIRED
-    }
-
-    fun toEntity(): UserCouponEntity {
-        return UserCouponEntity(
-            id = this.id,
-            userId = this.userId,
-            couponId = this.couponId,
-            status = this.status,
-            issuedAt = this.issuedAt,
-            usedAt = this.usedAt
-        )
     }
 }

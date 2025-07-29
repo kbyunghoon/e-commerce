@@ -2,6 +2,7 @@ package kr.hhplus.be.infrastructure.persistence
 
 import kr.hhplus.be.domain.user.User
 import kr.hhplus.be.domain.user.UserRepository
+import kr.hhplus.be.infrastructure.entity.UserEntity
 import kr.hhplus.be.infrastructure.persistence.repository.UserJpaRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
@@ -15,6 +16,6 @@ class UserRepositoryImpl(
     }
 
     override fun save(user: User): User {
-        return userJpaRepository.save(user.toEntity()).toDomain()
+        return userJpaRepository.save(UserEntity.from(user)).toDomain()
     }
 }

@@ -1,6 +1,7 @@
 package kr.hhplus.be.infrastructure.entity
 
 import jakarta.persistence.*
+import kr.hhplus.be.domain.order.OrderItem
 import kr.hhplus.be.domain.order.OrderStatus
 import java.time.LocalDateTime
 
@@ -10,13 +11,16 @@ class OrderItemEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "order_item_id")
-    val orderItemId: Long = 0,
+    val id: Long? = 0,
 
     @Column(name = "order_id", nullable = false)
     val orderId: Long,
 
     @Column(name = "product_id", nullable = false)
     val productId: Long,
+
+    @Column(name = "product_name", nullable = false)
+    val productName: String,
 
     @Column(name = "quantity", nullable = false)
     val quantity: Int,
@@ -33,4 +37,30 @@ class OrderItemEntity(
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
-)
+) {
+    fun toDomain(): OrderItem {
+        return OrderItem(
+            id = id,
+            orderId = orderId,
+            productId = productId,
+            productName = productName,
+            quantity = quantity,
+            pricePerItem = pricePerItem,
+            status = status,
+        )
+    }
+
+    companion object {
+        fun from(orderItem: OrderItem): OrderItemEntity {
+            return OrderItemEntity(
+                id = orderItem.id,
+                orderId = orderItem.orderId!!,
+                productId = orderItem.productId,
+                productName = orderItem.productName,
+                quantity = orderItem.quantity,
+                pricePerItem = orderItem.pricePerItem,
+                status = orderItem.status,
+            )
+        }
+    }
+}
