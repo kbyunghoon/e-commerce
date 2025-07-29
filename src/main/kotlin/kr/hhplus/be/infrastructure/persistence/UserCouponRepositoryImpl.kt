@@ -25,4 +25,8 @@ class UserCouponRepositoryImpl(
     override fun findByUserIdAndCouponId(userId: Long, couponId: Long): UserCoupon? {
         return userCouponJpaRepository.findByUserIdAndCouponId(userId, couponId)?.toDomain()
     }
+
+    override fun findByCouponId(couponId: Long): List<UserCoupon> {
+        return userCouponJpaRepository.findByCouponId(couponId).map { it.toDomain() }
+    }
 }

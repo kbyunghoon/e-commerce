@@ -9,4 +9,5 @@ interface UserCouponJpaRepository : JpaRepository<UserCouponEntity, Long> {
     fun existsByUserIdAndCouponId(userId: Long, couponId: Long): Boolean
     fun findByUserId(userId: Long): List<UserCouponEntity>
     fun findByUserIdAndCouponId(userId: Long, couponId: Long): UserCouponEntity?
+    fun findByCouponId(couponId: Long): List<UserCouponEntity>
 }
