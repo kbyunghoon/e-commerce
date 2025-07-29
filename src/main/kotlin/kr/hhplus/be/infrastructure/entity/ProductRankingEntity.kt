@@ -17,7 +17,7 @@ class ProductRankingEntity(
     @Column(name = "total_sales_count", nullable = false)
     val totalSalesCount: Int,
 
-    @Column(name = "rank", nullable = false, unique = true)
+    @Column(name = "`rank`", nullable = false, unique = true)
     val rank: Int,
 
     @Column(name = "created_at", nullable = false, updatable = false)

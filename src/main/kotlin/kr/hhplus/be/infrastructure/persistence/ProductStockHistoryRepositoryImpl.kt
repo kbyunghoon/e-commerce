@@ -1,5 +1,6 @@
 package kr.hhplus.be.infrastructure.persistence
 
+import kr.hhplus.be.domain.product.ProductStockHistory
 import kr.hhplus.be.domain.product.ProductStockHistoryRepository
 import kr.hhplus.be.infrastructure.persistence.repository.ProductStockHistoryJpaRepository
 import org.springframework.stereotype.Component
@@ -8,4 +9,8 @@ import org.springframework.stereotype.Component
 class ProductStockHistoryRepositoryImpl(
     private val productStockHistoryJpaRepository: ProductStockHistoryJpaRepository
 ) : ProductStockHistoryRepository {
+
+    override fun save(productHistory: ProductStockHistory): ProductStockHistory {
+        return productStockHistoryJpaRepository.save(productHistory.toEntity()).toDomain()
+    }
 }

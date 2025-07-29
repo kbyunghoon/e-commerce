@@ -11,7 +11,8 @@ data class Product(
     var stock: Int,
     val price: Int,
     val createdAt: LocalDateTime,
-    val updatedAt: LocalDateTime
+    val updatedAt: LocalDateTime,
+    val version: Long = 0L
 ) {
     fun validateStock(quantity: Int) {
         if (stock < quantity) {
@@ -36,7 +37,8 @@ data class Product(
             stock = this.stock,
             status = ProductStatus.ACTIVE,
             createdAt = this.createdAt,
-            updatedAt = this.updatedAt
+            updatedAt = this.updatedAt,
+            version = this.version
         )
     }
 }

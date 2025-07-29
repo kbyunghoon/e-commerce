@@ -5,14 +5,21 @@ import kr.hhplus.be.application.product.ProductDto
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.product.ProductRepository
+import kr.hhplus.be.domain.product.StockChangeType
+import kr.hhplus.be.domain.product.events.StockChangedEvent
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.orm.ObjectOptimisticLockingFailureException
+import org.springframework.retry.annotation.Backoff
+import org.springframework.retry.annotation.Retryable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 class ProductService(
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val applicationEventPublisher: ApplicationEventPublisher
 ) {
 
     @Transactional(readOnly = true)
@@ -68,19 +75,48 @@ class ProductService(
         }
     }
 
+    @Retryable(
+        value = [ObjectOptimisticLockingFailureException::class],
+        maxAttempts = 5,
+        backoff = Backoff(delay = 100, multiplier = 2.0)
+    )
     @Transactional
     fun deductStock(productId: Long, quantity: Int) {
         val product = productRepository.findByIdOrThrow(productId)
+        val previousStock = product.stock
 
         product.deductStock(quantity)
-        productRepository.save(product)
+        val updatedProduct = productRepository.save(product)
+
+        applicationEventPublisher.publishEvent(
+            StockChangedEvent(
+                productId = productId,
+                changeType = StockChangeType.DEDUCT,
+                changeQuantity = quantity,
+                previousStock = previousStock,
+                currentStock = updatedProduct.stock,
+                reason = StockChangeType.DEDUCT.reason
+            )
+        )
     }
 
     @Transactional
     fun restoreStock(productId: Long, quantity: Int) {
         val product = productRepository.findByIdOrThrow(productId)
+        val previousStock = product.stock
 
         product.addStock(quantity)
-        productRepository.save(product)
+        val updatedProduct = productRepository.save(product)
+
+        applicationEventPublisher.publishEvent(
+            StockChangedEvent(
+                productId = productId,
+                changeType = StockChangeType.RESTORE,
+                changeQuantity = quantity,
+                previousStock = previousStock,
+                currentStock = updatedProduct.stock,
+                reason = StockChangeType.RESTORE.reason
+            )
+        )
     }
 }

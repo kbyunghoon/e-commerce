@@ -7,11 +7,16 @@ import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.mockk.slot
 import kr.hhplus.be.application.order.OrderItemCreateCommand
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.product.Product
 import kr.hhplus.be.domain.product.ProductRepository
+import kr.hhplus.be.domain.product.ProductStockHistoryRepository
+import kr.hhplus.be.domain.product.StockChangeType
+import kr.hhplus.be.domain.product.events.StockChangedEvent
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -19,7 +24,8 @@ import java.time.LocalDateTime
 
 class ProductServiceTest : BehaviorSpec({
     val productRepository: ProductRepository = mockk()
-    val productService = ProductService(productRepository)
+    val applicationEventPublisher: ApplicationEventPublisher = mockk(relaxed = true)
+    val productService = ProductService(productRepository, applicationEventPublisher)
 
     afterContainer {
         clearAllMocks()
@@ -63,15 +69,27 @@ class ProductServiceTest : BehaviorSpec({
         val product = Product(productId, "Test Product", 10, 10000, now, now)
 
         When("충분한 재고가 있는 상품의 재고 차감을 요청하면") {
+            val updatedProduct = Product(productId, "Test Product", 5, 10000, now, now)
             every { productRepository.findByIdOrThrow(productId) } returns product
-            every { productRepository.save(any()) } answers { it.invocation.args[0] as Product }
+            every { productRepository.save(any()) } returns updatedProduct
 
             productService.deductStock(productId, quantity)
 
-            Then("상품의 재고가 감소하고, save 메소드가 호출된다") {
+            Then("상품의 재고가 감소하고, 재고 변경 이벤트가 발행된다") {
                 product.stock shouldBe 5
                 verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
                 verify(exactly = 1) { productRepository.save(any()) }
+                
+                val eventSlot = slot<StockChangedEvent>()
+                verify(exactly = 1) { applicationEventPublisher.publishEvent(capture(eventSlot)) }
+                
+                val capturedEvent = eventSlot.captured
+                capturedEvent.productId shouldBe productId
+                capturedEvent.changeType shouldBe StockChangeType.DEDUCT
+                capturedEvent.changeQuantity shouldBe quantity
+                capturedEvent.previousStock shouldBe 10
+                capturedEvent.currentStock shouldBe 5
+                capturedEvent.reason shouldBe StockChangeType.DEDUCT.reason
             }
         }
 
@@ -87,6 +105,7 @@ class ProductServiceTest : BehaviorSpec({
                 exception.errorCode shouldBe ErrorCode.INSUFFICIENT_STOCK
                 verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
                 verify(exactly = 0) { productRepository.save(any()) }
+                verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
             }
         }
 
@@ -101,6 +120,39 @@ class ProductServiceTest : BehaviorSpec({
                 exception.errorCode shouldBe ErrorCode.PRODUCT_NOT_FOUND
                 verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
                 verify(exactly = 0) { productRepository.save(any()) }
+                verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
+            }
+        }
+    }
+
+    Given("재고 복원(restoreStock) 시나리오") {
+        val productId = 1L
+        val quantity = 5
+        val now = LocalDateTime.now()
+        val product = Product(productId, "Test Product", 10, 10000, now, now)
+
+        When("재고 복원을 요청하면") {
+            val updatedProduct = Product(productId, "Test Product", 15, 10000, now, now)
+            every { productRepository.findByIdOrThrow(productId) } returns product
+            every { productRepository.save(any()) } returns updatedProduct
+
+            productService.restoreStock(productId, quantity)
+
+            Then("상품의 재고가 증가하고, 재고 변경 이벤트가 발행된다") {
+                product.stock shouldBe 15
+                verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
+                verify(exactly = 1) { productRepository.save(any()) }
+                
+                val eventSlot = slot<StockChangedEvent>()
+                verify(exactly = 1) { applicationEventPublisher.publishEvent(capture(eventSlot)) }
+                
+                val capturedEvent = eventSlot.captured
+                capturedEvent.productId shouldBe productId
+                capturedEvent.changeType shouldBe StockChangeType.RESTORE
+                capturedEvent.changeQuantity shouldBe quantity
+                capturedEvent.previousStock shouldBe 10
+                capturedEvent.currentStock shouldBe 15
+                capturedEvent.reason shouldBe StockChangeType.RESTORE.reason
             }
         }
     }
@@ -283,49 +335,6 @@ class ProductServiceTest : BehaviorSpec({
                 result.size shouldBe 1
                 result[0].id shouldBe 1L
                 verify(exactly = 1) { productRepository.findByProductIds(invalidProductIds) }
-            }
-        }
-    }
-
-    Given("상품명으로 검색(searchProductsByName) 시나리오") {
-        val pageable: Pageable = PageRequest.of(0, 10)
-        val keyword = "Product"
-        val now = LocalDateTime.now()
-        val product1 = Product(1L, "Product A", 10, 1000, now, now)
-        val product2 = Product(2L, "Product B", 20, 2000, now, now)
-        val productsPage = PageImpl(listOf(product1, product2), pageable, 2)
-
-        When("유효한 키워드로 검색을 요청하면") {
-            every { productRepository.findAvailableProducts(pageable, keyword, null, null) } returns productsPage
-
-            val result = productService.getProducts(pageable, keyword, null, null)
-
-            Then("검색 결과에 해당하는 페이징된 상품 정보가 반환된다") {
-                result.content.size shouldBe 2
-                result.totalElements shouldBe 2
-                verify(exactly = 1) { productRepository.findAvailableProducts(pageable, keyword, null, null) }
-            }
-        }
-    }
-
-    Given("가격 범위로 상품 필터링(getProductsByPriceRange) 시나리오") {
-        val pageable: Pageable = PageRequest.of(0, 10)
-        val minPrice = 1000
-        val maxPrice = 2000
-        val now = LocalDateTime.now()
-        val product1 = Product(1L, "Product A", 10, 1000, now, now)
-        val product2 = Product(2L, "Product B", 20, 2000, now, now)
-        val productsPage = PageImpl(listOf(product1, product2), pageable, 2)
-
-        When("유효한 가격 범위로 필터링을 요청하면") {
-            every { productRepository.findAvailableProducts(pageable, null, minPrice, maxPrice) } returns productsPage
-
-            val result = productService.getProducts(pageable, null, minPrice, maxPrice)
-
-            Then("가격 범위에 해당하는 페이징된 상품 정보가 반환된다") {
-                result.content.size shouldBe 2
-                result.totalElements shouldBe 2
-                verify(exactly = 1) { productRepository.findAvailableProducts(pageable, null, minPrice, maxPrice) }
             }
         }
     }

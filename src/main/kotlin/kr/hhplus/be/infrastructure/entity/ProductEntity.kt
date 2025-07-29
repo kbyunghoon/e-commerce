@@ -29,7 +29,10 @@ class ProductEntity(
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "updated_at", nullable = false)
-    var updatedAt: LocalDateTime = LocalDateTime.now()
+    var updatedAt: LocalDateTime = LocalDateTime.now(),
+
+    @Version
+    var version: Long = 0L
 ) {
     fun toDomain(): Product {
         return Product(
@@ -39,6 +42,7 @@ class ProductEntity(
             stock = this.stock,
             createdAt = this.createdAt,
             updatedAt = this.updatedAt,
+            version = this.version
         )
     }
 }
