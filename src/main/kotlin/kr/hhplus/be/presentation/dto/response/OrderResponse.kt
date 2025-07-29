@@ -10,6 +10,9 @@ data class OrderResponse(
     @field:Schema(description = "주문 ID", example = "1")
     val id: Long,
 
+    @field:Schema(description = "주문 번호", example = "T241225143045XX")
+    val orderNumber: String,
+
     @field:Schema(description = "사용자 ID", example = "1")
     val userId: Long,
 
@@ -36,6 +39,7 @@ data class OrderResponse(
             val webOrderItems = orderData.orderItems.map { OrderItemResponse.from(it) }
             return OrderResponse(
                 id = orderData.id ?: 0L,
+                orderNumber = orderData.orderNumber ?: "UNKNOWN",
                 userId = orderData.userId,
                 items = webOrderItems,
                 originalAmount = orderData.originalAmount,

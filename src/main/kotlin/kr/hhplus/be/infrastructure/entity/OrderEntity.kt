@@ -13,6 +13,9 @@ class OrderEntity(
     @Column(name = "order_id")
     val id: Long = 0,
 
+    @Column(name = "order_number", nullable = false, unique = true)
+    val orderNumber: String,
+
     @Column(name = "user_id", nullable = false)
     val userId: Long,
 
@@ -48,6 +51,7 @@ class OrderEntity(
         return Order(
             id = id,
             userId = userId,
+            orderNumber = orderNumber,
             userCouponId = userCouponId,
             originalAmount = originalAmount,
             discountAmount = discountAmount,
@@ -63,6 +67,7 @@ class OrderEntity(
         fun from(order: Order): OrderEntity {
             return OrderEntity(
                 id = order.id,
+                orderNumber = order.orderNumber,
                 userId = order.userId,
                 userCouponId = order.userCouponId,
                 originalAmount = order.originalAmount,

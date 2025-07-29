@@ -355,14 +355,14 @@ class OrderTest : FunSpec({
     }
 
     context("Order 불변 조건 검증 테스트") {
-
         test("불변 조건을 위반하는 Order 객체로 상태 변경 시 예외가 발생한다") {
-            // Given - 잘못된 값으로 Order 객체를 직접 생성 (copy 사용)
+            // Given
             val invalidOrder = Order(
                 id = 1L,
+                orderNumber = "테스트",
                 userId = 1L,
                 userCouponId = null,
-                originalAmount = 0, // 최소값 위반
+                originalAmount = 0,
                 discountAmount = 0,
                 finalAmount = 0,
                 status = OrderStatus.PENDING,

@@ -11,6 +11,7 @@ class OrderDto {
     data class OrderDetails(
         val id: Long? = null,
         val userId: Long,
+        val orderNumber: String,
         val userCouponId: Long? = null,
         val originalAmount: Int,
         val discountAmount: Int,
@@ -24,6 +25,7 @@ class OrderDto {
                 return OrderDetails(
                     id = order.id,
                     userId = order.userId,
+                    orderNumber = order.orderNumber,
                     userCouponId = order.userCouponId,
                     originalAmount = order.originalAmount,
                     discountAmount = order.discountAmount,

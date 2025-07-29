@@ -60,6 +60,7 @@ class OrderControllerTest : FunSpec({
 
             val orderInfo = OrderDto.OrderDetails(
                 id = 1L,
+                orderNumber = "테스트",
                 userId = userId,
                 userCouponId = couponId,
                 originalAmount = 20000,
@@ -117,6 +118,7 @@ class OrderControllerTest : FunSpec({
 
             val orderInfo = OrderDto.OrderDetails(
                 id = 1L,
+                orderNumber = "테스트",
                 userId = userId,
                 userCouponId = null,
                 originalAmount = 10000,
@@ -167,6 +169,7 @@ class OrderControllerTest : FunSpec({
 
             val orderInfo = OrderDto.OrderDetails(
                 id = 1L,
+                orderNumber = "테스트",
                 userId = userId,
                 userCouponId = null,
                 originalAmount = 60000,
@@ -316,6 +319,7 @@ class OrderControllerTest : FunSpec({
 
             val completedOrderInfo = OrderDto.OrderDetails(
                 id = orderId,
+                orderNumber = "테스트",
                 userId = userId,
                 userCouponId = null,
                 originalAmount = 20000,
@@ -436,6 +440,7 @@ class OrderControllerTest : FunSpec({
 
             val orderInfo = OrderDto.OrderDetails(
                 id = orderId,
+                orderNumber = "테스트",
                 userId = userId,
                 userCouponId = 1L,
                 originalAmount = 25000,
@@ -555,6 +560,7 @@ class OrderControllerTest : FunSpec({
 
             val createdOrderInfo = OrderDto.OrderDetails(
                 id = 1L,
+                orderNumber = "테스트",
                 userId = userId,
                 userCouponId = null,
                 originalAmount = 20000,
@@ -622,6 +628,7 @@ class OrderControllerTest : FunSpec({
 
             val orderInfo = OrderDto.OrderDetails(
                 id = 1L,
+                orderNumber = "테스트",
                 userId = userId,
                 userCouponId = couponId,
                 originalAmount = 50000,

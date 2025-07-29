@@ -67,15 +67,12 @@ class OrderServiceTest : BehaviorSpec({
             val totalAmount = productPrice * quantity
             val finalAmount = totalAmount - discountAmount
 
-            val createdOrder = Order(
-                id = 1L,
+            val createdOrder = Order.create(
                 userId = userId,
                 originalAmount = totalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
-                status = OrderStatus.PENDING,
                 userCouponId = userCouponId,
-                orderDate = LocalDateTime.now(),
             )
 
             val orderItems = listOf(
@@ -141,15 +138,12 @@ class OrderServiceTest : BehaviorSpec({
             val orderCreateCommandWithoutCoupon = orderCreateCommand.copy(userCouponId = null)
             val totalAmount = productPrice * quantity
 
-            val createdOrder = Order(
-                id = 1L,
+            val createdOrder = Order.create(
                 userId = userId,
                 originalAmount = totalAmount,
                 discountAmount = 0,
                 finalAmount = totalAmount,
-                status = OrderStatus.PENDING,
                 userCouponId = null,
-                orderDate = LocalDateTime.now()
             )
 
             val orderItems = listOf(
@@ -221,6 +215,7 @@ class OrderServiceTest : BehaviorSpec({
         When("존재하는 주문 ID로 주문 완료를 요청하면") {
             val pendingOrder = Order(
                 id = orderId,
+                orderNumber = "테스트",
                 userId = userId,
                 originalAmount = originalAmount,
                 discountAmount = discountAmount,
@@ -286,6 +281,7 @@ class OrderServiceTest : BehaviorSpec({
             val order = Order(
                 id = orderId,
                 userId = userId,
+                orderNumber = "테스트",
                 originalAmount = originalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,

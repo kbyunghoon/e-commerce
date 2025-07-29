@@ -32,6 +32,7 @@ erDiagram
         bigint order_id PK "주문 ID"
         bigint user_id FK "주문한 사용자 ID"
         bigint user_coupon_id FK "사용한 쿠폰 ID(Nullable)"
+        string order_number "주문번호"
         int original_amount "할인 전 총액"
         int discount_amount "할인 금액"
         int final_amount "최종 결제액"

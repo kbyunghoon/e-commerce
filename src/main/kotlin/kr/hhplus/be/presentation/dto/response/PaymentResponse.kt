@@ -29,7 +29,7 @@ data class PaymentResponse(
         fun from(orderInfo: OrderDetails): PaymentResponse {
             return PaymentResponse(
                 orderId = orderInfo.id!!,
-                orderNumber = orderInfo.id.toString(), // TODO: 주문 번호는 임시로 orderId로 설정
+                orderNumber = orderInfo.orderNumber,
                 userId = orderInfo.userId,
                 finalAmount = orderInfo.finalAmount,
                 status = orderInfo.status,

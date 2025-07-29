@@ -3,10 +3,13 @@ package kr.hhplus.be.domain.order
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import kotlin.random.Random
 
 data class Order(
     val id: Long = 0,
     val userId: Long,
+    val orderNumber: String,
     val userCouponId: Long?,
     val originalAmount: Int,
     val discountAmount: Int,
@@ -35,15 +38,23 @@ data class Order(
             return Order(
                 id = 0,
                 userId = userId,
+                orderNumber = generateOrderNumber(orderedAt),
                 originalAmount = originalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
                 status = OrderStatus.PENDING,
                 userCouponId = userCouponId,
-                expireDate = LocalDateTime.now().plusMinutes(30),
+                expireDate = orderedAt.plusMinutes(30),
                 orderDate = null,
-                createdAt = LocalDateTime.now(),
+                createdAt = orderedAt,
             )
+        }
+
+        private fun generateOrderNumber(dateTime: LocalDateTime = LocalDateTime.now()): String {
+            val formatter = DateTimeFormatter.ofPattern("yyMMddHHmmss")
+            val dateTimePart = dateTime.format(formatter)
+            val randomPart = String.format("%02d", Random.nextInt(0, 100))
+            return "T$dateTimePart$randomPart"
         }
 
         private fun validateBusinessRules(
