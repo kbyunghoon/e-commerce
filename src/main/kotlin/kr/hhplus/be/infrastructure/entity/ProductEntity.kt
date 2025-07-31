@@ -23,6 +23,7 @@ class ProductEntity(
     var stock: Int,
 
     @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
     val status: ProductStatus,
 
     @Column(name = "created_at", nullable = false, updatable = false)
