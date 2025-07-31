@@ -4,12 +4,15 @@ import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.comparables.shouldBeGreaterThanOrEqualTo
 import io.kotest.matchers.comparables.shouldBeLessThanOrEqualTo
 import io.kotest.matchers.shouldBe
+import kr.hhplus.be.config.IntegrationTest
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import java.time.LocalDateTime
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
+
+@IntegrationTest
 
 class CouponConcurrencyTest : DescribeSpec({
 

@@ -4,23 +4,21 @@ import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.comparables.shouldBeLessThanOrEqualTo
 import io.kotest.matchers.shouldBe
 import kr.hhplus.be.application.coupon.CouponIssueCommand
+import kr.hhplus.be.config.IntegrationTest
 import kr.hhplus.be.domain.coupon.Coupon
 import kr.hhplus.be.domain.coupon.CouponRepository
 import kr.hhplus.be.domain.coupon.DiscountType
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.user.UserCouponRepository
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.TestConstructor
-import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
-@SpringBootTest
+@IntegrationTest
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
-@Transactional
 class CouponConcurrencyTest(
     private val couponService: CouponService,
     private val couponRepository: CouponRepository,

@@ -3,18 +3,18 @@ package kr.hhplus.be.application.service
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.ints.shouldBeLessThanOrEqual
+import kr.hhplus.be.config.IntegrationTest
 import kr.hhplus.be.domain.product.Product
 import kr.hhplus.be.domain.product.ProductRepository
 import kr.hhplus.be.domain.product.ProductStatus
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.LocalDateTime
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 
-@SpringBootTest
+@IntegrationTest
 class ProductConcurrencyTest @Autowired constructor(
     private val productService: ProductService,
     private val productRepository: ProductRepository,
