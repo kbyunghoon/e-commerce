@@ -2,6 +2,7 @@ package kr.hhplus.be.presentation.dto.common
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import io.swagger.v3.oas.annotations.media.Schema
+import kr.hhplus.be.domain.exception.ErrorCode
 
 @Schema(description = "공통 응답 형식")
 @JsonInclude(JsonInclude.Include.NON_NULL)

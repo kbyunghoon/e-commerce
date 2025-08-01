@@ -1,18 +1,14 @@
 package kr.hhplus.be.application.service
 
-import kr.hhplus.be.domain.model.ProductRanking
+import kr.hhplus.be.application.product.ProductRankingInfo
+import kr.hhplus.be.domain.product.ProductRankingRepository
 import org.springframework.stereotype.Service
 
 @Service
-class ProductRankingService {
-    fun getTopProducts(): List<ProductRanking> {
-        val product = ProductRanking(
-            id = 1,
-            name = "상품명",
-            price = 10000,
-            totalSalesQuantity = 150,
-            rank = 1
-        )
-        return listOf(product)
+class ProductRankingService(
+    private val productRankingRepository: ProductRankingRepository
+) {
+    fun getTopProducts(): List<ProductRankingInfo> {
+        return productRankingRepository.findTopProducts()
     }
 }

@@ -1,36 +1,87 @@
 package kr.hhplus.be.application.service
 
-import kr.hhplus.be.presentation.dto.common.ErrorCode
+import kr.hhplus.be.application.order.OrderItemCreateCommand
+import kr.hhplus.be.application.product.ProductDto
 import kr.hhplus.be.domain.exception.BusinessException
-import kr.hhplus.be.domain.model.Product
+import kr.hhplus.be.domain.exception.ErrorCode
+import kr.hhplus.be.domain.product.ProductRepository
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
-import java.time.LocalDateTime
+import org.springframework.transaction.annotation.Transactional
 
 @Service
-class ProductService {
-    fun getProducts(page: Int, size: Int, search: String?, minPrice: Int?, maxPrice: Int?): List<Product> {
-        val product = Product(
-            id = 1,
-            name = "상품명",
-            price = 10000,
-            stock = 150,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
-        return listOf(product)
+class ProductService(
+    private val productRepository: ProductRepository
+) {
+
+    fun getProducts(
+        pageable: Pageable,
+        searchKeyword: String?,
+        minPrice: Int?,
+        maxPrice: Int?
+    ): Page<ProductDto.ProductInfo> {
+        return productRepository.findAvailableProducts(pageable, searchKeyword, minPrice, maxPrice).map { product ->
+            ProductDto.ProductInfo.from(product)
+        }
     }
 
-    fun getProduct(productId: Long): Product? {
-        if (productId == 999L) {
+    fun getAllProducts(pagable: Pageable): Page<ProductDto.ProductInfo> {
+        val products = productRepository.findAll(pagable)
+        return products.map { ProductDto.ProductInfo.from(it) }
+    }
+
+    fun getProduct(productId: Long): ProductDto.ProductInfo {
+        val product = productRepository.findById(productId)
+            ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+
+        return ProductDto.ProductInfo.from(product)
+    }
+
+    fun getProductsByIds(productIds: List<Long>): List<ProductDto.ProductInfo> {
+        val products = productRepository.findByProductIds(productIds)
+        return products.map { ProductDto.ProductInfo.from(it) }
+    }
+
+    fun searchProductsByName(pageable: Pageable, keyword: String): Page<ProductDto.ProductInfo> {
+        val products = productRepository.findByNameContaining(pageable, keyword)
+        return products.map { ProductDto.ProductInfo.from(it) }
+    }
+
+    fun getProductsByPriceRange(pageable: Pageable, minPrice: Int, maxPrice: Int): Page<ProductDto.ProductInfo> {
+        val products = productRepository.findByPriceBetween(pageable, minPrice, maxPrice)
+        return products.map { ProductDto.ProductInfo.from(it) }
+    }
+
+    fun validateOrderItems(items: List<OrderItemCreateCommand>): List<ProductDto.ProductInfo> {
+        val productIds = items.map { it.productId }
+        val products = productRepository.findByProductIds(productIds)
+
+        if (products.size != productIds.size) {
             throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
         }
-        return Product(
-            id = productId,
-            name = "상품명",
-            price = 89000,
-            stock = 150,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
+
+        items.forEach { item ->
+            val product = products.find { it.id == item.productId }
+                ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+
+            validateStock(ProductDto.ProductInfo.from(product), item.quantity)
+        }
+
+        return products.map { ProductDto.ProductInfo.from(it) }
+    }
+
+    fun validateStock(product: ProductDto.ProductInfo, requestQuantity: Int) {
+        if (product.stock < requestQuantity) {
+            throw BusinessException(ErrorCode.INSUFFICIENT_STOCK)
+        }
+    }
+
+    fun deductStock(productId: Long, quantity: Int) {
+        val product = productRepository.findById(productId)
+            ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+
+        product.deductStock(quantity)
+        productRepository.save(product)
     }
 }

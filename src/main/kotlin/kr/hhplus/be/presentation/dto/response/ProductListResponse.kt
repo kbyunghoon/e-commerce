@@ -1,6 +1,8 @@
 package kr.hhplus.be.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
+import kr.hhplus.be.application.product.ProductDto
+import org.springframework.data.domain.Page
 
 @Schema(description = "상품 목록 응답")
 data class ProductListResponse(
@@ -9,7 +11,23 @@ data class ProductListResponse(
     
     @field:Schema(description = "페이지네이션 정보")
     val pagination: Pagination
-)
+) {
+    companion object {
+        fun from(productsPage: Page<ProductDto.ProductInfo>): ProductListResponse {
+            return ProductListResponse(
+                products = productsPage.content.map { ProductResponse.from(it) },
+                pagination = Pagination(
+                    page = productsPage.number,
+                    size = productsPage.size,
+                    totalElements = productsPage.totalElements,
+                    totalPages = productsPage.totalPages,
+                    hasNext = productsPage.hasNext(),
+                    hasPrevious = productsPage.hasPrevious()
+                )
+            )
+        }
+    }
+}
 
 @Schema(description = "페이지네이션 정보")
 data class Pagination(
@@ -20,7 +38,7 @@ data class Pagination(
     val size: Int,
     
     @field:Schema(description = "전체 요소 수", example = "50")
-    val totalElements: Int,
+    val totalElements: Long,
     
     @field:Schema(description = "전체 페이지 수", example = "5")
     val totalPages: Int,

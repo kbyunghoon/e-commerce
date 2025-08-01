@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 data class PaymentRequest(
     @field:Schema(description = "사용자 ID", example = "1", required = true)
     val userId: Long,
-    
-    @field:Schema(description = "결제 방식", example = "BALANCE", required = true, allowableValues = ["BALANCE", "CREDIT_CARD", "BANK_TRANSFER"])
-    val paymentMethod: String
+
+    @field:Schema(description = "주문 번호", example = "123", required = true)
+    val orderId: Long
 )

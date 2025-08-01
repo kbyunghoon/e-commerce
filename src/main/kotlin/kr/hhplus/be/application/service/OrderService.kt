@@ -1,49 +1,72 @@
 package kr.hhplus.be.application.service
 
-import kr.hhplus.be.presentation.dto.common.ErrorCode
-import kr.hhplus.be.domain.enums.OrderStatus
+import kr.hhplus.be.application.order.OrderCreateDto
+import kr.hhplus.be.application.order.OrderInfo
 import kr.hhplus.be.domain.exception.BusinessException
-import kr.hhplus.be.domain.model.Order
-import kr.hhplus.be.domain.model.OrderItem
-import kr.hhplus.be.domain.model.Payment
-import kr.hhplus.be.application.dto.OrderItemRequest
+import kr.hhplus.be.domain.exception.ErrorCode
+import kr.hhplus.be.domain.order.Order
+import kr.hhplus.be.domain.order.OrderRepository
 import org.springframework.stereotype.Service
-import java.time.LocalDateTime
+import org.springframework.transaction.annotation.Transactional
 
 @Service
-class OrderService {
-    fun createOrder(
-        userId: Long,
-        items: List<OrderItemRequest>,
-        couponId: Long?
-    ): Order {
-        val orderItem = OrderItem(
-            productId = 1,
-            productName = "상품명",
-            price = 10000,
-            quantity = 2
+class OrderService(
+    private val orderRepository: OrderRepository
+) {
+
+    fun createOrder(dto: OrderCreateDto): OrderInfo {
+        val order = Order.create(
+            userId = dto.userId,
+            items = dto.items,
+            originalAmount = dto.originalAmount,
+            discountAmount = dto.discountAmount,
+            finalAmount = dto.finalAmount,
+            userCouponId = dto.couponId
         )
-        return Order(
-            orderId = "test-order-id-123",
-            userId = userId,
-            items = listOf(orderItem),
-            originalAmount = 20000,
-            discountAmount = 2000,
-            finalAmount = 18000
-        )
+
+        val savedOrder = orderRepository.save(order)
+        return OrderInfo.from(savedOrder)
     }
 
-    fun pay(orderId: String, userId: Long, paymentMethod: String): Payment {
-        if (userId == 999L) {
-            throw BusinessException(ErrorCode.INSUFFICIENT_BALANCE)
-        }
-        return Payment(
-            orderId = 12345,
-            orderNumber = "order-number-54321",
-            userId = userId,
-            finalAmount = 18000,
-            status = OrderStatus.COMPLETED,
-            orderedAt = LocalDateTime.now()
-        )
+    fun completeOrder(orderId: Long): OrderInfo {
+        val order = orderRepository.findById(orderId)
+            ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+
+        order.completeOrder()
+        val completedOrder = orderRepository.save(order)
+
+        return OrderInfo.from(completedOrder)
+    }
+
+    fun cancelOrder(orderId: Long): OrderInfo {
+        val order = orderRepository.findById(orderId)
+            ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+
+        order.cancelOrder()
+        val cancelledOrder = orderRepository.save(order)
+
+        return OrderInfo.from(cancelledOrder)
+    }
+
+    fun getOrder(orderId: Long): OrderInfo {
+        val order = orderRepository.findById(orderId)
+            ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+
+        return OrderInfo.from(order)
+    }
+
+    fun getOrderForUpdate(orderId: Long): Order {
+        return orderRepository.findByIdForUpdate(orderId)
+            ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+    }
+
+    fun completePayment(orderId: Long): OrderInfo {
+        val order = orderRepository.findById(orderId)
+            ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+
+        order.completeOrder()
+        val cancelledOrder = orderRepository.save(order)
+
+        return OrderInfo.from(cancelledOrder)
     }
 }

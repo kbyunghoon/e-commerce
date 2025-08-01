@@ -1,5 +1,6 @@
 package kr.hhplus.be.presentation.dto.response
 
+import kr.hhplus.be.application.balance.BalanceInfo
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDateTime
 
@@ -13,4 +14,14 @@ data class BalanceQueryResponse(
     
     @field:Schema(description = "마지막 업데이트 일시", example = "2025-01-15T10:30:00")
     val lastUpdatedAt: LocalDateTime
-)
+) {
+    companion object {
+        fun from(balanceInfo: BalanceInfo): BalanceQueryResponse {
+            return BalanceQueryResponse(
+                userId = balanceInfo.userId,
+                balance = balanceInfo.amount,
+                lastUpdatedAt = balanceInfo.updatedAt
+            )
+        }
+    }
+}

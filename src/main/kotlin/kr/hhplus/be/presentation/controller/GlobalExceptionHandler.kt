@@ -2,11 +2,15 @@ package kr.hhplus.be.presentation.controller
 
 import io.swagger.v3.oas.annotations.Hidden
 import kr.hhplus.be.domain.exception.BusinessException
+import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.presentation.dto.common.BaseResponse
-import kr.hhplus.be.presentation.dto.common.ErrorCode
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
+import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 
 @Hidden
 @RestControllerAdvice
@@ -21,8 +25,30 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception::class)
     fun handleGeneralException(e: Exception): ResponseEntity<BaseResponse<Any>> {
+        println(e.message)
         return ResponseEntity
             .status(ErrorCode.UNKNOWN_ERROR.status)
             .body(BaseResponse.error(ErrorCode.UNKNOWN_ERROR))
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException::class)
+    fun handleMissingServletRequestParameter(e: MissingServletRequestParameterException): ResponseEntity<BaseResponse<Any>> {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(BaseResponse.error(ErrorCode.INVALID_INPUT_VALUE))
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException::class)
+    fun handleMethodArgumentTypeMismatch(e: MethodArgumentTypeMismatchException): ResponseEntity<BaseResponse<Any>> {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(BaseResponse.error(ErrorCode.INVALID_INPUT_VALUE))
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException::class)
+    fun handleHttpMessageNotReadable(e: HttpMessageNotReadableException): ResponseEntity<BaseResponse<Any>> {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(BaseResponse.error(ErrorCode.INVALID_INPUT_VALUE))
     }
 }

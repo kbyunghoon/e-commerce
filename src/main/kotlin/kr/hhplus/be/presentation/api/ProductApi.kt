@@ -8,7 +8,8 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import kr.hhplus.be.presentation.dto.common.BaseResponse
 import kr.hhplus.be.presentation.dto.response.ProductListResponse
 import kr.hhplus.be.presentation.dto.response.ProductResponse
-import org.springframework.http.ResponseEntity
+import org.springframework.data.domain.Pageable
+import org.springframework.data.web.PageableDefault
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 
@@ -28,17 +29,15 @@ interface ProductApi {
         ]
     )
     fun getProducts(
-        @Parameter(description = "페이지 번호 (0부터 시작)", example = "0")
-        @RequestParam(defaultValue = "0") page: Int,
-        @Parameter(description = "페이지 크기", example = "10")
-        @RequestParam(defaultValue = "10") size: Int,
+        @Parameter(description = "페이지네이션")
+        @PageableDefault(size = 10) pageable: Pageable,
         @Parameter(description = "상품명 검색 키워드", required = false, example = "상품명")
         @RequestParam search: String? = null,
         @Parameter(description = "최소 금액으로 검색", required = false, example = "0")
         @RequestParam minPrice: Int? = null,
         @Parameter(description = "최대 금액으로 검색", required = false, example = "10000")
         @RequestParam maxPrice: Int? = null
-    ): ResponseEntity<BaseResponse<ProductListResponse>>
+    ): BaseResponse<ProductListResponse>
 
     @Operation(
         summary = "상품 상세 조회",

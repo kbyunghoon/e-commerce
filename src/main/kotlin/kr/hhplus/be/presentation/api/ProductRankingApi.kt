@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import kr.hhplus.be.presentation.dto.common.BaseResponse
 import kr.hhplus.be.presentation.dto.response.ProductRankingListResponse
 
+import org.springframework.web.bind.annotation.RequestParam
+
 @Tag(name = "통계 및 추천", description = "인기 상품 조회 및 통계 API")
 interface ProductRankingApi {
 
