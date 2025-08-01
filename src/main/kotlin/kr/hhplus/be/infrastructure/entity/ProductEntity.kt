@@ -31,9 +31,6 @@ class ProductEntity(
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now(),
-
-    @Version
-    var version: Long = 0L
 ) {
     fun toDomain(): Product {
         return Product(
@@ -44,7 +41,6 @@ class ProductEntity(
             createdAt = this.createdAt,
             updatedAt = this.updatedAt,
             status = this.status,
-            version = this.version
         )
     }
 
@@ -58,7 +54,6 @@ class ProductEntity(
                 status = product.status,
                 createdAt = product.createdAt,
                 updatedAt = product.updatedAt,
-                version = product.version
             )
         }
     }
