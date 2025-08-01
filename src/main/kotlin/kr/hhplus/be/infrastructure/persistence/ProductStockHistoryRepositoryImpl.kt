@@ -1,0 +1,11 @@
+package kr.hhplus.be.infrastructure.persistence
+
+import kr.hhplus.be.domain.product.ProductStockHistoryRepository
+import kr.hhplus.be.infrastructure.persistence.repository.ProductStockHistoryJpaRepository
+import org.springframework.stereotype.Component
+
+@Component
+class ProductStockHistoryRepositoryImpl(
+    private val productStockHistoryJpaRepository: ProductStockHistoryJpaRepository
+) : ProductStockHistoryRepository {
+}

@@ -16,8 +16,4 @@ class OrderRepositoryImpl(
     override fun findById(orderId: Long): Order? {
         TODO("구현 예정")
     }
-
-    override fun findByIdForUpdate(orderId: Long): Order? {
-        TODO("구현 예정")
-    }
 }

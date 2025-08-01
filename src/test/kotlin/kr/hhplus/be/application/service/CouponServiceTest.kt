@@ -47,7 +47,7 @@ class CouponServiceTest : BehaviorSpec({
         )
 
         When("유효한 쿠폰 발급을 요청하면") {
-            every { couponRepository.findById(couponId) } returns coupon
+            every { couponRepository.findByIdOrThrow(couponId) } returns coupon
             every { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) } returns false
             every { couponRepository.save(any()) } answers { it.invocation.args[0] as Coupon }
             every { userCouponRepository.save(any()) } answers { it.invocation.args[0] as UserCoupon }
@@ -58,7 +58,7 @@ class CouponServiceTest : BehaviorSpec({
                 result.userId shouldBe userId
                 result.couponId shouldBe couponId
                 result.status shouldBe CouponStatus.AVAILABLE
-                verify(exactly = 1) { couponRepository.findById(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
                 verify(exactly = 1) { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) }
                 verify(exactly = 1) { couponRepository.save(any()) }
                 verify(exactly = 1) { userCouponRepository.save(any()) }
@@ -66,7 +66,7 @@ class CouponServiceTest : BehaviorSpec({
         }
 
         When("존재하지 않는 쿠폰 ID로 발급을 요청하면") {
-            every { couponRepository.findById(couponId) } returns null
+            every { couponRepository.findByIdOrThrow(couponId) } throws BusinessException(ErrorCode.COUPON_NOT_FOUND)
 
             val exception = shouldThrow<BusinessException> {
                 couponService.issue(command)
@@ -74,14 +74,14 @@ class CouponServiceTest : BehaviorSpec({
 
             Then("COUPON_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_NOT_FOUND
-                verify(exactly = 1) { couponRepository.findById(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
                 verify(exactly = 0) { userCouponRepository.existsByUserIdAndCouponId(any(), any()) }
             }
         }
 
         When("만료된 쿠폰으로 발급을 요청하면") {
             val expiredCoupon = coupon.copy(expiresAt = now.minusDays(1))
-            every { couponRepository.findById(couponId) } returns expiredCoupon
+            every { couponRepository.findByIdOrThrow(couponId) } returns expiredCoupon
 
             val exception = shouldThrow<BusinessException> {
                 couponService.issue(command)
@@ -89,13 +89,13 @@ class CouponServiceTest : BehaviorSpec({
 
             Then("COUPON_EXPIRED 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_EXPIRED
-                verify(exactly = 1) { couponRepository.findById(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
                 verify(exactly = 0) { userCouponRepository.existsByUserIdAndCouponId(any(), any()) }
             }
         }
 
         When("이미 발급된 쿠폰으로 발급을 요청하면") {
-            every { couponRepository.findById(couponId) } returns coupon
+            every { couponRepository.findByIdOrThrow(couponId) } returns coupon
             every { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) } returns true
 
             val exception = shouldThrow<BusinessException> {
@@ -104,14 +104,14 @@ class CouponServiceTest : BehaviorSpec({
 
             Then("COUPON_ALREADY_ISSUED 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_ALREADY_ISSUED
-                verify(exactly = 1) { couponRepository.findById(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
                 verify(exactly = 1) { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) }
             }
         }
 
         When("재고가 소진된 쿠폰으로 발급을 요청하면") {
             val soldOutCoupon = coupon.copy(issuedQuantity = coupon.totalQuantity)
-            every { couponRepository.findById(couponId) } returns soldOutCoupon
+            every { couponRepository.findByIdOrThrow(couponId) } returns soldOutCoupon
             every { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) } returns false
 
             val exception = shouldThrow<BusinessException> {
@@ -120,7 +120,7 @@ class CouponServiceTest : BehaviorSpec({
 
             Then("COUPON_SOLD_OUT 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_SOLD_OUT
-                verify(exactly = 1) { couponRepository.findById(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
                 verify(exactly = 1) { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) }
             }
         }
@@ -153,7 +153,7 @@ class CouponServiceTest : BehaviorSpec({
 
         When("유효한 쿠폰 사용을 요청하면") {
             every { userCouponRepository.findByUserIdAndCouponId(userId, couponId) } returns userCoupon
-            every { couponRepository.findById(couponId) } returns coupon
+            every { couponRepository.findByIdOrThrow(couponId) } returns coupon
             every { userCouponRepository.save(any()) } answers { it.invocation.args[0] as UserCoupon }
 
             val result = couponService.use(userId, couponId)
@@ -163,7 +163,7 @@ class CouponServiceTest : BehaviorSpec({
                 result.couponId shouldBe couponId
                 result.status shouldBe CouponStatus.USED
                 verify(exactly = 1) { userCouponRepository.findByUserIdAndCouponId(userId, couponId) }
-                verify(exactly = 1) { couponRepository.findById(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
                 verify(exactly = 1) { userCouponRepository.save(any()) }
             }
         }
@@ -178,14 +178,14 @@ class CouponServiceTest : BehaviorSpec({
             Then("USER_COUPON_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.USER_COUPON_NOT_FOUND
                 verify(exactly = 1) { userCouponRepository.findByUserIdAndCouponId(userId, couponId) }
-                verify(exactly = 0) { couponRepository.findById(any()) }
+                verify(exactly = 0) { couponRepository.findByIdOrThrow(any()) }
             }
         }
 
         When("만료된 쿠폰으로 사용을 요청하면") {
             val expiredCoupon = coupon.copy(expiresAt = now.minusDays(1))
             every { userCouponRepository.findByUserIdAndCouponId(userId, couponId) } returns userCoupon
-            every { couponRepository.findById(couponId) } returns expiredCoupon
+            every { couponRepository.findByIdOrThrow(couponId) } returns expiredCoupon
             every { userCouponRepository.save(any()) } answers { it.invocation.args[0] as UserCoupon }
 
             val exception = shouldThrow<BusinessException> {
@@ -195,7 +195,7 @@ class CouponServiceTest : BehaviorSpec({
             Then("COUPON_EXPIRED 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_EXPIRED
                 verify(exactly = 1) { userCouponRepository.findByUserIdAndCouponId(userId, couponId) }
-                verify(exactly = 1) { couponRepository.findById(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
                 verify(exactly = 1) { userCouponRepository.save(any()) }
             }
         }
@@ -203,7 +203,7 @@ class CouponServiceTest : BehaviorSpec({
         When("이미 사용된 쿠폰으로 사용을 요청하면") {
             val usedUserCoupon = userCoupon.copy(status = CouponStatus.USED)
             every { userCouponRepository.findByUserIdAndCouponId(userId, couponId) } returns usedUserCoupon
-            every { couponRepository.findById(couponId) } returns coupon
+            every { couponRepository.findByIdOrThrow(couponId) } returns coupon
 
             val exception = shouldThrow<BusinessException> {
                 couponService.use(userId, couponId)
@@ -212,7 +212,7 @@ class CouponServiceTest : BehaviorSpec({
             Then("COUPON_NOT_AVAILABLE 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_NOT_AVAILABLE
                 verify(exactly = 1) { userCouponRepository.findByUserIdAndCouponId(userId, couponId) }
-                verify(exactly = 1) { couponRepository.findById(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
                 verify(exactly = 0) { userCouponRepository.save(any()) }
             }
         }
@@ -239,13 +239,13 @@ class CouponServiceTest : BehaviorSpec({
                 createdAt = now,
                 updatedAt = now
             )
-            every { couponRepository.findById(couponId) } returns percentageCoupon
+            every { couponRepository.findByIdOrThrow(couponId) } returns percentageCoupon
 
             val discount = couponService.calculateDiscount(userId, couponId, originalAmount)
 
             Then("정확한 비율 할인 금액이 반환된다") {
                 discount shouldBe originalAmount / 100 * discountValue
-                verify(exactly = 1) { couponRepository.findById(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
             }
         }
 
@@ -262,13 +262,13 @@ class CouponServiceTest : BehaviorSpec({
                 createdAt = now,
                 updatedAt = now
             )
-            every { couponRepository.findById(couponId) } returns fixedCoupon
+            every { couponRepository.findByIdOrThrow(couponId) } returns fixedCoupon
 
             val discount = couponService.calculateDiscount(userId, couponId, originalAmount)
 
             Then("정확한 정액 할인 금액이 반환된다") {
                 discount shouldBe 5000
-                verify(exactly = 1) { couponRepository.findById(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
             }
         }
 
@@ -285,18 +285,18 @@ class CouponServiceTest : BehaviorSpec({
                 createdAt = now,
                 updatedAt = now
             )
-            every { couponRepository.findById(couponId) } returns fixedCoupon
+            every { couponRepository.findByIdOrThrow(couponId) } returns fixedCoupon
 
             val discount = couponService.calculateDiscount(userId, couponId, originalAmount)
 
             Then("할인 금액은 원금을 초과할 수 없다") {
                 discount shouldBe originalAmount
-                verify(exactly = 1) { couponRepository.findById(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
             }
         }
 
         When("존재하지 않는 쿠폰 ID로 계산을 요청하면") {
-            every { couponRepository.findById(couponId) } returns null
+            every { couponRepository.findByIdOrThrow(couponId) } throws BusinessException(ErrorCode.COUPON_NOT_FOUND)
 
             val exception = shouldThrow<BusinessException> {
                 couponService.calculateDiscount(userId, couponId, originalAmount)
@@ -304,12 +304,12 @@ class CouponServiceTest : BehaviorSpec({
 
             Then("COUPON_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_NOT_FOUND
-                verify(exactly = 1) { couponRepository.findById(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
             }
         }
     }
 
-    Given("사용자 쿠폰 조회(getCoupons/getUserCoupons) 시나리오") {
+    Given("사용자 쿠폰 조회(getUserCoupons) 시나리오") {
         val userId = 1L
         val couponId1 = 1L
         val couponId2 = 2L
@@ -358,10 +358,10 @@ class CouponServiceTest : BehaviorSpec({
 
         When("사용자 ID로 쿠폰 목록 조회를 요청하면") {
             every { userCouponRepository.findByUserId(userId) } returns listOf(userCoupon1, userCoupon2)
-            every { couponRepository.findById(couponId1) } returns coupon1
-            every { couponRepository.findById(couponId2) } returns coupon2
+            every { couponRepository.findByIdOrThrow(couponId1) } returns coupon1
+            every { couponRepository.findByIdOrThrow(couponId2) } returns coupon2
 
-            val results = couponService.getCoupons(userId)
+            val results = couponService.getUserCoupons(userId)
 
             Then("해당 사용자의 모든 쿠폰 정보가 반환된다") {
                 results.size shouldBe 2
@@ -371,23 +371,23 @@ class CouponServiceTest : BehaviorSpec({
                 results[1].status shouldBe CouponStatus.USED
 
                 verify(exactly = 1) { userCouponRepository.findByUserId(userId) }
-                verify(exactly = 1) { couponRepository.findById(couponId1) }
-                verify(exactly = 1) { couponRepository.findById(couponId2) }
+                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId1) }
+                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId2) }
             }
         }
 
         When("사용자 ID로 쿠폰 목록 조회를 요청하지만, 쿠폰 정보가 없는 경우") {
             every { userCouponRepository.findByUserId(userId) } returns listOf(userCoupon1)
-            every { couponRepository.findById(couponId1) } returns null
+            every { couponRepository.findByIdOrThrow(couponId1) } throws BusinessException(ErrorCode.COUPON_NOT_FOUND)
 
             val exception = shouldThrow<BusinessException> {
-                couponService.getCoupons(userId)
+                couponService.getUserCoupons(userId)
             }
 
             Then("COUPON_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_NOT_FOUND
                 verify(exactly = 1) { userCouponRepository.findByUserId(userId) }
-                verify(exactly = 1) { couponRepository.findById(couponId1) }
+                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId1) }
             }
         }
     }

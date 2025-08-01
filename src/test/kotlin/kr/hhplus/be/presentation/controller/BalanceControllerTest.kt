@@ -6,12 +6,12 @@ import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.mockk.every
 import io.mockk.verify
-import kr.hhplus.be.application.balance.BalanceInfo
+import kr.hhplus.be.application.balance.BalanceDto.BalanceInfo
 import kr.hhplus.be.application.facade.BalanceFacade
+import kr.hhplus.be.application.facade.BalanceFacade.BalanceChargeResult
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.presentation.dto.request.BalanceChargeRequest
-import kr.hhplus.be.presentation.dto.response.BalanceChargeResponse
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -42,7 +42,7 @@ class BalanceControllerTest(
                 val request = BalanceChargeRequest(userId, chargeAmount)
                 val now = LocalDateTime.now()
 
-                val mockResponse = BalanceChargeResponse(
+                val mockResponse = BalanceChargeResult(
                     userId = userId,
                     balance = 15000,
                     chargedAmount = chargeAmount,
@@ -87,9 +87,9 @@ class BalanceControllerTest(
                     result.andExpect(status().isBadRequest)
                         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                         .andExpect(jsonPath("$.success").value(false))
-                        .andExpect(jsonPath("$.error.code").value("CHARGE_INVALID_AMOUNT"))
+                        .andExpect(jsonPath("$.error.code").value("INVALID_INPUT_VALUE"))
 
-                    verify(exactly = 1) { balanceFacade.chargeBalance(any()) }
+                    verify(exactly = 0) { balanceFacade.chargeBalance(any()) }
                 }
             }
 
@@ -110,9 +110,9 @@ class BalanceControllerTest(
                     result.andExpect(status().isBadRequest)
                         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                         .andExpect(jsonPath("$.success").value(false))
-                        .andExpect(jsonPath("$.error.code").value("CHARGE_INVALID_AMOUNT"))
+                        .andExpect(jsonPath("$.error.code").value("INVALID_INPUT_VALUE"))
 
-                    verify(exactly = 1) { balanceFacade.chargeBalance(any()) }
+                    verify(exactly = 0) { balanceFacade.chargeBalance(any()) }
                 }
             }
 

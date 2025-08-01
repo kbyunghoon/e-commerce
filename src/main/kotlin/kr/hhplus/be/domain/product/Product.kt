@@ -24,6 +24,10 @@ data class Product(
         this.stock -= quantity
     }
 
+    fun addStock(quantity: Int) {
+        this.stock += quantity
+    }
+
     fun toEntity(): ProductEntity {
         return ProductEntity(
             productId = this.id,

@@ -1,7 +1,7 @@
 package kr.hhplus.be.application.facade
 
 import kr.hhplus.be.application.coupon.CouponIssueCommand
-import kr.hhplus.be.application.coupon.UserCouponInfo
+import kr.hhplus.be.application.coupon.CouponDto.UserCouponInfo
 import kr.hhplus.be.application.service.CouponService
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional

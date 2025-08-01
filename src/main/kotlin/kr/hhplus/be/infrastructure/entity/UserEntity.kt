@@ -1,7 +1,6 @@
 package kr.hhplus.be.infrastructure.entity
 
 import jakarta.persistence.*
-import kr.hhplus.be.domain.user.User
 import java.time.LocalDateTime
 
 @Entity
@@ -25,28 +24,4 @@ class UserEntity(
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
-) {
-    fun toDomain(): User {
-        return User(
-            id = this.id,
-            name = this.name,
-            email = this.email,
-            balance = this.balance,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
-    }
-
-    companion object {
-        fun fromDomain(user: User): UserEntity {
-            return UserEntity(
-                id = user.id,
-                name = user.name,
-                email = user.email,
-                balance = user.balance,
-                createdAt = user.createdAt,
-                updatedAt = user.updatedAt
-            )
-        }
-    }
-}
+)

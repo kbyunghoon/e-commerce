@@ -31,19 +31,19 @@ class ProductServiceTest : BehaviorSpec({
         val product = Product(productId, "Test Product", 100, 10000, now, now)
 
         When("존재하는 상품 ID로 조회를 요청하면") {
-            every { productRepository.findById(productId) } returns product
+            every { productRepository.findByIdOrThrow(productId) } returns product
 
             val result = productService.getProduct(productId)
 
             Then("해당 상품 정보가 반환된다") {
                 result.id shouldBe productId
                 result.name shouldBe "Test Product"
-                verify(exactly = 1) { productRepository.findById(productId) }
+                verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
             }
         }
 
         When("존재하지 않는 상품 ID로 조회를 요청하면") {
-            every { productRepository.findById(productId) } returns null
+            every { productRepository.findByIdOrThrow(productId) } throws BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
 
             val exception = shouldThrow<BusinessException> {
                 productService.getProduct(productId)
@@ -51,7 +51,7 @@ class ProductServiceTest : BehaviorSpec({
 
             Then("PRODUCT_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.PRODUCT_NOT_FOUND
-                verify(exactly = 1) { productRepository.findById(productId) }
+                verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
             }
         }
     }
@@ -63,21 +63,21 @@ class ProductServiceTest : BehaviorSpec({
         val product = Product(productId, "Test Product", 10, 10000, now, now)
 
         When("충분한 재고가 있는 상품의 재고 차감을 요청하면") {
-            every { productRepository.findById(productId) } returns product
+            every { productRepository.findByIdOrThrow(productId) } returns product
             every { productRepository.save(any()) } answers { it.invocation.args[0] as Product }
 
             productService.deductStock(productId, quantity)
 
             Then("상품의 재고가 감소하고, save 메소드가 호출된다") {
                 product.stock shouldBe 5
-                verify(exactly = 1) { productRepository.findById(productId) }
+                verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
                 verify(exactly = 1) { productRepository.save(any()) }
             }
         }
 
         When("재고가 부족한 상품의 재고 차감을 요청하면") {
             val insufficientStockProduct = Product(productId, "Test Product", 3, 10000, now, now)
-            every { productRepository.findById(productId) } returns insufficientStockProduct
+            every { productRepository.findByIdOrThrow(productId) } returns insufficientStockProduct
 
             val exception = shouldThrow<BusinessException> {
                 productService.deductStock(productId, quantity)
@@ -85,13 +85,13 @@ class ProductServiceTest : BehaviorSpec({
 
             Then("INSUFFICIENT_STOCK 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.INSUFFICIENT_STOCK
-                verify(exactly = 1) { productRepository.findById(productId) }
+                verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
                 verify(exactly = 0) { productRepository.save(any()) }
             }
         }
 
         When("존재하지 않는 상품의 재고 차감을 요청하면") {
-            every { productRepository.findById(productId) } returns null
+            every { productRepository.findByIdOrThrow(productId) } throws BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
 
             val exception = shouldThrow<BusinessException> {
                 productService.deductStock(productId, quantity)
@@ -99,7 +99,7 @@ class ProductServiceTest : BehaviorSpec({
 
             Then("PRODUCT_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.PRODUCT_NOT_FOUND
-                verify(exactly = 1) { productRepository.findById(productId) }
+                verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
                 verify(exactly = 0) { productRepository.save(any()) }
             }
         }

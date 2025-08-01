@@ -1,9 +1,10 @@
 package kr.hhplus.be.application.facade
 
 import kr.hhplus.be.application.balance.BalanceDeductCommand
-import kr.hhplus.be.application.order.CalculatedOrderDetails
 import kr.hhplus.be.application.order.OrderCreateCommand
-import kr.hhplus.be.application.order.OrderCreateDto
+import kr.hhplus.be.application.order.OrderDto
+import kr.hhplus.be.application.order.OrderDto.*
+import kr.hhplus.be.application.order.PaymentOperationsStatus
 import kr.hhplus.be.application.order.PaymentProcessCommand
 import kr.hhplus.be.application.service.BalanceService
 import kr.hhplus.be.application.service.CouponService
@@ -13,7 +14,6 @@ import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.OrderItem
 import kr.hhplus.be.domain.order.OrderStatus
-import kr.hhplus.be.presentation.dto.response.OrderResponse
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
@@ -26,24 +26,23 @@ class OrderFacade(
 ) {
 
     @Transactional
-    fun processOrder(request: OrderCreateCommand): OrderResponse {
+    fun processOrder(request: OrderCreateCommand): OrderDto.OrderInfo {
         val calculatedDetails = calculateOrderAmounts(request)
         val orderCreateDTO = toOrderCreateDto(request, calculatedDetails)
 
-        val createdOrder = orderService.createOrder(orderCreateDTO)
-
-        return OrderResponse.from(createdOrder)
+        return orderService.createOrder(orderCreateDTO)
     }
 
     private fun toOrderCreateDto(request: OrderCreateCommand, details: CalculatedOrderDetails): OrderCreateDto {
-        val orderItems = request.items.map { orderItem ->
-            val product = details.products.find { it.id == orderItem.productId }
+        val orderItems = request.items.map { orderItemRequest ->
+            val product = details.products.find { it.id == orderItemRequest.productId }
                 ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+
             OrderItem(
-                productId = orderItem.productId,
-                productName = product.name,
-                quantity = orderItem.quantity,
-                price = product.price
+                productId = orderItemRequest.productId,
+                quantity = orderItemRequest.quantity,
+                pricePerItem = product.price,
+                status = OrderStatus.PENDING
             )
         }
 
@@ -58,27 +57,29 @@ class OrderFacade(
     }
 
     @Transactional
-    fun processPayment(request: PaymentProcessCommand): OrderResponse {
-        val order = orderService.getOrderForUpdate(request.orderId)
+    fun processPayment(request: PaymentProcessCommand): OrderDto.OrderInfo {
+        val order = orderService.getOrderForPayment(request.orderId, request.userId)
 
-        if (order.userId != request.userId) {
-            throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+        val paymentStatus = PaymentOperationsStatus()
+        try {
+            performPaymentOperations(
+                userId = order.userId,
+                finalAmount = order.finalAmount,
+                userCouponId = order.userCouponId,
+                items = order.orderItems,
+                paymentStatus = paymentStatus
+            )
+
+            return orderService.completePayment(request.orderId)
+        } catch (e: Exception) {
+            rollbackPaymentOperations(
+                userId = order.userId,
+                finalAmount = order.finalAmount,
+                couponId = order.userCouponId,
+                paymentStatus = paymentStatus
+            )
+            throw e
         }
-
-        if (order.status != OrderStatus.PENDING) {
-            throw BusinessException(ErrorCode.ORDER_ALREADY_PROCESSED)
-        }
-
-        performPaymentOperations(
-            userId = order.userId,
-            finalAmount = order.finalAmount,
-            couponId = order.userCouponId,
-            items = order.items
-        )
-
-        val completedOrder = orderService.completePayment(request.orderId)
-
-        return OrderResponse.from(completedOrder)
     }
 
     private fun calculateOrderAmounts(request: OrderCreateCommand): CalculatedOrderDetails {
@@ -98,22 +99,46 @@ class OrderFacade(
         return CalculatedOrderDetails(totalAmount, discountAmount, finalAmount, products)
     }
 
-    private fun performPaymentOperations(userId: Long, finalAmount: Int, couponId: Long?, items: List<OrderItem>) {
+    private fun performPaymentOperations(
+        userId: Long,
+        finalAmount: Int,
+        userCouponId: Long?,
+        items: List<OrderDto.OrderItemInfo>,
+        paymentStatus: PaymentOperationsStatus
+    ) {
         balanceService.use(BalanceDeductCommand(userId = userId, amount = finalAmount))
+        paymentStatus.balanceDeducted = true
 
         items.forEach { item ->
             productService.deductStock(item.productId, item.quantity)
+            paymentStatus.deductedProducts.add(item)
         }
 
-        couponId?.let { id ->
+        userCouponId?.let { id ->
             couponService.use(userId, id)
+            paymentStatus.couponUsed = true
+        }
+    }
+
+    private fun rollbackPaymentOperations(
+        userId: Long,
+        finalAmount: Int,
+        couponId: Long?,
+        paymentStatus: PaymentOperationsStatus
+    ) {
+        if (paymentStatus.balanceDeducted) {
+            balanceService.refund(userId, finalAmount)
+        }
+        paymentStatus.deductedProducts.forEach { item ->
+            productService.restoreStock(item.productId, item.quantity)
+        }
+        if (paymentStatus.couponUsed && couponId != null) {
+            couponService.restore(userId, couponId)
         }
     }
 
     @Transactional(readOnly = true)
-    fun getOrder(userId: Long, orderId: Long): OrderResponse {
-        val order = orderService.getOrder(orderId)
-
-        return OrderResponse.from(order)
+    fun getOrder(userId: Long, orderId: Long): OrderDto.OrderInfo {
+        return orderService.getOrder(orderId)
     }
 }

@@ -1,7 +1,7 @@
 package kr.hhplus.be.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
-import kr.hhplus.be.application.coupon.UserCouponInfo
+import kr.hhplus.be.application.coupon.CouponDto.UserCouponInfo
 import kr.hhplus.be.domain.coupon.CouponStatus
 import kr.hhplus.be.domain.coupon.DiscountType
 import java.time.LocalDateTime

@@ -1,7 +1,6 @@
 package kr.hhplus.be.infrastructure.entity
 
 import jakarta.persistence.*
-import kr.hhplus.be.domain.order.Order
 import kr.hhplus.be.domain.order.OrderStatus
 import java.time.LocalDateTime
 
@@ -42,33 +41,4 @@ class OrderEntity(
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
-) {
-    fun toDomain(): Order {
-        return Order(
-            id = this.orderId,
-            userId = this.userId,
-            userCouponId = this.userCouponId,
-            items = emptyList(),
-            originalAmount = this.originalAmount,
-            discountAmount = this.discountAmount,
-            finalAmount = this.finalAmount,
-            status = this.status
-        )
-    }
-
-    companion object {
-        fun fromDomain(order: Order): OrderEntity {
-            return OrderEntity(
-                orderId = order.id ?: 0,
-                userId = order.userId,
-                userCouponId = order.userCouponId,
-                originalAmount = order.originalAmount,
-                discountAmount = order.discountAmount,
-                finalAmount = order.finalAmount,
-                status = order.status,
-                orderDate = LocalDateTime.now(),
-                expiresAt = LocalDateTime.now(),
-            )
-        }
-    }
-}
+)

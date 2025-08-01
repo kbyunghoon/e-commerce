@@ -1,8 +1,10 @@
 package kr.hhplus.be.presentation.controller
 
-import kr.hhplus.be.application.order.OrderCreateCommand
-import kr.hhplus.be.application.order.PaymentProcessCommand
+import jakarta.validation.Valid
 import kr.hhplus.be.application.facade.OrderFacade
+import kr.hhplus.be.application.order.OrderCreateCommand
+import kr.hhplus.be.application.order.OrderItemCreateCommand
+import kr.hhplus.be.application.order.PaymentProcessCommand
 import kr.hhplus.be.presentation.api.OrderApi
 import kr.hhplus.be.presentation.dto.common.BaseResponse
 import kr.hhplus.be.presentation.dto.request.OrderRequest
@@ -20,21 +22,33 @@ class OrderController(
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    override fun createOrder(@RequestBody request: OrderRequest): BaseResponse<OrderResponse> {
-        val orderResponse = orderFacade.processOrder(OrderCreateCommand.of(request))
+    override fun createOrder(@RequestBody @Valid request: OrderRequest): BaseResponse<OrderResponse> {
+        val command = OrderCreateCommand(
+            userId = request.userId,
+            items = request.items.map { it.toCommand() },
+            couponId = request.couponId
+        )
+        
+        val orderData = orderFacade.processOrder(command)
+        val response = OrderResponse.from(orderData)
 
-        return BaseResponse.success(orderResponse)
+        return BaseResponse.success(response)
     }
 
     @PostMapping("/{orderId}/pay")
     override fun pay(
         @PathVariable orderId: String,
-        @RequestBody request: PaymentRequest
+        @RequestBody @Valid request: PaymentRequest
     ): BaseResponse<PaymentResponse> {
-        val orderResponse = orderFacade.processPayment(PaymentProcessCommand.of(request))
+        val command = PaymentProcessCommand(
+            orderId = request.orderId,
+            userId = request.userId
+        )
+        
+        val orderData = orderFacade.processPayment(command)
 
         return BaseResponse.success(
-            PaymentResponse.from(orderResponse)
+            PaymentResponse.from(orderData)
         )
     }
 
@@ -43,8 +57,9 @@ class OrderController(
         @PathVariable orderId: Long,
         @RequestParam userId: Long
     ): BaseResponse<OrderResponse> {
-        val orderResponse = orderFacade.getOrder(userId, orderId)
+        val orderData = orderFacade.getOrder(userId, orderId)
+        val response = OrderResponse.from(orderData)
 
-        return BaseResponse.success(orderResponse)
+        return BaseResponse.success(response)
     }
 }

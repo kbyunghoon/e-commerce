@@ -2,30 +2,37 @@ package kr.hhplus.be.application.facade
 
 import kr.hhplus.be.application.balance.BalanceChargeCommand
 import kr.hhplus.be.application.balance.BalanceDeductCommand
-import kr.hhplus.be.application.balance.BalanceInfo
+import kr.hhplus.be.application.balance.BalanceDto.BalanceInfo
 import kr.hhplus.be.application.service.BalanceService
-import kr.hhplus.be.presentation.dto.response.BalanceChargeResponse
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 
 @Component
 class BalanceFacade(
     private val balanceService: BalanceService
 ) {
 
+    data class BalanceChargeResult(
+        val userId: Long,
+        val balance: Int,
+        val chargedAmount: Int,
+        val chargedAt: LocalDateTime
+    )
+
     @Transactional
-    fun chargeBalance(request: BalanceChargeCommand): BalanceChargeResponse {
+    fun chargeBalance(request: BalanceChargeCommand): BalanceChargeResult {
         val balanceBeforeCharge = balanceService.getBalance(request.userId).amount
 
         val balanceAfterCharge = balanceService.charge(request).amount
 
         recordChargeHistory(request.userId, balanceBeforeCharge, request.amount)
 
-        return BalanceChargeResponse(
+        return BalanceChargeResult(
             userId = request.userId,
             balance = balanceAfterCharge,
             chargedAmount = request.amount,
-            chargedAt = java.time.LocalDateTime.now()
+            chargedAt = LocalDateTime.now()
         )
     }
 

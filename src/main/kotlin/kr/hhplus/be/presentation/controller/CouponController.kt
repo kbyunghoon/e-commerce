@@ -1,5 +1,6 @@
 package kr.hhplus.be.presentation.controller
 
+import jakarta.validation.Valid
 import kr.hhplus.be.application.coupon.CouponIssueCommand
 import kr.hhplus.be.application.facade.CouponFacade
 import kr.hhplus.be.presentation.api.CouponApi
@@ -18,9 +19,9 @@ class CouponController(
 
     @PostMapping("/issue")
     @ResponseStatus(HttpStatus.CREATED)
-    override fun issueCoupon(@RequestBody request: CouponIssueRequest): BaseResponse<CouponIssueResponse> {
-        val coupon = couponFacade.issueCoupon(CouponIssueCommand.of(request))
-        
+    override fun issueCoupon(@RequestBody @Valid request: CouponIssueRequest): BaseResponse<CouponIssueResponse> {
+        val coupon = couponFacade.issueCoupon(CouponIssueCommand(userId = request.userId, couponId = request.couponId))
+
         return BaseResponse.success(CouponIssueResponse.from(coupon))
     }
 
@@ -30,7 +31,7 @@ class CouponController(
         @RequestParam status: String?
     ): BaseResponse<CouponListResponse> {
         val userCoupons = couponFacade.getUserCoupons(userId)
-        
+
         return BaseResponse.success(CouponListResponse.from(userCoupons))
     }
 }

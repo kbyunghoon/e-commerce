@@ -8,7 +8,6 @@ import kr.hhplus.be.domain.product.ProductRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 
 @Service
 class ProductService(
@@ -26,14 +25,13 @@ class ProductService(
         }
     }
 
-    fun getAllProducts(pagable: Pageable): Page<ProductDto.ProductInfo> {
-        val products = productRepository.findAll(pagable)
+    fun getAllProducts(pageable: Pageable): Page<ProductDto.ProductInfo> {
+        val products = productRepository.findAll(pageable)
         return products.map { ProductDto.ProductInfo.from(it) }
     }
 
     fun getProduct(productId: Long): ProductDto.ProductInfo {
-        val product = productRepository.findById(productId)
-            ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+        val product = productRepository.findByIdOrThrow(productId)
 
         return ProductDto.ProductInfo.from(product)
     }
@@ -78,10 +76,16 @@ class ProductService(
     }
 
     fun deductStock(productId: Long, quantity: Int) {
-        val product = productRepository.findById(productId)
-            ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+        val product = productRepository.findByIdOrThrow(productId)
 
         product.deductStock(quantity)
+        productRepository.save(product)
+    }
+
+    fun restoreStock(productId: Long, quantity: Int) {
+        val product = productRepository.findByIdOrThrow(productId)
+
+        product.addStock(quantity)
         productRepository.save(product)
     }
 }

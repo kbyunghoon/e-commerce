@@ -8,7 +8,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import kr.hhplus.be.application.balance.BalanceChargeCommand
 import kr.hhplus.be.application.balance.BalanceDeductCommand
-import kr.hhplus.be.application.balance.BalanceInfo
+import kr.hhplus.be.application.balance.BalanceDto.BalanceInfo
 import kr.hhplus.be.application.service.BalanceService
 import java.time.LocalDateTime
 

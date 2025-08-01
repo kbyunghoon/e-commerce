@@ -1,6 +1,6 @@
 package kr.hhplus.be.application.facade
 
-import kr.hhplus.be.application.product.ProductRankingInfo
+import kr.hhplus.be.application.product.ProductDto.ProductRankingInfo
 import kr.hhplus.be.application.service.ProductRankingService
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional

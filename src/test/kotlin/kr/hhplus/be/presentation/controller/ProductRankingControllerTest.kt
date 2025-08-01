@@ -8,7 +8,7 @@ import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.verify
 import kr.hhplus.be.application.facade.ProductRankingFacade
-import kr.hhplus.be.application.product.ProductRankingInfo
+import kr.hhplus.be.application.product.ProductDto.ProductRankingInfo
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
