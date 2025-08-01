@@ -8,43 +8,47 @@ import java.time.LocalDateTime
 
 class OrderDto {
 
-    data class OrderInfo(
+    data class OrderDetails(
         val id: Long? = null,
         val userId: Long,
+        val orderNumber: String,
         val userCouponId: Long? = null,
         val originalAmount: Int,
         val discountAmount: Int,
         val finalAmount: Int,
-        val orderedAt: LocalDateTime,
-        val orderItems: List<OrderItemInfo>,
+        val orderDate: LocalDateTime?,
+        val orderItems: List<OrderItemDetails>,
         val status: OrderStatus
     ) {
         companion object {
-            fun from(order: Order, items: List<OrderItem>): OrderInfo {
-                return OrderInfo(
+            fun from(order: Order, items: List<OrderItem>): OrderDetails {
+                return OrderDetails(
                     id = order.id,
                     userId = order.userId,
+                    orderNumber = order.orderNumber,
                     userCouponId = order.userCouponId,
                     originalAmount = order.originalAmount,
                     discountAmount = order.discountAmount,
                     finalAmount = order.finalAmount,
-                    orderedAt = order.orderedAt,
-                    orderItems = items.map { OrderItemInfo.from(it) },
+                    orderDate = order.orderDate,
+                    orderItems = items.map { OrderItemDetails.from(it) },
                     status = order.status
                 )
             }
         }
     }
 
-    data class OrderItemInfo(
+    data class OrderItemDetails(
         val productId: Long,
+        val productName: String,
         val quantity: Int,
         val price: Int
     ) {
         companion object {
-            fun from(orderItem: OrderItem): OrderItemInfo {
-                return OrderItemInfo(
+            fun from(orderItem: OrderItem): OrderItemDetails {
+                return OrderItemDetails(
                     productId = orderItem.productId,
+                    productName = orderItem.productName,
                     quantity = orderItem.quantity,
                     price = orderItem.pricePerItem
                 )

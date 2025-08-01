@@ -5,31 +5,41 @@ import kr.hhplus.be.application.product.ProductDto
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.product.ProductRepository
+import kr.hhplus.be.domain.product.StockChangeType
+import kr.hhplus.be.domain.product.events.StockChangedEvent
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.orm.ObjectOptimisticLockingFailureException
+import org.springframework.retry.annotation.Backoff
+import org.springframework.retry.annotation.Retryable
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class ProductService(
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val applicationEventPublisher: ApplicationEventPublisher
 ) {
 
+    @Transactional(readOnly = true)
     fun getProducts(
         pageable: Pageable,
         searchKeyword: String?,
         minPrice: Int?,
         maxPrice: Int?
     ): Page<ProductDto.ProductInfo> {
-        return productRepository.findAvailableProducts(pageable, searchKeyword, minPrice, maxPrice).map { product ->
-            ProductDto.ProductInfo.from(product)
-        }
+        return productRepository.findAvailableProducts(pageable, searchKeyword, minPrice, maxPrice)
+            .map { ProductDto.ProductInfo.from(it) }
     }
 
+    @Transactional(readOnly = true)
     fun getAllProducts(pageable: Pageable): Page<ProductDto.ProductInfo> {
         val products = productRepository.findAll(pageable)
         return products.map { ProductDto.ProductInfo.from(it) }
     }
 
+    @Transactional(readOnly = true)
     fun getProduct(productId: Long): ProductDto.ProductInfo {
         val product = productRepository.findByIdOrThrow(productId)
 
@@ -38,16 +48,6 @@ class ProductService(
 
     fun getProductsByIds(productIds: List<Long>): List<ProductDto.ProductInfo> {
         val products = productRepository.findByProductIds(productIds)
-        return products.map { ProductDto.ProductInfo.from(it) }
-    }
-
-    fun searchProductsByName(pageable: Pageable, keyword: String): Page<ProductDto.ProductInfo> {
-        val products = productRepository.findByNameContaining(pageable, keyword)
-        return products.map { ProductDto.ProductInfo.from(it) }
-    }
-
-    fun getProductsByPriceRange(pageable: Pageable, minPrice: Int, maxPrice: Int): Page<ProductDto.ProductInfo> {
-        val products = productRepository.findByPriceBetween(pageable, minPrice, maxPrice)
         return products.map { ProductDto.ProductInfo.from(it) }
     }
 
@@ -75,17 +75,48 @@ class ProductService(
         }
     }
 
+    @Retryable(
+        value = [ObjectOptimisticLockingFailureException::class],
+        maxAttempts = 5,
+        backoff = Backoff(delay = 100, multiplier = 2.0)
+    )
+    @Transactional
     fun deductStock(productId: Long, quantity: Int) {
         val product = productRepository.findByIdOrThrow(productId)
+        val previousStock = product.stock
 
         product.deductStock(quantity)
-        productRepository.save(product)
+        val updatedProduct = productRepository.save(product)
+
+        applicationEventPublisher.publishEvent(
+            StockChangedEvent(
+                productId = productId,
+                changeType = StockChangeType.DEDUCT,
+                changeQuantity = quantity,
+                previousStock = previousStock,
+                currentStock = updatedProduct.stock,
+                reason = StockChangeType.DEDUCT.reason
+            )
+        )
     }
 
+    @Transactional
     fun restoreStock(productId: Long, quantity: Int) {
         val product = productRepository.findByIdOrThrow(productId)
+        val previousStock = product.stock
 
         product.addStock(quantity)
-        productRepository.save(product)
+        val updatedProduct = productRepository.save(product)
+
+        applicationEventPublisher.publishEvent(
+            StockChangedEvent(
+                productId = productId,
+                changeType = StockChangeType.RESTORE,
+                changeQuantity = quantity,
+                previousStock = previousStock,
+                currentStock = updatedProduct.stock,
+                reason = StockChangeType.RESTORE.reason
+            )
+        )
     }
 }
