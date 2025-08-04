@@ -1,6 +1,7 @@
 package kr.hhplus.be.infrastructure.entity
 
 import jakarta.persistence.*
+import kr.hhplus.be.domain.coupon.Coupon
 import kr.hhplus.be.domain.coupon.DiscountType
 import java.time.LocalDateTime
 
@@ -9,6 +10,7 @@ import java.time.LocalDateTime
 class CouponEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "coupon_id")
     val id: Long = 0,
 
     @Column(name = "name", nullable = false)
@@ -38,4 +40,36 @@ class CouponEntity(
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
-)
+) {
+    fun toDomain(): Coupon {
+        return Coupon(
+            id = this.id,
+            name = this.name,
+            code = this.code,
+            discountType = this.discountType,
+            discountValue = this.discountValue,
+            expiresAt = this.expiresAt,
+            totalQuantity = this.totalQuantity,
+            issuedQuantity = this.issuedQuantity,
+            createdAt = this.createdAt,
+            updatedAt = this.updatedAt,
+        )
+    }
+
+    companion object {
+        fun from(coupon: Coupon): CouponEntity {
+            return CouponEntity(
+                id = coupon.id,
+                name = coupon.name,
+                code = coupon.code,
+                discountType = coupon.discountType,
+                discountValue = coupon.discountValue,
+                expiresAt = coupon.expiresAt,
+                totalQuantity = coupon.totalQuantity,
+                issuedQuantity = coupon.issuedQuantity,
+                createdAt = coupon.createdAt,
+                updatedAt = coupon.updatedAt,
+            )
+        }
+    }
+}

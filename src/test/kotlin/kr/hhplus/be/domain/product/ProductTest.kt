@@ -4,6 +4,7 @@ import io.kotest.matchers.shouldBe
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.product.Product
+import kr.hhplus.be.domain.product.ProductStatus
 import java.time.LocalDateTime
 
 class ProductTest : FunSpec({
@@ -54,6 +55,7 @@ class ProductTest : FunSpec({
             name = "테스트 상품",
             stock = 10,
             price = 50000,
+            status = ProductStatus.ACTIVE,
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now()
         )

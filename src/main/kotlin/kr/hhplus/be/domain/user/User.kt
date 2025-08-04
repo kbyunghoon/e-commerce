@@ -6,9 +6,9 @@ import java.time.LocalDateTime
 
 data class User(
     val id: Long = 0,
-    val name: String,
-    val email: String,
     var balance: Int,
+    var name: String,
+    var email: String,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now()
 ) {

@@ -11,15 +11,16 @@ import kr.hhplus.be.application.balance.BalanceChargeCommand
 import kr.hhplus.be.application.balance.BalanceDeductCommand
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
-import kr.hhplus.be.domain.user.BalanceHistory
-import kr.hhplus.be.domain.user.BalanceHistoryRepository
 import kr.hhplus.be.domain.user.User
 import kr.hhplus.be.domain.user.UserRepository
+import kr.hhplus.be.domain.user.events.BalanceChargedEvent
+import kr.hhplus.be.domain.user.events.BalanceDeductedEvent
+import org.springframework.context.ApplicationEventPublisher
 
 class BalanceServiceTest : BehaviorSpec({
     val userRepository: UserRepository = mockk()
-    val balanceHistoryRepository: BalanceHistoryRepository = mockk()
-    val balanceService = BalanceService(userRepository, balanceHistoryRepository)
+    val applicationEventPublisher: ApplicationEventPublisher = mockk()
+    val balanceService = BalanceService(userRepository, applicationEventPublisher)
 
     afterContainer {
         clearAllMocks()
@@ -37,14 +38,16 @@ class BalanceServiceTest : BehaviorSpec({
 
             every { userRepository.findByIdOrThrow(userId) } returns user
             every { userRepository.save(any()) } answers { it.invocation.args[0] as User }
+            every { applicationEventPublisher.publishEvent(any<BalanceChargedEvent>()) } returns Unit
 
             val result = balanceService.charge(command)
 
-            Then("사용자의 잔액이 증가하고, 업데이트된 잔액 정보가 반환된다") {
+            Then("사용자의 잔액이 증가하고, 이벤트가 발행된다") {
                 result.userId shouldBe userId
                 result.amount shouldBe expectedBalance
                 verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
                 verify(exactly = 1) { userRepository.save(any()) }
+                verify(exactly = 1) { applicationEventPublisher.publishEvent(any<BalanceChargedEvent>()) }
             }
         }
 
@@ -60,6 +63,7 @@ class BalanceServiceTest : BehaviorSpec({
                 exception.errorCode shouldBe ErrorCode.CHARGE_INVALID_AMOUNT
                 verify(exactly = 0) { userRepository.findByIdOrThrow(any()) }
                 verify(exactly = 0) { userRepository.save(any()) }
+                verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
             }
         }
 
@@ -77,6 +81,7 @@ class BalanceServiceTest : BehaviorSpec({
                 exception.errorCode shouldBe ErrorCode.USER_NOT_FOUND
                 verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
                 verify(exactly = 0) { userRepository.save(any()) }
+                verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
             }
         }
     }
@@ -93,14 +98,16 @@ class BalanceServiceTest : BehaviorSpec({
 
             every { userRepository.findByIdOrThrow(userId) } returns user
             every { userRepository.save(any()) } answers { it.invocation.args[0] as User }
+            every { applicationEventPublisher.publishEvent(any<BalanceDeductedEvent>()) } returns Unit
 
             val result = balanceService.use(command)
 
-            Then("사용자의 잔액이 감소하고, 업데이트된 잔액 정보가 반환된다") {
+            Then("사용자의 잔액이 감소하고, 이벤트가 발행된다") {
                 result.userId shouldBe userId
                 result.amount shouldBe expectedBalance
                 verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
                 verify(exactly = 1) { userRepository.save(any()) }
+                verify(exactly = 1) { applicationEventPublisher.publishEvent(any<BalanceDeductedEvent>()) }
             }
         }
 
@@ -117,6 +124,7 @@ class BalanceServiceTest : BehaviorSpec({
                 exception.errorCode shouldBe ErrorCode.DEDUCT_INVALID_AMOUNT
                 verify(exactly = 1) { userRepository.findByIdOrThrow(any()) }
                 verify(exactly = 0) { userRepository.save(any()) }
+                verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
             }
         }
 
@@ -134,6 +142,7 @@ class BalanceServiceTest : BehaviorSpec({
                 exception.errorCode shouldBe ErrorCode.INSUFFICIENT_BALANCE
                 verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
                 verify(exactly = 0) { userRepository.save(any()) }
+                verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
             }
         }
 
@@ -143,7 +152,6 @@ class BalanceServiceTest : BehaviorSpec({
 
             every { userRepository.findByIdOrThrow(userId) } throws BusinessException(ErrorCode.USER_NOT_FOUND)
 
-
             val exception = shouldThrow<BusinessException> {
                 balanceService.use(command)
             }
@@ -152,6 +160,7 @@ class BalanceServiceTest : BehaviorSpec({
                 exception.errorCode shouldBe ErrorCode.USER_NOT_FOUND
                 verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
                 verify(exactly = 0) { userRepository.save(any()) }
+                verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
             }
         }
     }
@@ -183,38 +192,6 @@ class BalanceServiceTest : BehaviorSpec({
             Then("USER_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.USER_NOT_FOUND
                 verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
-            }
-        }
-    }
-
-    Given("잔액 충전 내역 기록(recordChargeHistory) 시나리오") {
-        val userId = 1L
-        val currentAmount = 10000
-        val chargeAmount = 5000
-
-        When("충전 내역 기록을 요청하면") {
-            every { balanceHistoryRepository.save(any()) } answers { it.invocation.args[0] as BalanceHistory }
-
-            balanceService.recordChargeHistory(userId, currentAmount, chargeAmount)
-
-            Then("BalanceHistoryRepository의 save 메소드가 호출된다") {
-                verify(exactly = 1) { balanceHistoryRepository.save(any()) }
-            }
-        }
-    }
-
-    Given("잔액 차감 내역 기록(recordDeductHistory) 시나리오") {
-        val userId = 1L
-        val currentAmount = 15000
-        val deductAmount = 5000
-
-        When("차감 내역 기록을 요청하면") {
-            every { balanceHistoryRepository.save(any()) } answers { it.invocation.args[0] as BalanceHistory }
-
-            balanceService.recordDeductHistory(userId, currentAmount, deductAmount)
-
-            Then("BalanceHistoryRepository의 save 메소드가 호출된다") {
-                verify(exactly = 1) { balanceHistoryRepository.save(any()) }
             }
         }
     }

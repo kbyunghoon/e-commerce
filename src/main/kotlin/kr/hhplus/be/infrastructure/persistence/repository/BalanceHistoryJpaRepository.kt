@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface BalanceHistoryJpaRepository : JpaRepository<BalanceHistoryEntity, Long> {
-
+    fun findByUserId(userId: Long): List<BalanceHistoryEntity>
 }

@@ -19,11 +19,11 @@ data class BalanceChargeResponse(
     val chargedAt: LocalDateTime
 ) {
     companion object {
-        fun from(balanceInfo: BalanceInfo, chargedAmount: Int): BalanceChargeResponse {
+        fun from(balanceInfo: BalanceInfo): BalanceChargeResponse {
             return BalanceChargeResponse(
                 userId = balanceInfo.userId,
                 balance = balanceInfo.amount,
-                chargedAmount = chargedAmount,
+                chargedAmount = balanceInfo.amount,
                 chargedAt = balanceInfo.updatedAt
             )
         }

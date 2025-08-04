@@ -10,7 +10,7 @@ data class OrderItemCreateCommand(
 data class OrderCreateCommand(
     val userId: Long,
     val items: List<OrderItemCreateCommand>,
-    val couponId: Long?,
+    val userCouponId: Long?,
 ) {
     fun toBalanceDeductCommand(finalAmount: Int): BalanceDeductCommand {
         return BalanceDeductCommand(

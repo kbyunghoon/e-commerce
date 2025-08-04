@@ -3,17 +3,23 @@ package kr.hhplus.be.domain.order
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import kotlin.random.Random
 
 data class Order(
-    val id: Long? = null,
+    val id: Long = 0,
     val userId: Long,
+    val orderNumber: String,
     val userCouponId: Long?,
     val originalAmount: Int,
     val discountAmount: Int,
     val finalAmount: Int,
     var status: OrderStatus = OrderStatus.PENDING,
-    val orderedAt: LocalDateTime = LocalDateTime.now()
+    val orderDate: LocalDateTime?,
+    val expireDate: LocalDateTime? = null,
+    val createdAt: LocalDateTime = LocalDateTime.now(),
 ) {
+
     companion object {
         const val MIN_ORDER_AMOUNT = 1
         const val MAX_ORDER_AMOUNT = 1_000_000
@@ -30,15 +36,25 @@ data class Order(
             validateBusinessRules(userId, originalAmount, discountAmount, finalAmount)
 
             return Order(
-                id = null,
+                id = 0,
                 userId = userId,
+                orderNumber = generateOrderNumber(orderedAt),
                 originalAmount = originalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
                 status = OrderStatus.PENDING,
                 userCouponId = userCouponId,
-                orderedAt = orderedAt
+                expireDate = orderedAt.plusMinutes(30),
+                orderDate = null,
+                createdAt = orderedAt,
             )
+        }
+
+        private fun generateOrderNumber(dateTime: LocalDateTime = LocalDateTime.now()): String {
+            val formatter = DateTimeFormatter.ofPattern("yyMMddHHmmss")
+            val dateTimePart = dateTime.format(formatter)
+            val randomPart = String.format("%02d", Random.nextInt(0, 100))
+            return "T$dateTimePart$randomPart"
         }
 
         private fun validateBusinessRules(
@@ -134,8 +150,10 @@ data class Order(
 }
 
 data class OrderItem(
+    val id: Long? = 0,
     val orderId: Long? = null,
     val productId: Long,
+    val productName: String,
     val quantity: Int,
     val pricePerItem: Int,
     var status: OrderStatus = OrderStatus.PENDING,
@@ -144,19 +162,21 @@ data class OrderItem(
         const val MIN_QUANTITY = 1
         const val MAX_QUANTITY = 100
         const val MIN_PRICE = 1
-        const val MAX_PRICE = 1_000_000
+        const val MAX_PRICE = 100_000_000
 
         fun create(
             productId: Long,
             quantity: Int,
+            productName: String,
             pricePerItem: Int,
-            orderId: Long? = null
+            orderId: Long
         ): OrderItem {
             validateBusinessRules(productId, quantity, pricePerItem)
 
             return OrderItem(
                 orderId = orderId,
                 productId = productId,
+                productName = productName,
                 quantity = quantity,
                 pricePerItem = pricePerItem,
                 status = OrderStatus.PENDING
