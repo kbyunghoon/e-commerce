@@ -3,6 +3,7 @@ package kr.hhplus.be.application.service
 import kr.hhplus.be.application.balance.BalanceChargeCommand
 import kr.hhplus.be.application.balance.BalanceDeductCommand
 import kr.hhplus.be.application.balance.BalanceDto.BalanceInfo
+import kr.hhplus.be.application.balance.BalanceRefundCommand
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.user.UserRepository
@@ -18,7 +19,6 @@ class BalanceService(
     private val userRepository: UserRepository,
     private val applicationEventPublisher: ApplicationEventPublisher
 ) {
-
     @Transactional
     fun charge(command: BalanceChargeCommand): BalanceInfo {
         if (command.amount <= 0) {
@@ -46,6 +46,7 @@ class BalanceService(
     @Transactional
     fun use(command: BalanceDeductCommand): BalanceInfo {
         val user = userRepository.findByIdOrThrow(command.userId)
+
         val beforeAmount = user.balance
 
         user.deductBalance(command.amount)
@@ -70,19 +71,19 @@ class BalanceService(
     }
 
     @Transactional
-    fun refund(userId: Long, amount: Int): BalanceInfo {
-        val user = userRepository.findByIdOrThrow(userId)
+    fun refund(command: BalanceRefundCommand): BalanceInfo {
+        val user = userRepository.findByIdOrThrow(command.userId)
         val beforeAmount = user.balance
 
-        user.chargeBalance(amount)
+        user.chargeBalance(command.amount)
         val updatedUser = userRepository.save(user)
 
         applicationEventPublisher.publishEvent(
             BalanceRefundedEvent(
-                _userId = updatedUser.id!!,
+                _userId = updatedUser.id,
                 _beforeAmount = beforeAmount,
                 _afterAmount = updatedUser.balance,
-                _refundedAmount = amount
+                _refundedAmount = command.amount
             )
         )
 
