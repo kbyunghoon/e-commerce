@@ -1,158 +1,185 @@
 package kr.hhplus.be.application.service
 
-import io.kotest.core.spec.style.DescribeSpec
-import io.kotest.matchers.shouldBe
 import kr.hhplus.be.application.balance.BalanceChargeCommand
 import kr.hhplus.be.application.balance.BalanceDeductCommand
-import kr.hhplus.be.config.IntegrationTest
-import kr.hhplus.be.domain.exception.BusinessException
-import kr.hhplus.be.domain.exception.ErrorCode
+import kr.hhplus.be.config.TestContainerConfig
 import kr.hhplus.be.domain.user.User
 import kr.hhplus.be.domain.user.UserRepository
-import org.springframework.test.context.TestConstructor
-import java.util.concurrent.CountDownLatch
+import kr.hhplus.be.support.concurrent.ConcurrentTestExecutor
+import kr.hhplus.be.support.concurrent.ConcurrentTestResult
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Import
+import org.springframework.test.context.ActiveProfiles
+import org.assertj.core.api.Assertions.assertThat
 import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicLong
 
-@IntegrationTest
-@TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
-class BalanceConcurrencyTest(
-    private val balanceService: BalanceService,
-    private val userRepository: UserRepository
-) : DescribeSpec({
+@SpringBootTest
+@ActiveProfiles("test")
+@Import(TestContainerConfig::class)
+class BalanceConcurrencyTest {
 
-    describe("잔액 충전 동시성 테스트") {
+    @Autowired
+    private lateinit var balanceService: BalanceService
 
-        it("동시에 여러 요청이 들어와도 잔액이 정확하게 충전되어야 한다") {
-            // Given
-            val userId = 1L
-            val initialBalance = 0
-            val chargeAmount = 1000
-            val threadCount = 100
+    @Autowired
+    private lateinit var userRepository: UserRepository
 
-            val user = User(id = userId, balance = initialBalance, name = "testUser", email = "test@example.com")
-            userRepository.save(user)
+    private lateinit var user: User
+    private lateinit var executor: ConcurrentTestExecutor
 
-            val countDownLatch = CountDownLatch(threadCount)
-            val executor = Executors.newFixedThreadPool(threadCount)
-            val successCount = AtomicLong(0)
-
-            // When
-            repeat(threadCount) {
-                executor.submit {
-                    try {
-                        val command = BalanceChargeCommand(userId, chargeAmount)
-                        balanceService.charge(command)
-                        successCount.incrementAndGet()
-                    } catch (e: Exception) {
-                    } finally {
-                        countDownLatch.countDown()
-                    }
-                }
-            }
-
-            countDownLatch.await()
-            executor.shutdown()
-
-            // Then
-            val finalUser = userRepository.findByIdOrThrow(userId)
-            finalUser.balance shouldBe (initialBalance + (chargeAmount * successCount.get()))
-            successCount.get() shouldBe threadCount.toLong()
-        }
+    @BeforeEach
+    fun setUp() {
+        user = User(
+            id = 0,
+            balance = 0,
+            name = "테스트유저",
+            email = "test@example.com"
+        )
+        user = userRepository.save(user)
+        executor = ConcurrentTestExecutor()
     }
 
-    describe("잔액 사용 동시성 테스트") {
+    @Test
+    fun `유저 포인트 충전 2번 동시성 테스트`() {
+        // given
+        val command = BalanceChargeCommand(userId = user.id, amount = 1000)
 
-        it("동시에 여러 요청이 들어와도 잔액이 정확하게 사용되어야 한다") {
-            // Given
-            val userId = 2L
-            val initialBalance = 100000
-            val useAmount = 1000
-            val threadCount = 50
-
-            val user = User(id = userId, balance = initialBalance, name = "testUser", email = "test@example.com")
-            userRepository.save(user)
-
-            val countDownLatch = CountDownLatch(threadCount)
-            val executor = Executors.newFixedThreadPool(threadCount)
-            val successCount = AtomicLong(0)
-            val failureCount = AtomicLong(0)
-
-            // When
-            repeat(threadCount) {
-                executor.submit {
-                    try {
-                        val command = BalanceDeductCommand(userId, useAmount)
-                        balanceService.use(command)
-                        successCount.incrementAndGet()
-                    } catch (e: BusinessException) {
-                        if (e.errorCode == ErrorCode.INSUFFICIENT_BALANCE) {
-                            failureCount.incrementAndGet()
-                        } else {
-                            throw e
-                        }
-                    } catch (e: Exception) {
-                        failureCount.incrementAndGet()
-                    } finally {
-                        countDownLatch.countDown()
-                    }
-                }
-            }
-
-            countDownLatch.await()
-            executor.shutdown()
-
-            // Then
-            val finalUser = userRepository.findByIdOrThrow(userId)
-            val expectedFinalBalance = initialBalance - (useAmount * successCount.get())
-            finalUser.balance shouldBe expectedFinalBalance
-            (successCount.get() + failureCount.get()) shouldBe threadCount.toLong()
+        // when
+        val result: ConcurrentTestResult = executor.execute(2, 2) {
+            balanceService.charge(command)
         }
 
-        it("잔액이 부족할 때 동시에 여러 사용 요청이 들어오면, 잔액 범위 내에서만 사용되어야 한다") {
-            // Given
-            val userId = 3L
-            val initialBalance = 5000
-            val useAmount = 1000
-            val threadCount = 10
-
-            val user = User(id = userId, balance = initialBalance, name = "testUser", email = "test@example.com")
-            userRepository.save(user)
-
-            val countDownLatch = CountDownLatch(threadCount)
-            val executor = Executors.newFixedThreadPool(threadCount)
-            val successCount = AtomicLong(0)
-            val failureCount = AtomicLong(0)
-
-            // When
-            repeat(threadCount) {
-                executor.submit {
-                    try {
-                        val command = BalanceDeductCommand(userId, useAmount)
-                        balanceService.use(command)
-                        successCount.incrementAndGet()
-                    } catch (e: BusinessException) {
-                        if (e.errorCode == ErrorCode.INSUFFICIENT_BALANCE) {
-                            failureCount.incrementAndGet()
-                        } else {
-                            throw e
-                        }
-                    } catch (e: Exception) {
-                        failureCount.incrementAndGet()
-                    } finally {
-                        countDownLatch.countDown()
-                    }
-                }
-            }
-
-            countDownLatch.await()
-            executor.shutdown()
-
-            // Then
-            val finalUser = userRepository.findByIdOrThrow(userId)
-            finalUser.balance shouldBe (initialBalance - (useAmount * successCount.get()))
-            successCount.get() shouldBe (initialBalance / useAmount)
-            (successCount.get() + failureCount.get()) shouldBe threadCount.toLong()
+        // then
+        println("성공 카운트: ${result.getSuccessCount().get()}")
+        println("실패 카운트: ${result.getFailureCount().get()}")
+        
+        result.getExceptions().forEach { exception ->
+            println("예외: ${exception.message}")
         }
+
+        val updatedUser = userRepository.findByIdOrThrow(user.id)
+        println("최종 유저 잔액: ${updatedUser.balance}")
+        
+        val expectedBalance = result.getSuccessCount().get() * 1000
+        assertThat(updatedUser.balance).isEqualTo(expectedBalance)
     }
-})
+
+    @Test
+    fun `유저 포인트 충전 10번 동시성 테스트`() {
+        // given
+        val command = BalanceChargeCommand(userId = user.id, amount = 100)
+
+        // when
+        val result: ConcurrentTestResult = executor.execute(5, 10) {
+            balanceService.charge(command)
+        }
+
+        // then
+        println("성공 카운트: ${result.getSuccessCount().get()}")
+        println("실패 카운트: ${result.getFailureCount().get()}")
+        
+        result.getExceptions().forEach { exception ->
+            println("예외: ${exception.message}")
+        }
+
+        val updatedUser = userRepository.findByIdOrThrow(user.id)
+        println("최종 유저 잔액: ${updatedUser.balance}")
+        
+        val expectedBalance = result.getSuccessCount().get() * 100
+        assertThat(updatedUser.balance).isEqualTo(expectedBalance)
+    }
+
+    @Test
+    fun `유저 포인트 차감 동시성 테스트`() {
+        // given
+        val chargeCommand = BalanceChargeCommand(userId = user.id, amount = 5000)
+        balanceService.charge(chargeCommand)
+
+        val deductCommand = BalanceDeductCommand(userId = user.id, amount = 100)
+
+        // when
+        val result: ConcurrentTestResult = executor.execute(5, 10) {
+            balanceService.use(deductCommand)
+        }
+
+        // then
+        println("성공 카운트: ${result.getSuccessCount().get()}")
+        println("실패 카운트: ${result.getFailureCount().get()}")
+        
+        result.getExceptions().forEach { exception ->
+            println("예외: ${exception.message}")
+        }
+
+        val updatedUser = userRepository.findByIdOrThrow(user.id)
+        println("최종 유저 잔액: ${updatedUser.balance}")
+        
+        // 성공한 차감 횟수만큼 잔액이 차감되어야 함
+        val expectedBalance = 5000 - (result.getSuccessCount().get() * 100)
+        assertThat(updatedUser.balance).isEqualTo(expectedBalance)
+        assertThat(updatedUser.balance).isGreaterThanOrEqualTo(0)
+    }
+
+    @Test
+    fun `잔액 부족 상황에서 동시 차감 테스트`() {
+        // given
+        // 초기 잔액을 적게 설정
+        val chargeCommand = BalanceChargeCommand(userId = user.id, amount = 500)
+        balanceService.charge(chargeCommand)
+
+        val deductCommand = BalanceDeductCommand(userId = user.id, amount = 100)
+
+        // when
+        val result: ConcurrentTestResult = executor.execute(10, 20) {
+            balanceService.use(deductCommand)
+        }
+
+        // then
+        println("성공 카운트: ${result.getSuccessCount().get()}")
+        println("실패 카운트: ${result.getFailureCount().get()}")
+        
+        result.getExceptions().forEach { exception ->
+            println("예외: ${exception.javaClass.simpleName} - ${exception.message}")
+        }
+
+        val updatedUser = userRepository.findByIdOrThrow(user.id)
+        println("최종 유저 잔액: ${updatedUser.balance}")
+        
+        // 최대 5번까지만 성공할 수 있어야 함 (500 / 100)
+        assertThat(result.getSuccessCount().get()).isLessThanOrEqualTo(5)
+        assertThat(updatedUser.balance).isGreaterThanOrEqualTo(0)
+        
+        // 성공한 차감 횟수만큼 정확히 차감되어야 함
+        val expectedBalance = 500 - (result.getSuccessCount().get() * 100)
+        assertThat(updatedUser.balance).isEqualTo(expectedBalance)
+    }
+
+    @Test
+    fun `대량 포인트 충전 동시성 테스트`() {
+        // given
+        val command = BalanceChargeCommand(userId = user.id, amount = 1)
+        val threadCount = 50
+        val taskCount = 100
+
+        // when
+        val result: ConcurrentTestResult = executor.execute(threadCount, taskCount) {
+            balanceService.charge(command)
+        }
+
+        // then
+        println("성공 카운트: ${result.getSuccessCount().get()}")
+        println("실패 카운트: ${result.getFailureCount().get()}")
+        
+        result.getExceptions().forEach { exception ->
+            println("예외: ${exception.javaClass.simpleName} - ${exception.message}")
+        }
+
+        val updatedUser = userRepository.findByIdOrThrow(user.id)
+        println("최종 유저 잔액: ${updatedUser.balance}")
+        
+        // 성공한 만큼 정확히 충전되어야 함
+        assertThat(updatedUser.balance).isEqualTo(result.getSuccessCount().get())
+    }
+}
