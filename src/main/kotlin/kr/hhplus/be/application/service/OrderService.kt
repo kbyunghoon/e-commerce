@@ -1,11 +1,13 @@
 package kr.hhplus.be.application.service
 
 import kr.hhplus.be.application.balance.BalanceDeductCommand
+import kr.hhplus.be.application.balance.BalanceRefundCommand
 import kr.hhplus.be.application.order.OrderCreateCommand
 import kr.hhplus.be.application.order.OrderDto
 import kr.hhplus.be.application.order.OrderDto.OrderDetails
 import kr.hhplus.be.application.order.PaymentOperationsStatus
 import kr.hhplus.be.application.order.PaymentProcessCommand
+import kr.hhplus.be.application.product.ProductDto
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.*
@@ -106,10 +108,16 @@ class OrderService(
         balanceService.use(BalanceDeductCommand(userId = userId, amount = finalAmount))
         paymentStatus.balanceDeducted = true
 
-        items.forEach { item ->
-            productService.deductStock(item.productId, item.quantity)
-            paymentStatus.deductedProducts.add(item)
+        val stockDeductions = items.map { item ->
+            ProductDto.ProductStockDeduction(
+                productId = item.productId,
+                quantity = item.quantity
+            )
         }
+
+        productService.batchDeductStock(stockDeductions)
+        
+        paymentStatus.deductedProducts.addAll(items)
 
         userCouponId?.let { id ->
             couponService.use(userId, id)
@@ -124,7 +132,7 @@ class OrderService(
         paymentStatus: PaymentOperationsStatus
     ) {
         if (paymentStatus.balanceDeducted) {
-            balanceService.refund(userId, finalAmount)
+            balanceService.refund(BalanceRefundCommand(userId = userId, amount = finalAmount))
         }
         paymentStatus.deductedProducts.forEach { item ->
             productService.restoreStock(item.productId, item.quantity)
