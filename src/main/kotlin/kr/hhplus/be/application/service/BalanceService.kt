@@ -11,6 +11,9 @@ import kr.hhplus.be.domain.user.events.BalanceChargedEvent
 import kr.hhplus.be.domain.user.events.BalanceDeductedEvent
 import kr.hhplus.be.domain.user.events.BalanceRefundedEvent
 import org.springframework.context.ApplicationEventPublisher
+import org.springframework.orm.ObjectOptimisticLockingFailureException
+import org.springframework.retry.annotation.Backoff
+import org.springframework.retry.annotation.Retryable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -19,6 +22,11 @@ class BalanceService(
     private val userRepository: UserRepository,
     private val applicationEventPublisher: ApplicationEventPublisher
 ) {
+    @Retryable(
+        value = [ObjectOptimisticLockingFailureException::class],
+        maxAttempts = 3,
+        backoff = Backoff(delay = 200)
+    )
     @Transactional
     fun charge(command: BalanceChargeCommand): BalanceInfo {
         if (command.amount <= 0) {
@@ -43,6 +51,11 @@ class BalanceService(
         return BalanceInfo.from(updatedUser)
     }
 
+    @Retryable(
+        value = [ObjectOptimisticLockingFailureException::class],
+        maxAttempts = 3,
+        backoff = Backoff(delay = 200)
+    )
     @Transactional
     fun use(command: BalanceDeductCommand): BalanceInfo {
         val user = userRepository.findByIdOrThrow(command.userId)
@@ -64,12 +77,11 @@ class BalanceService(
         return BalanceInfo.from(updatedUser)
     }
 
-    @Transactional(readOnly = true)
-    fun getBalance(userId: Long): BalanceInfo {
-        val user = userRepository.findByIdOrThrow(userId)
-        return BalanceInfo.from(user)
-    }
-
+    @Retryable(
+        value = [ObjectOptimisticLockingFailureException::class],
+        maxAttempts = 3,
+        backoff = Backoff(delay = 200)
+    )
     @Transactional
     fun refund(command: BalanceRefundCommand): BalanceInfo {
         val user = userRepository.findByIdOrThrow(command.userId)
@@ -88,5 +100,11 @@ class BalanceService(
         )
 
         return BalanceInfo.from(updatedUser)
+    }
+
+    @Transactional(readOnly = true)
+    fun getBalance(userId: Long): BalanceInfo {
+        val user = userRepository.findByIdOrThrow(userId)
+        return BalanceInfo.from(user)
     }
 }
