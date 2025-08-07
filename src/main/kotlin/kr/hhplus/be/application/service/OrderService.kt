@@ -36,24 +36,12 @@ class OrderService(
         )
 
         val savedOrder = orderRepository.save(order)
-
-        val orderItems = request.items.map { orderItemRequest ->
-            val product = calculatedDetails.products.find { it.id == orderItemRequest.productId }
-                ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
-
-            OrderItem(
-                productId = orderItemRequest.productId,
-                quantity = orderItemRequest.quantity,
-                productName = product.name,
-                pricePerItem = product.price,
-                status = OrderStatus.PENDING
-            )
-        }
-
+        val orderItems = createOrderItems(request, calculatedDetails, savedOrder.id)
         val savedOrderItems = orderItemRepository.saveAll(orderItems)
 
         return OrderDetails.from(savedOrder, savedOrderItems)
     }
+
 
     @Transactional
     fun processPayment(request: PaymentProcessCommand): OrderDetails {
@@ -81,6 +69,7 @@ class OrderService(
         }
     }
 
+    @Transactional(readOnly = true)
     private fun calculateOrderAmounts(request: OrderCreateCommand): OrderDto.CalculatedOrderDetails {
         val products = productService.validateOrderItems(request.items)
         val totalAmount = request.items.sumOf { orderItem ->
@@ -208,5 +197,25 @@ class OrderService(
     @Transactional(readOnly = true)
     fun getOrder(userId: Long, orderId: Long): OrderDetails {
         return getOrder(orderId)
+    }
+
+    private fun createOrderItems(
+        request: OrderCreateCommand,
+        calculatedDetails: OrderDto.CalculatedOrderDetails,
+        orderId: Long
+    ): List<OrderItem> {
+        return request.items.map { orderItemRequest ->
+            val product = calculatedDetails.products.find { it.id == orderItemRequest.productId }
+                ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+
+            OrderItem(
+                orderId = orderId,
+                productId = orderItemRequest.productId,
+                quantity = orderItemRequest.quantity,
+                productName = product.name,
+                pricePerItem = product.price,
+                status = OrderStatus.PENDING
+            )
+        }
     }
 }
