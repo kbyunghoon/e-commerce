@@ -10,9 +10,6 @@ import kr.hhplus.be.domain.product.events.StockChangedEvent
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
-import org.springframework.orm.ObjectOptimisticLockingFailureException
-import org.springframework.retry.annotation.Backoff
-import org.springframework.retry.annotation.Retryable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -75,14 +72,9 @@ class ProductService(
         }
     }
 
-    @Retryable(
-        value = [ObjectOptimisticLockingFailureException::class],
-        maxAttempts = 5,
-        backoff = Backoff(delay = 100, multiplier = 2.0)
-    )
     @Transactional
     fun deductStock(productId: Long, quantity: Int) {
-        val product = productRepository.findByIdOrThrow(productId)
+        val product = productRepository.findByIdWithPessimisticLock(productId)
         val previousStock = product.stock
 
         product.deductStock(quantity)
@@ -98,6 +90,47 @@ class ProductService(
                 reason = StockChangeType.DEDUCT.reason
             )
         )
+    }
+
+    @Transactional
+    fun batchDeductStock(stockDeductions: List<ProductDto.ProductStockDeduction>) {
+        if (stockDeductions.isEmpty()) return
+        
+        val sortedDeductions = stockDeductions.sortedBy { it.productId }
+        val productIds = sortedDeductions.map { it.productId }
+        
+        val products = productRepository.findByIdsWithPessimisticLock(productIds)
+        
+        sortedDeductions.forEach { deduction ->
+            val product = products.find { it.id == deduction.productId }
+                ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+            
+            if (product.stock < deduction.quantity) {
+                throw BusinessException(ErrorCode.INSUFFICIENT_STOCK)
+            }
+        }
+        
+        val updatedProducts = products.map { product ->
+            val deduction = sortedDeductions.find { it.productId == product.id }!!
+            val previousStock = product.stock
+            
+            product.deductStock(deduction.quantity)
+            
+            applicationEventPublisher.publishEvent(
+                StockChangedEvent(
+                    productId = product.id,
+                    changeType = StockChangeType.DEDUCT,
+                    changeQuantity = deduction.quantity,
+                    previousStock = previousStock,
+                    currentStock = product.stock,
+                    reason = StockChangeType.DEDUCT.reason
+                )
+            )
+            
+            product
+        }
+        
+        productRepository.saveAll(updatedProducts)
     }
 
     @Transactional

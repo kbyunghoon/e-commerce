@@ -1,5 +1,7 @@
 package kr.hhplus.be.infrastructure.persistence
 
+import kr.hhplus.be.domain.exception.BusinessException
+import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.product.Product
 import kr.hhplus.be.domain.product.ProductRepository
 import kr.hhplus.be.infrastructure.entity.ProductEntity
@@ -14,12 +16,17 @@ class ProductRepositoryImpl(
     private val productJpaRepository: ProductJpaRepository
 ) : ProductRepository {
 
-    override fun findById(id: Long): Product? {
-        return productJpaRepository.findByIdOrNull(id)?.toDomain()
+    override fun findById(productId: Long): Product? {
+        return productJpaRepository.findByIdOrNull(productId)?.toDomain()
     }
 
     override fun save(product: Product): Product {
         return productJpaRepository.save(ProductEntity.from(product)).toDomain()
+    }
+
+    override fun saveAll(products: List<Product>): List<Product> {
+        val entities = products.map { ProductEntity.from(it) }
+        return productJpaRepository.saveAll(entities).map { it.toDomain() }
     }
 
     override fun findAvailableProducts(
@@ -37,5 +44,15 @@ class ProductRepositoryImpl(
 
     override fun findAll(pageable: Pageable): Page<Product> {
         return productJpaRepository.findAll(pageable).map { it.toDomain() }
+    }
+
+    override fun findByIdWithPessimisticLock(productId: Long): Product {
+        return productJpaRepository.findByIdWithPessimisticLock(productId)?.toDomain()
+            ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+    }
+
+    override fun findByIdsWithPessimisticLock(productIds: List<Long>): List<Product> {
+        val sortedIds = productIds.sorted()
+        return productJpaRepository.findByIdsWithPessimisticLock(sortedIds).map { it.toDomain() }
     }
 }

@@ -4,10 +4,11 @@ import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 
 interface CouponRepository {
-    fun findById(id: Long): Coupon?
+    fun findById(couponId: Long): Coupon?
     fun save(coupon: Coupon): Coupon
+    fun findByIdWithPessimisticLock(couponId: Long): Coupon
     
-    fun findByIdOrThrow(id: Long): Coupon {
-        return findById(id) ?: throw BusinessException(ErrorCode.COUPON_NOT_FOUND)
+    fun findByIdOrThrow(couponId: Long): Coupon {
+        return findById(couponId) ?: throw BusinessException(ErrorCode.COUPON_NOT_FOUND)
     }
 }

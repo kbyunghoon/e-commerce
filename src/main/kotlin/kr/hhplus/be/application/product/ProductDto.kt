@@ -46,4 +46,9 @@ class ProductDto {
         val productName: String,
         val rank: Int,
     )
+
+    data class ProductStockDeduction(
+        val productId: Long,
+        val quantity: Int
+    )
 }
