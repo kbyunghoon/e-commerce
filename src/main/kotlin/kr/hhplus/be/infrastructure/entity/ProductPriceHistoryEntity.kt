@@ -8,7 +8,8 @@ import java.time.LocalDateTime
 class ProductPriceHistoryEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val historyId: Long = 0,
+    @Column(name = "history_id")
+    val id: Long = 0,
 
     @Column(name = "product_id", nullable = false)
     val productId: Long,

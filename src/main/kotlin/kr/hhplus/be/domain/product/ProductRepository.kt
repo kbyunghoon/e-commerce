@@ -11,9 +11,7 @@ interface ProductRepository {
     fun findAvailableProducts(pageable: Pageable, search: String?, minPrice: Int?, maxPrice: Int?): Page<Product>
     fun findByProductIds(productIds: List<Long>): List<Product>
     fun findAll(pageable: Pageable): Page<Product>
-    fun findByNameContaining(pageable: Pageable, name: String): Page<Product>
-    fun findByPriceBetween(pageable: Pageable, minPrice: Int, maxPrice: Int): Page<Product>
-    
+
     fun findByIdOrThrow(id: Long): Product {
         return findById(id) ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
     }

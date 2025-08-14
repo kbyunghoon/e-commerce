@@ -7,8 +7,8 @@ import io.kotest.extensions.spring.SpringExtension
 import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.verify
-import kr.hhplus.be.application.facade.ProductRankingFacade
 import kr.hhplus.be.application.product.ProductDto.ProductRankingInfo
+import kr.hhplus.be.application.service.ProductRankingService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -25,14 +25,14 @@ class ProductRankingControllerTest(
 ) : BehaviorSpec() {
 
     @MockkBean
-    private lateinit var productRankingFacade: ProductRankingFacade
+    private lateinit var productRankingService: ProductRankingService
 
     override fun extensions() = listOf(SpringExtension)
 
     init {
         Given("인기 상품 조회 API") {
             When("인기 상품 목록을 조회하면") {
-                clearMocks(productRankingFacade)
+                clearMocks(productRankingService)
 
                 val mockProductRankings = listOf(
                     ProductRankingInfo(
@@ -62,7 +62,7 @@ class ProductRankingControllerTest(
                     )
                 )
 
-                every { productRankingFacade.getTopProducts() } returns mockProductRankings
+                every { productRankingService.getTopProducts() } returns mockProductRankings
 
                 val result = mockMvc.perform(
                     get("/api/v1/products/top")
@@ -81,16 +81,16 @@ class ProductRankingControllerTest(
                         .andExpect(jsonPath("$.data.products[1].rank").value(2))
                         .andExpect(jsonPath("$.data.products[4].rank").value(5))
 
-                    verify(exactly = 1) { productRankingFacade.getTopProducts() }
+                    verify(exactly = 1) { productRankingService.getTopProducts() }
                 }
             }
 
             When("인기 상품이 없을 때 조회하면") {
-                clearMocks(productRankingFacade)
+                clearMocks(productRankingService)
 
                 val emptyList = emptyList<ProductRankingInfo>()
 
-                every { productRankingFacade.getTopProducts() } returns emptyList
+                every { productRankingService.getTopProducts() } returns emptyList
 
                 val result = mockMvc.perform(
                     get("/api/v1/products/top")
@@ -104,7 +104,7 @@ class ProductRankingControllerTest(
                         .andExpect(jsonPath("$.data.products").isArray)
                         .andExpect(jsonPath("$.data.products.length()").value(0))
 
-                    verify(exactly = 1) { productRankingFacade.getTopProducts() }
+                    verify(exactly = 1) { productRankingService.getTopProducts() }
                 }
             }
         }

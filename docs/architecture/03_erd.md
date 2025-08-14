@@ -3,7 +3,7 @@ erDiagram
     USERS {
         bigint user_id PK "사용자 ID"
         string name "이름"
-        string email "이메일 (Unique)"
+        string email "이메일"
         int balance "현재 잔액"
         datetime created_at "생성일시"
         datetime updated_at "수정일시"
@@ -32,7 +32,9 @@ erDiagram
         bigint order_id PK "주문 ID"
         bigint user_id FK "주문한 사용자 ID"
         bigint user_coupon_id FK "사용한 쿠폰 ID(Nullable)"
-        int total_amount "할인 전 총액"
+        string order_number "주문번호"
+        int original_amount "할인 전 총액"
+        int discount_amount "할인 금액"
         int final_amount "최종 결제액"
         string status "주문 상태 (PENDING, COMPLETED, CANCELLED)"
         datetime order_date "주문일시"
@@ -45,6 +47,7 @@ erDiagram
         bigint order_item_id PK "주문 항목 ID"
         bigint order_id FK "주문 ID"
         bigint product_id FK "주문된 상품 ID"
+        string product_name "상품명"
         int quantity "주문 수량"
         int price_per_item "주문 시점의 개당 가격"
     }
@@ -79,13 +82,14 @@ erDiagram
         datetime used_at "사용일시 (Nullable)"
     }
 
-    BALANCE_CHARGE_HISTORY {
-        bigint history_id PK "충전 기록 ID"
-        bigint user_id FK "충전한 사용자 ID"
-        int amount "충전 금액"
-        int before_amount "충전 전 금액"
-        int after_amount "충전 후 금액"
-        datetime charged_at "충전일시"
+    BALANCE_HISTORY {
+        bigint history_id PK "기록 ID"
+        bigint user_id FK "사용자 ID"
+        int amount "변경 금액"
+        int before_amount "변경 전 금액"
+        int after_amount "변경 후 금액"
+        string type "거래 유형 (CHARGE, DEDUCT, REFUND)"
+        datetime transaction_at "거래일시"
     }
     
     PRODUCT_RANKINGS {
@@ -99,7 +103,7 @@ erDiagram
 
     USERS ||--|{ ORDERS : "주문"
     USERS ||--|{ USER_COUPONS : "보유"
-    USERS ||--|{ BALANCE_CHARGE_HISTORY : "충전"
+    USERS ||--|{ BALANCE_HISTORY : "거래"
     
     ORDERS ||--|{ ORDER_ITEMS : "포함"
     PRODUCTS }o--|| ORDER_ITEMS : "주문됨"

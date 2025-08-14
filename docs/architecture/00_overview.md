@@ -10,11 +10,11 @@
 | 순번 | 문서명                                             | 설명                                                       |
 |----|-------------------------------------------------|----------------------------------------------------------|
 | 01 | [요구사항 정의서](01_requirements.md)                  | 기능 목록, 제약사항, 비기능적 요구사항 등                                 |
-| 02 | [비즈니스 시퀀스 다이어그램](02_business_sequence_diagrams) | 주요 기능의 비즈니스 관점 흐름 시각화 (Mermaid 기반)                       |
-| 03 | [ERD 설계](03_erd)                                | 데이터베이스 엔티티 및 관계 정의 (Mermaid 기반 ERD)                      |
-| 04 | [상태 다이어그램](04_state_diagrams)                   | 주요 객체의 생명주기 및 상태 전이 정의                                   |
-| 05 | [기술 시퀀스 다이어그램](05_technical_sequence_diagrams)  | 구현 관점의 상세 상호작용 흐름 (Controller-Service-Repo) (Mermaid 기반) |
-| 06 | [API 명세서](06_api_spec)                          | RESTful API 엔드포인트, 요청/응답 명세                              |
+| 02 | [비즈니스 시퀀스 다이어그램](02_business_sequence_diagrams.md) | 주요 기능의 비즈니스 관점 흐름 시각화 (Mermaid 기반)                       |
+| 03 | [ERD 설계](03_erd.md)                                | 데이터베이스 엔티티 및 관계 정의 (Mermaid 기반 ERD)                      |
+| 04 | [상태 다이어그램](04_state_diagrams.md)                   | 주요 객체의 생명주기 및 상태 전이 정의                                   |
+| 05 | [기술 시퀀스 다이어그램](05_technical_sequence_diagrams.md)  | 구현 관점의 상세 상호작용 흐름 (Controller-Service-Repo) (Mermaid 기반) |
+| 06 | [API 명세서](06_api_spec.md)                          | RESTful API 엔드포인트, 요청/응답 명세                              |
 
 ---
 

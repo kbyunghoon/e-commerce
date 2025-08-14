@@ -47,4 +47,12 @@ class CouponDto {
             }
         }
     }
+
+    data class ValidatedUserCoupon(
+        val userCoupon: UserCoupon,
+        val coupon: Coupon
+    ) {
+        fun isAvailable(): Boolean = userCoupon.isAvailable() && coupon.isAvailable()
+        fun isExpired(): Boolean = coupon.isExpired()
+    }
 }

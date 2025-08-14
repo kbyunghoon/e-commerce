@@ -1,9 +1,9 @@
 package kr.hhplus.be
 
+import kr.hhplus.be.config.IntegrationTest
 import org.junit.jupiter.api.Test
-import org.springframework.boot.test.context.SpringBootTest
 
-@SpringBootTest
+@IntegrationTest
 class ServerApplicationTests {
 
 	@Test

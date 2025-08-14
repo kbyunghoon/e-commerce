@@ -2,6 +2,7 @@ package kr.hhplus.be.infrastructure.persistence
 
 import kr.hhplus.be.domain.user.BalanceHistory
 import kr.hhplus.be.domain.user.BalanceHistoryRepository
+import kr.hhplus.be.infrastructure.entity.BalanceHistoryEntity
 import kr.hhplus.be.infrastructure.persistence.repository.BalanceHistoryJpaRepository
 import org.springframework.stereotype.Component
 
@@ -10,10 +11,10 @@ class BalanceHistoryRepositoryImpl(
     private val balanceHistoryJpaRepository: BalanceHistoryJpaRepository
 ) : BalanceHistoryRepository {
     override fun save(balanceHistory: BalanceHistory): BalanceHistory {
-        TODO("구현 예정")
+        return balanceHistoryJpaRepository.save(BalanceHistoryEntity.from(balanceHistory)).toDomain()
     }
 
     override fun findByUserId(userId: Long): List<BalanceHistory> {
-        TODO("구현 예정")
+        return balanceHistoryJpaRepository.findByUserId(userId).map { it.toDomain() }
     }
 }
