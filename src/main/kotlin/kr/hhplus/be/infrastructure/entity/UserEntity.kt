@@ -25,7 +25,10 @@ class UserEntity(
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "updated_at", nullable = false)
-    var updatedAt: LocalDateTime = LocalDateTime.now()
+    var updatedAt: LocalDateTime = LocalDateTime.now(),
+
+    @Version
+    val version: Long = 0
 ) {
     fun toDomain(): User {
         return User(
@@ -34,7 +37,8 @@ class UserEntity(
             name = this.name,
             email = this.email,
             createdAt = this.createdAt,
-            updatedAt = this.updatedAt
+            updatedAt = this.updatedAt,
+            version = this.version
         )
     }
 
@@ -46,7 +50,8 @@ class UserEntity(
                 name = user.name,
                 email = user.email,
                 createdAt = user.createdAt,
-                updatedAt = user.updatedAt
+                updatedAt = user.updatedAt,
+                version = user.version
             )
         }
     }

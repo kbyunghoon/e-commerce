@@ -9,3 +9,8 @@ data class BalanceDeductCommand(
     val userId: Long,
     val amount: Int
 )
+
+data class BalanceRefundCommand(
+    val userId: Long,
+    val amount: Int
+)

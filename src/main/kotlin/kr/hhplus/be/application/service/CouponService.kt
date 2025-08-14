@@ -20,7 +20,7 @@ class CouponService(
 
     @Transactional
     fun issue(command: CouponIssueCommand): UserCouponInfo {
-        val coupon = couponRepository.findByIdOrThrow(command.couponId)
+        val coupon = couponRepository.findByIdWithPessimisticLock(command.couponId)
 
         if (!coupon.canBeIssued()) {
             if (coupon.isExpired()) {

@@ -47,7 +47,7 @@ class CouponServiceTest : BehaviorSpec({
         )
 
         When("유효한 쿠폰 발급을 요청하면") {
-            every { couponRepository.findByIdOrThrow(couponId) } returns coupon
+            every { couponRepository.findByIdWithPessimisticLock(couponId) } returns coupon
             every { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) } returns false
             every { couponRepository.save(any()) } answers { it.invocation.args[0] as Coupon }
             every { userCouponRepository.save(any()) } answers { it.invocation.args[0] as UserCoupon }
@@ -58,7 +58,7 @@ class CouponServiceTest : BehaviorSpec({
                 result.userId shouldBe userId
                 result.couponId shouldBe couponId
                 result.status shouldBe CouponStatus.AVAILABLE
-                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdWithPessimisticLock(couponId) }
                 verify(exactly = 1) { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) }
                 verify(exactly = 1) { couponRepository.save(any()) }
                 verify(exactly = 1) { userCouponRepository.save(any()) }
@@ -66,7 +66,7 @@ class CouponServiceTest : BehaviorSpec({
         }
 
         When("존재하지 않는 쿠폰 ID로 발급을 요청하면") {
-            every { couponRepository.findByIdOrThrow(couponId) } throws BusinessException(ErrorCode.COUPON_NOT_FOUND)
+            every { couponRepository.findByIdWithPessimisticLock(couponId) } throws BusinessException(ErrorCode.COUPON_NOT_FOUND)
 
             val exception = shouldThrow<BusinessException> {
                 couponService.issue(command)
@@ -74,14 +74,14 @@ class CouponServiceTest : BehaviorSpec({
 
             Then("COUPON_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_NOT_FOUND
-                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdWithPessimisticLock(couponId) }
                 verify(exactly = 0) { userCouponRepository.existsByUserIdAndCouponId(any(), any()) }
             }
         }
 
         When("만료된 쿠폰으로 발급을 요청하면") {
             val expiredCoupon = coupon.copy(expiresAt = now.minusDays(1))
-            every { couponRepository.findByIdOrThrow(couponId) } returns expiredCoupon
+            every { couponRepository.findByIdWithPessimisticLock(couponId) } returns expiredCoupon
 
             val exception = shouldThrow<BusinessException> {
                 couponService.issue(command)
@@ -89,13 +89,13 @@ class CouponServiceTest : BehaviorSpec({
 
             Then("COUPON_EXPIRED 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_EXPIRED
-                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdWithPessimisticLock(couponId) }
                 verify(exactly = 0) { userCouponRepository.existsByUserIdAndCouponId(any(), any()) }
             }
         }
 
         When("이미 발급된 쿠폰으로 발급을 요청하면") {
-            every { couponRepository.findByIdOrThrow(couponId) } returns coupon
+            every { couponRepository.findByIdWithPessimisticLock(couponId) } returns coupon
             every { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) } returns true
 
             val exception = shouldThrow<BusinessException> {
@@ -104,14 +104,14 @@ class CouponServiceTest : BehaviorSpec({
 
             Then("COUPON_ALREADY_ISSUED 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_ALREADY_ISSUED
-                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdWithPessimisticLock(couponId) }
                 verify(exactly = 1) { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) }
             }
         }
 
         When("재고가 소진된 쿠폰으로 발급을 요청하면") {
             val soldOutCoupon = coupon.copy(issuedQuantity = coupon.totalQuantity)
-            every { couponRepository.findByIdOrThrow(couponId) } returns soldOutCoupon
+            every { couponRepository.findByIdWithPessimisticLock(couponId) } returns soldOutCoupon
 
             val exception = shouldThrow<BusinessException> {
                 couponService.issue(command)
@@ -119,7 +119,7 @@ class CouponServiceTest : BehaviorSpec({
 
             Then("COUPON_SOLD_OUT 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_SOLD_OUT
-                verify(exactly = 1) { couponRepository.findByIdOrThrow(couponId) }
+                verify(exactly = 1) { couponRepository.findByIdWithPessimisticLock(couponId) }
                 verify(exactly = 0) { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) }
             }
         }

@@ -3,6 +3,7 @@ package kr.hhplus.be.application.service
 import kr.hhplus.be.application.balance.BalanceChargeCommand
 import kr.hhplus.be.application.balance.BalanceDeductCommand
 import kr.hhplus.be.application.balance.BalanceDto.BalanceInfo
+import kr.hhplus.be.application.balance.BalanceRefundCommand
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.user.UserRepository
@@ -10,6 +11,9 @@ import kr.hhplus.be.domain.user.events.BalanceChargedEvent
 import kr.hhplus.be.domain.user.events.BalanceDeductedEvent
 import kr.hhplus.be.domain.user.events.BalanceRefundedEvent
 import org.springframework.context.ApplicationEventPublisher
+import org.springframework.orm.ObjectOptimisticLockingFailureException
+import org.springframework.retry.annotation.Backoff
+import org.springframework.retry.annotation.Retryable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -18,7 +22,11 @@ class BalanceService(
     private val userRepository: UserRepository,
     private val applicationEventPublisher: ApplicationEventPublisher
 ) {
-
+    @Retryable(
+        value = [ObjectOptimisticLockingFailureException::class],
+        maxAttempts = 3,
+        backoff = Backoff(delay = 200)
+    )
     @Transactional
     fun charge(command: BalanceChargeCommand): BalanceInfo {
         if (command.amount <= 0) {
@@ -43,9 +51,15 @@ class BalanceService(
         return BalanceInfo.from(updatedUser)
     }
 
+    @Retryable(
+        value = [ObjectOptimisticLockingFailureException::class],
+        maxAttempts = 3,
+        backoff = Backoff(delay = 200)
+    )
     @Transactional
     fun use(command: BalanceDeductCommand): BalanceInfo {
         val user = userRepository.findByIdOrThrow(command.userId)
+
         val beforeAmount = user.balance
 
         user.deductBalance(command.amount)
@@ -63,29 +77,34 @@ class BalanceService(
         return BalanceInfo.from(updatedUser)
     }
 
-    @Transactional(readOnly = true)
-    fun getBalance(userId: Long): BalanceInfo {
-        val user = userRepository.findByIdOrThrow(userId)
-        return BalanceInfo.from(user)
-    }
-
+    @Retryable(
+        value = [ObjectOptimisticLockingFailureException::class],
+        maxAttempts = 3,
+        backoff = Backoff(delay = 200)
+    )
     @Transactional
-    fun refund(userId: Long, amount: Int): BalanceInfo {
-        val user = userRepository.findByIdOrThrow(userId)
+    fun refund(command: BalanceRefundCommand): BalanceInfo {
+        val user = userRepository.findByIdOrThrow(command.userId)
         val beforeAmount = user.balance
 
-        user.chargeBalance(amount)
+        user.chargeBalance(command.amount)
         val updatedUser = userRepository.save(user)
 
         applicationEventPublisher.publishEvent(
             BalanceRefundedEvent(
-                _userId = updatedUser.id!!,
+                _userId = updatedUser.id,
                 _beforeAmount = beforeAmount,
                 _afterAmount = updatedUser.balance,
-                _refundedAmount = amount
+                _refundedAmount = command.amount
             )
         )
 
         return BalanceInfo.from(updatedUser)
+    }
+
+    @Transactional(readOnly = true)
+    fun getBalance(userId: Long): BalanceInfo {
+        val user = userRepository.findByIdOrThrow(userId)
+        return BalanceInfo.from(user)
     }
 }

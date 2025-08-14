@@ -90,14 +90,14 @@ class ProductServiceTest : BehaviorSpec({
                 createdAt = now,
                 updatedAt = now,
             )
-            every { productRepository.findByIdOrThrow(productId) } returns product
+            every { productRepository.findByIdWithPessimisticLock(productId) } returns product
             every { productRepository.save(any()) } returns updatedProduct
 
             productService.deductStock(productId, quantity)
 
             Then("상품의 재고가 감소하고, 재고 변경 이벤트가 발행된다") {
                 product.stock shouldBe 5
-                verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
+                verify(exactly = 1) { productRepository.findByIdWithPessimisticLock(productId) }
                 verify(exactly = 1) { productRepository.save(any()) }
 
                 val eventSlot = slot<StockChangedEvent>()
@@ -123,7 +123,7 @@ class ProductServiceTest : BehaviorSpec({
                 createdAt = now,
                 updatedAt = now,
             )
-            every { productRepository.findByIdOrThrow(productId) } returns insufficientStockProduct
+            every { productRepository.findByIdWithPessimisticLock(productId) } returns insufficientStockProduct
 
             val exception = shouldThrow<BusinessException> {
                 productService.deductStock(productId, quantity)
@@ -131,14 +131,14 @@ class ProductServiceTest : BehaviorSpec({
 
             Then("INSUFFICIENT_STOCK 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.INSUFFICIENT_STOCK
-                verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
+                verify(exactly = 1) { productRepository.findByIdWithPessimisticLock(productId) }
                 verify(exactly = 0) { productRepository.save(any()) }
                 verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
             }
         }
 
         When("존재하지 않는 상품의 재고 차감을 요청하면") {
-            every { productRepository.findByIdOrThrow(productId) } throws BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+            every { productRepository.findByIdWithPessimisticLock(productId) } throws BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
 
             val exception = shouldThrow<BusinessException> {
                 productService.deductStock(productId, quantity)
@@ -146,7 +146,7 @@ class ProductServiceTest : BehaviorSpec({
 
             Then("PRODUCT_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.PRODUCT_NOT_FOUND
-                verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
+                verify(exactly = 1) { productRepository.findByIdWithPessimisticLock(productId) }
                 verify(exactly = 0) { productRepository.save(any()) }
                 verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
             }
