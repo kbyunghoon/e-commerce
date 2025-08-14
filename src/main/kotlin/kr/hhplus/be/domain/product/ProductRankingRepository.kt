@@ -1,7 +1,7 @@
 package kr.hhplus.be.domain.product
 
-import kr.hhplus.be.application.product.ProductDto.ProductRankingInfo
+import java.time.LocalDate
 
 interface ProductRankingRepository {
-    fun findTopProducts(): List<ProductRankingInfo>
+    fun findTopProducts(startDate: LocalDate, endDate: LocalDate): List<ProductRanking>
 }
