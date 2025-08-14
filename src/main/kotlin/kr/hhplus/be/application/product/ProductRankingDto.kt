@@ -5,11 +5,11 @@ import java.time.LocalDate
 
 class ProductRankingDto {
     data class ProductRankingInfo(
-        val id: Long,
-        val productName: String,
-        val totalSalesCount: Int,
-        val rank: Int,
-        val rankingDate: LocalDate
+        val id: Long = 0,
+        val productName: String = "",
+        val totalSalesCount: Int = 0,
+        val rank: Int = 0,
+        val rankingDate: LocalDate = LocalDate.now()
     ) {
         companion object {
             fun from(productRanking: ProductRanking): ProductRankingInfo {

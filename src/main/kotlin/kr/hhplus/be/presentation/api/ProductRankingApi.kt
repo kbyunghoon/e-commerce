@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.constraints.PastOrPresent
-import kr.hhplus.be.domain.product.RankingPeriod
 import kr.hhplus.be.presentation.dto.common.BaseResponse
 import kr.hhplus.be.presentation.dto.response.ProductRankingListResponse
 import org.springframework.format.annotation.DateTimeFormat
@@ -31,9 +30,6 @@ interface ProductRankingApi {
         @RequestParam(required = false)
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         @PastOrPresent(message = "랭킹 날짜는 미래 날짜일 수 없습니다")
-        rankingDate: LocalDate?,
-
-        @RequestParam(required = false)
-        period: RankingPeriod?
+        rankingDate: LocalDate?
     ): BaseResponse<ProductRankingListResponse>
 }

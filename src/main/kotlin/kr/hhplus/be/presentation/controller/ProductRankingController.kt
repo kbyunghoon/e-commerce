@@ -1,5 +1,6 @@
 package kr.hhplus.be.presentation.controller
 
+import com.fasterxml.jackson.annotation.JsonFormat
 import jakarta.validation.constraints.PastOrPresent
 import kr.hhplus.be.application.product.ProductRankingCommand
 import kr.hhplus.be.application.service.ProductRankingService
@@ -26,13 +27,10 @@ class ProductRankingController(
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         @PastOrPresent(message = "랭킹 날짜는 미래 날짜일 수 없습니다")
         rankingDate: LocalDate?,
-
-        @RequestParam(required = false)
-        period: RankingPeriod?
     ): BaseResponse<ProductRankingListResponse> {
         val command = ProductRankingCommand(
             rankingDate = rankingDate ?: LocalDate.now(),
-            period = period ?: RankingPeriod.THREE_DAYS
+            period = RankingPeriod.THREE_DAYS
         )
         val response = productRankingService.getTopProducts(command)
 

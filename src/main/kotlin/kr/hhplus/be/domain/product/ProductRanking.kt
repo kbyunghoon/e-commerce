@@ -2,6 +2,7 @@ package kr.hhplus.be.domain.product
 
 import java.time.LocalDate
 
+
 data class ProductRanking(
     val productId: Long,
     val productName: String,
@@ -9,4 +10,3 @@ data class ProductRanking(
     val rank: Int,
     val rankingDate: LocalDate
 )
-
