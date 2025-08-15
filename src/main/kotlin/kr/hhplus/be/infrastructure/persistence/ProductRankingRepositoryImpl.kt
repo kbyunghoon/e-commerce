@@ -1,15 +1,16 @@
 package kr.hhplus.be.infrastructure.persistence
 
-import kr.hhplus.be.application.product.ProductDto.ProductRankingInfo
+import kr.hhplus.be.domain.product.ProductRanking
 import kr.hhplus.be.domain.product.ProductRankingRepository
-import kr.hhplus.be.infrastructure.persistence.repository.ProductJpaRepository
+import kr.hhplus.be.infrastructure.persistence.repository.ProductRankingJpaRepository
 import org.springframework.stereotype.Component
+import java.time.LocalDate
 
 @Component
 class ProductRankingRepositoryImpl(
-    private val productRankingJpaRepository: ProductJpaRepository
+    private val productRankingJpaRepository: ProductRankingJpaRepository
 ) : ProductRankingRepository {
-    override fun findTopProducts(): List<ProductRankingInfo> {
-        TODO("구현 예정")
+    override fun findTopProducts(startDate: LocalDate, endDate: LocalDate): List<ProductRanking> {
+        return productRankingJpaRepository.findTopProducts(startDate, endDate)
     }
 }

@@ -7,6 +7,9 @@ import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.product.ProductRepository
 import kr.hhplus.be.domain.product.StockChangeType
 import kr.hhplus.be.domain.product.events.StockChangedEvent
+import kr.hhplus.be.global.lock.DistributedLock
+import kr.hhplus.be.global.lock.LockResource
+import kr.hhplus.be.global.lock.LockStrategy
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -72,6 +75,13 @@ class ProductService(
         }
     }
 
+    @DistributedLock(
+        resource = LockResource.PRODUCT_STOCK,
+        key = "#productId",
+        lockStrategy = LockStrategy.PUB_SUB_LOCK,
+        waitTime = 5,
+        leaseTime = 10
+    )
     @Transactional
     fun deductStock(productId: Long, quantity: Int) {
         val product = productRepository.findByIdWithPessimisticLock(productId)
@@ -133,6 +143,13 @@ class ProductService(
         productRepository.saveAll(updatedProducts)
     }
 
+    @DistributedLock(
+        resource = LockResource.PRODUCT_STOCK,
+        key = "#productId",
+        lockStrategy = LockStrategy.PUB_SUB_LOCK,
+        waitTime = 5,
+        leaseTime = 10
+    )
     @Transactional
     fun restoreStock(productId: Long, quantity: Int) {
         val product = productRepository.findByIdOrThrow(productId)

@@ -16,11 +16,27 @@ spring:
     generate-ddl: false
     show-sql: false
     hibernate:
-      ddl-auto: create
+      ddl-auto: none
     properties:
       hibernate.timezone.default_storage: NORMALIZE_UTC
       hibernate.jdbc.time_zone: UTC
+    defer-datasource-initialization: true
+#  sql:
+#    init:
+#      mode: always  # data.sql 실행
+  data:
+    redis:
+      port: 6379
+      host: localhost
+redisson:
+  config:
+    singleServerConfig:
+      address: "redis://localhost:6379"
 
+logging:
+  level:
+    root: info
+    kr.hhplus.be: debug
 ---
 spring.config.activate.on-profile: local, test
 
