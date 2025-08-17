@@ -1,8 +1,6 @@
 package kr.hhplus.be.infrastructure.entity
 
 import jakarta.persistence.*
-import kr.hhplus.be.domain.product.ProductRanking
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Entity
@@ -26,18 +24,5 @@ class ProductRankingEntity(
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "ranking_date", nullable = false)
-    var rankingDate: LocalDate = LocalDate.now()
-) {
-    companion object {
-        fun from(
-            productRankingInfo: ProductRanking
-        ): ProductRankingEntity {
-            return ProductRankingEntity(
-                productId = productRankingInfo.productId,
-                totalSalesCount = productRankingInfo.totalSalesCount,
-                rank = productRankingInfo.rank,
-                rankingDate = productRankingInfo.rankingDate
-            )
-        }
-    }
-}
+    var rankingDate: LocalDateTime = LocalDateTime.now()
+)

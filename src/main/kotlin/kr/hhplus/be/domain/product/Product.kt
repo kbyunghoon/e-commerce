@@ -29,3 +29,11 @@ data class Product(
         this.stock += quantity
     }
 }
+
+data class ProductRanking(
+    val id: Long,
+    val name: String,
+    val price: Int,
+    val totalSalesQuantity: Int,
+    val rank: Int
+)

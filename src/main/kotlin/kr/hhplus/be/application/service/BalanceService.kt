@@ -10,9 +10,6 @@ import kr.hhplus.be.domain.user.UserRepository
 import kr.hhplus.be.domain.user.events.BalanceChargedEvent
 import kr.hhplus.be.domain.user.events.BalanceDeductedEvent
 import kr.hhplus.be.domain.user.events.BalanceRefundedEvent
-import kr.hhplus.be.global.lock.DistributedLock
-import kr.hhplus.be.global.lock.LockResource
-import kr.hhplus.be.global.lock.LockStrategy
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.orm.ObjectOptimisticLockingFailureException
 import org.springframework.retry.annotation.Backoff
@@ -29,13 +26,6 @@ class BalanceService(
         value = [ObjectOptimisticLockingFailureException::class],
         maxAttempts = 3,
         backoff = Backoff(delay = 200)
-    )
-    @DistributedLock(
-        resource = LockResource.USER_BALANCE,
-        key = "#command.userId",
-        lockStrategy = LockStrategy.SPIN_LOCK,
-        waitTime = 5,
-        leaseTime = 10
     )
     @Transactional
     fun charge(command: BalanceChargeCommand): BalanceInfo {
@@ -66,13 +56,6 @@ class BalanceService(
         maxAttempts = 3,
         backoff = Backoff(delay = 200)
     )
-    @DistributedLock(
-        resource = LockResource.USER_BALANCE,
-        key = "#command.userId",
-        lockStrategy = LockStrategy.SPIN_LOCK,
-        waitTime = 5,
-        leaseTime = 10
-    )
     @Transactional
     fun use(command: BalanceDeductCommand): BalanceInfo {
         val user = userRepository.findByIdOrThrow(command.userId)
@@ -98,13 +81,6 @@ class BalanceService(
         value = [ObjectOptimisticLockingFailureException::class],
         maxAttempts = 3,
         backoff = Backoff(delay = 200)
-    )
-    @DistributedLock(
-        resource = LockResource.USER_BALANCE,
-        key = "#command.userId",
-        lockStrategy = LockStrategy.SPIN_LOCK,
-        waitTime = 5,
-        leaseTime = 10
     )
     @Transactional
     fun refund(command: BalanceRefundCommand): BalanceInfo {

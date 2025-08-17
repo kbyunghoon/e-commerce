@@ -1,4 +1,4 @@
-package kr.hhplus.be.global.config
+package kr.hhplus.be.config
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

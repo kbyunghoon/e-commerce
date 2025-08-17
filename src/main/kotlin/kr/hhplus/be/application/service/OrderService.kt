@@ -11,9 +11,6 @@ import kr.hhplus.be.application.product.ProductDto
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.*
-import kr.hhplus.be.global.lock.DistributedLock
-import kr.hhplus.be.global.lock.LockResource
-import kr.hhplus.be.global.lock.LockStrategy
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -45,13 +42,7 @@ class OrderService(
         return OrderDetails.from(savedOrder, savedOrderItems)
     }
 
-    @DistributedLock(
-        resource = LockResource.ORDER_PAYMENT,
-        key = "#command.orderId",
-        lockStrategy = LockStrategy.PUB_SUB_LOCK,
-        waitTime = 5,
-        leaseTime = 10
-    )
+
     @Transactional
     fun processPayment(request: PaymentProcessCommand): OrderDetails {
         val order = getOrderForPayment(request.orderId, request.userId)
@@ -79,7 +70,7 @@ class OrderService(
     }
 
     @Transactional(readOnly = true)
-    fun calculateOrderAmounts(request: OrderCreateCommand): OrderDto.CalculatedOrderDetails {
+    private fun calculateOrderAmounts(request: OrderCreateCommand): OrderDto.CalculatedOrderDetails {
         val products = productService.validateOrderItems(request.items)
         val totalAmount = request.items.sumOf { orderItem ->
             val product = products.find { it.id == orderItem.productId }

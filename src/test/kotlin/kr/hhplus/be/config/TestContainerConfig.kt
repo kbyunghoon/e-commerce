@@ -3,7 +3,6 @@ package kr.hhplus.be.config
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.context.annotation.Bean
-import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.utility.DockerImageName
 
@@ -17,14 +16,6 @@ class TestContainerConfig {
             .withDatabaseName("testdb")
             .withUsername("test")
             .withPassword("test")
-            .withReuse(true)
-    }
-
-    @Bean
-    @ServiceConnection(name = "redis")
-    fun redisContainer(): GenericContainer<*> {
-        return GenericContainer(DockerImageName.parse("redis:7-alpine"))
-            .withExposedPorts(6379)
             .withReuse(true)
     }
 }

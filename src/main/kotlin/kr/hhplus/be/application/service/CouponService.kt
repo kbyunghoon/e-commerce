@@ -9,9 +9,6 @@ import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.user.UserCoupon
 import kr.hhplus.be.domain.user.UserCouponRepository
-import kr.hhplus.be.global.lock.DistributedLock
-import kr.hhplus.be.global.lock.LockResource
-import kr.hhplus.be.global.lock.LockStrategy
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -20,13 +17,7 @@ class CouponService(
     private val couponRepository: CouponRepository,
     private val userCouponRepository: UserCouponRepository
 ) {
-    @DistributedLock(
-        resource = LockResource.USER_COUPON,
-        key = "#command.couponId",
-        lockStrategy = LockStrategy.PUB_SUB_LOCK,
-        waitTime = 5,
-        leaseTime = 10
-    )
+
     @Transactional
     fun issue(command: CouponIssueCommand): UserCouponInfo {
         val coupon = couponRepository.findByIdWithPessimisticLock(command.couponId)

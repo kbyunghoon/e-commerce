@@ -1,7 +1,6 @@
 package kr.hhplus.be.application.product
 
 import kr.hhplus.be.domain.product.Product
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 class ProductDto {
@@ -40,6 +39,12 @@ class ProductDto {
         val maxPrice: Int? = null,
         val page: Int = 0,
         val size: Int = 10
+    )
+
+    data class ProductRankingInfo(
+        val productId: Long,
+        val productName: String,
+        val rank: Int,
     )
 
     data class ProductStockDeduction(
