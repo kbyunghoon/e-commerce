@@ -1,7 +1,7 @@
 package kr.hhplus.be.global.lock
 
 enum class LockResource {
-    USER_COUPON,
+    COUPON,
     PRODUCT_STOCK,
     PRODUCT_BATCH_STOCK,
     USER_BALANCE,

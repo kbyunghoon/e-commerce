@@ -16,10 +16,13 @@ class ProductRankingEntity(
     @Column(name = "product_id", nullable = false, unique = true)
     val productId: Long,
 
+    @Column(name = "product_name", nullable = false)
+    val productName: String,
+
     @Column(name = "total_sales_count", nullable = false)
     val totalSalesCount: Int,
 
-    @Column(name = "`rank`", nullable = false, unique = true)
+    @Column(name = "`rank`", nullable = false)
     val rank: Int,
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -28,12 +31,23 @@ class ProductRankingEntity(
     @Column(name = "ranking_date", nullable = false)
     var rankingDate: LocalDate = LocalDate.now()
 ) {
+    fun toDomain(): ProductRanking {
+        return ProductRanking(
+            productId = id,
+            productName = productName,
+            totalSalesCount = totalSalesCount,
+            rank = rank,
+            rankingDate = rankingDate
+        )
+    }
+
     companion object {
         fun from(
             productRankingInfo: ProductRanking
         ): ProductRankingEntity {
             return ProductRankingEntity(
                 productId = productRankingInfo.productId,
+                productName = productRankingInfo.productName,
                 totalSalesCount = productRankingInfo.totalSalesCount,
                 rank = productRankingInfo.rank,
                 rankingDate = productRankingInfo.rankingDate

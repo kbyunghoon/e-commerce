@@ -34,9 +34,9 @@ class ProductRankingServiceCacheUnitTest(
 
             every { productRankingRepository.findTopProducts(any(), any()) } returns productRankingsList
 
-            val result1 = productRankingService.getTopProducts(request)
-            val result2 = productRankingService.getTopProducts(request)
-            val result3 = productRankingService.getTopProducts(request)
+            val result1 = productRankingService.getTopProductsV1(request)
+            val result2 = productRankingService.getTopProductsV1(request)
+            val result3 = productRankingService.getTopProductsV1(request)
 
             verify(exactly = 1) { productRankingRepository.findTopProducts(any(), any()) }
 

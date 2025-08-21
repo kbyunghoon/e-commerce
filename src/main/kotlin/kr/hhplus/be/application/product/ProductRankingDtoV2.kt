@@ -1,9 +1,9 @@
 package kr.hhplus.be.application.product
 
-import kr.hhplus.be.domain.product.ProductRanking
+import kr.hhplus.be.domain.product.ProductRankingCache
 import java.time.LocalDate
 
-class ProductRankingDto {
+class ProductRankingDtoV2 {
     data class ProductRankingInfo(
         val id: Long = 0,
         val productName: String = "",
@@ -12,13 +12,10 @@ class ProductRankingDto {
         val rankingDate: LocalDate = LocalDate.now()
     ) {
         companion object {
-            fun from(productRanking: ProductRanking): ProductRankingInfo {
+            fun from(productRanking: ProductRankingCache): ProductRankingInfo {
                 return ProductRankingInfo(
                     id = productRanking.productId,
-                    productName = productRanking.productName,
                     totalSalesCount = productRanking.totalSalesCount,
-                    rank = productRanking.rank,
-                    rankingDate = productRanking.rankingDate,
                 )
             }
         }

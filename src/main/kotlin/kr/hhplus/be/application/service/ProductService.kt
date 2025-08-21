@@ -4,7 +4,10 @@ import kr.hhplus.be.application.order.OrderItemCreateCommand
 import kr.hhplus.be.application.product.ProductDto
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
+import kr.hhplus.be.domain.product.ProductRedissonRepository
 import kr.hhplus.be.domain.product.ProductRepository
+import kr.hhplus.be.domain.product.ProductStockHistory
+import kr.hhplus.be.domain.product.ProductStockHistoryRepository
 import kr.hhplus.be.domain.product.StockChangeType
 import kr.hhplus.be.domain.product.events.StockChangedEvent
 import kr.hhplus.be.global.lock.DistributedLock
@@ -19,7 +22,8 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class ProductService(
     private val productRepository: ProductRepository,
-    private val applicationEventPublisher: ApplicationEventPublisher
+    private val applicationEventPublisher: ApplicationEventPublisher,
+    private val productStockHistoryRepository: ProductStockHistoryRepository,
 ) {
 
     @Transactional(readOnly = true)
@@ -168,5 +172,9 @@ class ProductService(
                 reason = StockChangeType.RESTORE.reason
             )
         )
+    }
+
+    fun saveProductStockHistory(productStockHistory: ProductStockHistory) {
+        productStockHistoryRepository.save(productStockHistory)
     }
 }

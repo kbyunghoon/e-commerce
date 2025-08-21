@@ -7,10 +7,7 @@ import io.mockk.*
 import kr.hhplus.be.application.order.OrderItemCreateCommand
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
-import kr.hhplus.be.domain.product.Product
-import kr.hhplus.be.domain.product.ProductRepository
-import kr.hhplus.be.domain.product.ProductStatus
-import kr.hhplus.be.domain.product.StockChangeType
+import kr.hhplus.be.domain.product.*
 import kr.hhplus.be.domain.product.events.StockChangedEvent
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageImpl
@@ -21,7 +18,9 @@ import java.time.LocalDateTime
 class ProductServiceTest : BehaviorSpec({
     val productRepository: ProductRepository = mockk()
     val applicationEventPublisher: ApplicationEventPublisher = mockk(relaxed = true)
-    val productService = ProductService(productRepository, applicationEventPublisher)
+    val productRedissonRepository: ProductRedissonRepository = mockk()
+    val productStockHistoryRepository: ProductStockHistoryRepository = mockk()
+    val productService = ProductService(productRepository, applicationEventPublisher, productStockHistoryRepository)
 
     afterContainer {
         clearAllMocks()
