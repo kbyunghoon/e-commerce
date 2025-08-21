@@ -1,7 +1,7 @@
 package kr.hhplus.be.infrastructure.persistence
 
 import kr.hhplus.be.domain.product.ProductPriceHistoryRepository
-import kr.hhplus.be.infrastructure.persistence.repository.ProductPriceHistoryJpaRepository
+import kr.hhplus.be.infrastructure.persistence.repository.jpa.ProductPriceHistoryJpaRepository
 import org.springframework.stereotype.Component
 
 @Component

@@ -4,8 +4,12 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.constraints.PastOrPresent
 import kr.hhplus.be.presentation.dto.common.BaseResponse
 import kr.hhplus.be.presentation.dto.response.ProductRankingListResponse
+import org.springframework.format.annotation.DateTimeFormat
+import org.springframework.web.bind.annotation.RequestParam
+import java.time.LocalDate
 
 @Tag(name = "통계 및 추천", description = "인기 상품 조회 및 통계 API")
 interface ProductRankingApi {
@@ -22,5 +26,10 @@ interface ProductRankingApi {
             )
         ]
     )
-    fun getTopProducts(): BaseResponse<ProductRankingListResponse>
+    fun getTopProducts(
+        @RequestParam(required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+        @PastOrPresent(message = "랭킹 날짜는 미래 날짜일 수 없습니다")
+        rankingDate: LocalDate?
+    ): BaseResponse<ProductRankingListResponse>
 }

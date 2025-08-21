@@ -3,7 +3,7 @@ package kr.hhplus.be.infrastructure.persistence
 import kr.hhplus.be.domain.user.BalanceHistory
 import kr.hhplus.be.domain.user.BalanceHistoryRepository
 import kr.hhplus.be.infrastructure.entity.BalanceHistoryEntity
-import kr.hhplus.be.infrastructure.persistence.repository.BalanceHistoryJpaRepository
+import kr.hhplus.be.infrastructure.persistence.repository.jpa.BalanceHistoryJpaRepository
 import org.springframework.stereotype.Component
 
 @Component

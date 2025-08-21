@@ -3,7 +3,7 @@ package kr.hhplus.be.infrastructure.persistence
 import kr.hhplus.be.domain.user.UserCoupon
 import kr.hhplus.be.domain.user.UserCouponRepository
 import kr.hhplus.be.infrastructure.entity.UserCouponEntity
-import kr.hhplus.be.infrastructure.persistence.repository.UserCouponJpaRepository
+import kr.hhplus.be.infrastructure.persistence.repository.jpa.UserCouponJpaRepository
 import org.springframework.stereotype.Component
 
 @Component

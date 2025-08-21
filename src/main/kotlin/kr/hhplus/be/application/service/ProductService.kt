@@ -4,22 +4,26 @@ import kr.hhplus.be.application.order.OrderItemCreateCommand
 import kr.hhplus.be.application.product.ProductDto
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
+import kr.hhplus.be.domain.product.ProductRedissonRepository
 import kr.hhplus.be.domain.product.ProductRepository
+import kr.hhplus.be.domain.product.ProductStockHistory
+import kr.hhplus.be.domain.product.ProductStockHistoryRepository
 import kr.hhplus.be.domain.product.StockChangeType
 import kr.hhplus.be.domain.product.events.StockChangedEvent
+import kr.hhplus.be.global.lock.DistributedLock
+import kr.hhplus.be.global.lock.LockResource
+import kr.hhplus.be.global.lock.LockStrategy
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
-import org.springframework.orm.ObjectOptimisticLockingFailureException
-import org.springframework.retry.annotation.Backoff
-import org.springframework.retry.annotation.Retryable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 class ProductService(
     private val productRepository: ProductRepository,
-    private val applicationEventPublisher: ApplicationEventPublisher
+    private val applicationEventPublisher: ApplicationEventPublisher,
+    private val productStockHistoryRepository: ProductStockHistoryRepository,
 ) {
 
     @Transactional(readOnly = true)
@@ -75,14 +79,16 @@ class ProductService(
         }
     }
 
-    @Retryable(
-        value = [ObjectOptimisticLockingFailureException::class],
-        maxAttempts = 5,
-        backoff = Backoff(delay = 100, multiplier = 2.0)
+    @DistributedLock(
+        resource = LockResource.PRODUCT_STOCK,
+        key = "#productId",
+        lockStrategy = LockStrategy.PUB_SUB_LOCK,
+        waitTime = 5,
+        leaseTime = 10
     )
     @Transactional
     fun deductStock(productId: Long, quantity: Int) {
-        val product = productRepository.findByIdOrThrow(productId)
+        val product = productRepository.findByIdWithPessimisticLock(productId)
         val previousStock = product.stock
 
         product.deductStock(quantity)
@@ -101,6 +107,54 @@ class ProductService(
     }
 
     @Transactional
+    fun batchDeductStock(stockDeductions: List<ProductDto.ProductStockDeduction>) {
+        if (stockDeductions.isEmpty()) return
+        
+        val sortedDeductions = stockDeductions.sortedBy { it.productId }
+        val productIds = sortedDeductions.map { it.productId }
+        
+        val products = productRepository.findByIdsWithPessimisticLock(productIds)
+        
+        sortedDeductions.forEach { deduction ->
+            val product = products.find { it.id == deduction.productId }
+                ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+            
+            if (product.stock < deduction.quantity) {
+                throw BusinessException(ErrorCode.INSUFFICIENT_STOCK)
+            }
+        }
+        
+        val updatedProducts = products.map { product ->
+            val deduction = sortedDeductions.find { it.productId == product.id }!!
+            val previousStock = product.stock
+            
+            product.deductStock(deduction.quantity)
+            
+            applicationEventPublisher.publishEvent(
+                StockChangedEvent(
+                    productId = product.id,
+                    changeType = StockChangeType.DEDUCT,
+                    changeQuantity = deduction.quantity,
+                    previousStock = previousStock,
+                    currentStock = product.stock,
+                    reason = StockChangeType.DEDUCT.reason
+                )
+            )
+            
+            product
+        }
+        
+        productRepository.saveAll(updatedProducts)
+    }
+
+    @DistributedLock(
+        resource = LockResource.PRODUCT_STOCK,
+        key = "#productId",
+        lockStrategy = LockStrategy.PUB_SUB_LOCK,
+        waitTime = 5,
+        leaseTime = 10
+    )
+    @Transactional
     fun restoreStock(productId: Long, quantity: Int) {
         val product = productRepository.findByIdOrThrow(productId)
         val previousStock = product.stock
@@ -118,5 +172,9 @@ class ProductService(
                 reason = StockChangeType.RESTORE.reason
             )
         )
+    }
+
+    fun saveProductStockHistory(productStockHistory: ProductStockHistory) {
+        productStockHistoryRepository.save(productStockHistory)
     }
 }
