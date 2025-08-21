@@ -3,7 +3,7 @@ package kr.hhplus.be.infrastructure.persistence
 import kr.hhplus.be.domain.order.OrderItem
 import kr.hhplus.be.domain.order.OrderItemRepository
 import kr.hhplus.be.infrastructure.entity.OrderItemEntity
-import kr.hhplus.be.infrastructure.persistence.repository.OrderItemJpaRepository
+import kr.hhplus.be.infrastructure.persistence.repository.jpa.OrderItemJpaRepository
 import org.springframework.stereotype.Component
 
 @Component

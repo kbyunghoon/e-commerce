@@ -5,7 +5,7 @@ import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.product.Product
 import kr.hhplus.be.domain.product.ProductRepository
 import kr.hhplus.be.infrastructure.entity.ProductEntity
-import kr.hhplus.be.infrastructure.persistence.repository.ProductJpaRepository
+import kr.hhplus.be.infrastructure.persistence.repository.jpa.ProductJpaRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull

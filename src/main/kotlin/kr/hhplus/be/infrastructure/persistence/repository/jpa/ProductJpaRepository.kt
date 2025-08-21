@@ -1,4 +1,4 @@
-package kr.hhplus.be.infrastructure.persistence.repository
+package kr.hhplus.be.infrastructure.persistence.repository.jpa
 
 import jakarta.persistence.LockModeType
 import kr.hhplus.be.infrastructure.entity.ProductEntity

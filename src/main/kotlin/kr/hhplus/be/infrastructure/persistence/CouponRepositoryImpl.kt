@@ -5,7 +5,7 @@ import kr.hhplus.be.domain.coupon.CouponRepository
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.infrastructure.entity.CouponEntity
-import kr.hhplus.be.infrastructure.persistence.repository.CouponJpaRepository
+import kr.hhplus.be.infrastructure.persistence.repository.jpa.CouponJpaRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
