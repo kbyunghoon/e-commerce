@@ -20,9 +20,9 @@ class CouponController(
     @PostMapping("/issue")
     @ResponseStatus(HttpStatus.CREATED)
     override fun issueCoupon(@RequestBody @Valid request: CouponIssueRequest): BaseResponse<CouponIssueResponse> {
-        val coupon = couponService.issue(CouponIssueCommand(userId = request.userId, couponId = request.couponId))
+        couponService.issue(CouponIssueCommand(userId = request.userId, couponId = request.couponId))
 
-        return BaseResponse.success(CouponIssueResponse.from(coupon))
+        return BaseResponse.success()
     }
 
     @GetMapping

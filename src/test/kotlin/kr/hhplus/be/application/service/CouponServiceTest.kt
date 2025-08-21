@@ -1,5 +1,6 @@
 package kr.hhplus.be.application.service
 
+import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
@@ -8,10 +9,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kr.hhplus.be.application.coupon.CouponIssueCommand
-import kr.hhplus.be.domain.coupon.Coupon
-import kr.hhplus.be.domain.coupon.CouponRepository
-import kr.hhplus.be.domain.coupon.CouponStatus
-import kr.hhplus.be.domain.coupon.DiscountType
+import kr.hhplus.be.domain.coupon.*
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.user.UserCoupon
@@ -21,7 +19,8 @@ import java.time.LocalDateTime
 class CouponServiceTest : BehaviorSpec({
     val couponRepository: CouponRepository = mockk()
     val userCouponRepository: UserCouponRepository = mockk()
-    val couponService = CouponService(couponRepository, userCouponRepository)
+    val couponRedisRepository: CouponRedisRepository = mockk()
+    val couponService = CouponService(couponRepository, userCouponRepository, couponRedisRepository)
 
     afterContainer {
         clearAllMocks()
@@ -31,72 +30,20 @@ class CouponServiceTest : BehaviorSpec({
         val userId = 1L
         val couponId = 1L
         val command = CouponIssueCommand(userId, couponId)
-        val now = LocalDateTime.now()
-        val expiresAt = now.plusDays(7)
-        val coupon = Coupon(
-            id = couponId,
-            name = "테스트 쿠폰",
-            code = "TEST1234",
-            discountType = DiscountType.PERCENTAGE,
-            discountValue = 10,
-            expiresAt = expiresAt,
-            totalQuantity = 100,
-            issuedQuantity = 0,
-            createdAt = now,
-            updatedAt = now
-        )
 
         When("유효한 쿠폰 발급을 요청하면") {
-            every { couponRepository.findByIdWithPessimisticLock(couponId) } returns coupon
-            every { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) } returns false
-            every { couponRepository.save(any()) } answers { it.invocation.args[0] as Coupon }
-            every { userCouponRepository.save(any()) } answers { it.invocation.args[0] as UserCoupon }
+            every { couponRedisRepository.issueRequest(userId, couponId) } returns "SUCCESS"
 
-            val result = couponService.issue(command)
-
-            Then("쿠폰이 성공적으로 발급되고, 발급된 쿠폰 정보가 반환된다") {
-                result.userId shouldBe userId
-                result.couponId shouldBe couponId
-                result.status shouldBe CouponStatus.AVAILABLE
-                verify(exactly = 1) { couponRepository.findByIdWithPessimisticLock(couponId) }
-                verify(exactly = 1) { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) }
-                verify(exactly = 1) { couponRepository.save(any()) }
-                verify(exactly = 1) { userCouponRepository.save(any()) }
-            }
-        }
-
-        When("존재하지 않는 쿠폰 ID로 발급을 요청하면") {
-            every { couponRepository.findByIdWithPessimisticLock(couponId) } throws BusinessException(ErrorCode.COUPON_NOT_FOUND)
-
-            val exception = shouldThrow<BusinessException> {
-                couponService.issue(command)
-            }
-
-            Then("COUPON_NOT_FOUND 예외가 발생한다") {
-                exception.errorCode shouldBe ErrorCode.COUPON_NOT_FOUND
-                verify(exactly = 1) { couponRepository.findByIdWithPessimisticLock(couponId) }
-                verify(exactly = 0) { userCouponRepository.existsByUserIdAndCouponId(any(), any()) }
-            }
-        }
-
-        When("만료된 쿠폰으로 발급을 요청하면") {
-            val expiredCoupon = coupon.copy(expiresAt = now.minusDays(1))
-            every { couponRepository.findByIdWithPessimisticLock(couponId) } returns expiredCoupon
-
-            val exception = shouldThrow<BusinessException> {
-                couponService.issue(command)
-            }
-
-            Then("COUPON_EXPIRED 예외가 발생한다") {
-                exception.errorCode shouldBe ErrorCode.COUPON_EXPIRED
-                verify(exactly = 1) { couponRepository.findByIdWithPessimisticLock(couponId) }
-                verify(exactly = 0) { userCouponRepository.existsByUserIdAndCouponId(any(), any()) }
+            Then("쿠폰이 성공적으로 발급된다") {
+                shouldNotThrow<BusinessException> {
+                    couponService.issue(command)
+                }
+                verify(exactly = 1) { couponRedisRepository.issueRequest(userId, couponId) }
             }
         }
 
         When("이미 발급된 쿠폰으로 발급을 요청하면") {
-            every { couponRepository.findByIdWithPessimisticLock(couponId) } returns coupon
-            every { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) } returns true
+            every { couponRedisRepository.issueRequest(userId, couponId) } returns "ALREADY_ISSUED"
 
             val exception = shouldThrow<BusinessException> {
                 couponService.issue(command)
@@ -104,14 +51,12 @@ class CouponServiceTest : BehaviorSpec({
 
             Then("COUPON_ALREADY_ISSUED 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_ALREADY_ISSUED
-                verify(exactly = 1) { couponRepository.findByIdWithPessimisticLock(couponId) }
-                verify(exactly = 1) { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) }
+                verify(exactly = 1) { couponRedisRepository.issueRequest(userId, couponId) }
             }
         }
 
         When("재고가 소진된 쿠폰으로 발급을 요청하면") {
-            val soldOutCoupon = coupon.copy(issuedQuantity = coupon.totalQuantity)
-            every { couponRepository.findByIdWithPessimisticLock(couponId) } returns soldOutCoupon
+            every { couponRedisRepository.issueRequest(userId, couponId) } returns "SOLD_OUT"
 
             val exception = shouldThrow<BusinessException> {
                 couponService.issue(command)
@@ -119,8 +64,38 @@ class CouponServiceTest : BehaviorSpec({
 
             Then("COUPON_SOLD_OUT 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.COUPON_SOLD_OUT
-                verify(exactly = 1) { couponRepository.findByIdWithPessimisticLock(couponId) }
-                verify(exactly = 0) { userCouponRepository.existsByUserIdAndCouponId(userId, couponId) }
+                verify(exactly = 1) { couponRedisRepository.issueRequest(userId, couponId) }
+            }
+        }
+
+        When("알 수 없는 상태로 응답하면") {
+            every { couponRedisRepository.issueRequest(userId, couponId) } returns "UNKNOWN_STATUS"
+
+            val exception = shouldThrow<BusinessException> {
+                couponService.issue(command)
+            }
+
+            Then("UNKNOWN_ERROR 예외가 발생한다") {
+                exception.errorCode shouldBe ErrorCode.UNKNOWN_ERROR
+                verify(exactly = 1) { couponRedisRepository.issueRequest(userId, couponId) }
+            }
+        }
+
+        When("Redis에서 예외가 발생하면") {
+            every {
+                couponRedisRepository.issueRequest(
+                    userId,
+                    couponId
+                )
+            } throws RuntimeException("Redis connection failed")
+
+            val exception = shouldThrow<RuntimeException> {
+                couponService.issue(command)
+            }
+
+            Then("RuntimeException이 그대로 전파된다") {
+                exception.message shouldBe "Redis connection failed"
+                verify(exactly = 1) { couponRedisRepository.issueRequest(userId, couponId) }
             }
         }
     }

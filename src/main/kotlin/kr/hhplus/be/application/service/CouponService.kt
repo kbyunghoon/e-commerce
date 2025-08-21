@@ -3,6 +3,7 @@ package kr.hhplus.be.application.service
 import kr.hhplus.be.application.coupon.CouponDto
 import kr.hhplus.be.application.coupon.CouponDto.UserCouponInfo
 import kr.hhplus.be.application.coupon.CouponIssueCommand
+import kr.hhplus.be.domain.coupon.CouponRedisRepository
 import kr.hhplus.be.domain.coupon.CouponRepository
 import kr.hhplus.be.domain.coupon.CouponStatus
 import kr.hhplus.be.domain.exception.BusinessException
@@ -18,17 +19,30 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class CouponService(
     private val couponRepository: CouponRepository,
-    private val userCouponRepository: UserCouponRepository
+    private val userCouponRepository: UserCouponRepository,
+    private val couponRedisRepository: CouponRedisRepository,
 ) {
+    fun issue(command: CouponIssueCommand) {
+        val status = couponRedisRepository.issueRequest(command.userId, command.couponId)
+
+        when (status) {
+            "ALREADY_ISSUED" -> throw BusinessException(ErrorCode.COUPON_ALREADY_ISSUED)
+            "SOLD_OUT" -> throw BusinessException(ErrorCode.COUPON_SOLD_OUT)
+            "SUCCESS" -> {}
+
+            else -> throw BusinessException(ErrorCode.UNKNOWN_ERROR)
+        }
+    }
+
     @DistributedLock(
-        resource = LockResource.USER_COUPON,
+        resource = LockResource.COUPON,
         key = "#command.couponId",
         lockStrategy = LockStrategy.PUB_SUB_LOCK,
         waitTime = 5,
         leaseTime = 10
     )
     @Transactional
-    fun issue(command: CouponIssueCommand): UserCouponInfo {
+    fun issueV1(command: CouponIssueCommand): UserCouponInfo {
         val coupon = couponRepository.findByIdWithPessimisticLock(command.couponId)
 
         if (!coupon.canBeIssued()) {
@@ -52,6 +66,7 @@ class CouponService(
             couponId = command.couponId,
             status = CouponStatus.AVAILABLE
         )
+
         val savedUserCoupon = userCouponRepository.save(userCoupon)
 
         return UserCouponInfo.from(savedUserCoupon, coupon)
