@@ -188,9 +188,6 @@ data class OrderItem(
             quantity: Int,
             pricePerItem: Int
         ) {
-            println(productId)
-            println(quantity)
-            println(pricePerItem)
             if (productId <= 0) {
                 throw BusinessException(ErrorCode.INVALID_PRODUCT_ID)
             }
