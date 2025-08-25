@@ -1,7 +1,11 @@
 package kr.hhplus.be.global.config
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect
+import com.fasterxml.jackson.annotation.JsonTypeInfo
+import com.fasterxml.jackson.annotation.PropertyAccessor
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import kr.hhplus.be.global.cache.CacheType
 import org.springframework.cache.annotation.EnableCaching
@@ -18,17 +22,21 @@ import org.springframework.data.redis.serializer.StringRedisSerializer
 
 @Configuration
 @EnableCaching
-class RedisConfig(
-    private val objectMapper: ObjectMapper
-) {
+class RedisConfig {
 
     @Bean
     fun redisCacheManager(connectionFactory: RedisConnectionFactory): RedisCacheManager {
-        val configuredObjectMapper = objectMapper.copy()
+        val objectMapper = ObjectMapper()
             .registerModule(JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY)
+            .activateDefaultTyping(
+                LaissezFaireSubTypeValidator(),
+                ObjectMapper.DefaultTyping.NON_FINAL,
+                JsonTypeInfo.As.PROPERTY
+            )
 
-        val valueSerializer = GenericJackson2JsonRedisSerializer(configuredObjectMapper)
+        val valueSerializer = GenericJackson2JsonRedisSerializer(objectMapper)
 
         val defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
             .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(RedisSerializer.string()))

@@ -22,9 +22,6 @@ class ProductRankingEntity(
     @Column(name = "total_sales_count", nullable = false)
     val totalSalesCount: Int,
 
-    @Column(name = "`rank`", nullable = false)
-    val rank: Int,
-
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
@@ -36,7 +33,6 @@ class ProductRankingEntity(
             productId = id,
             productName = productName,
             totalSalesCount = totalSalesCount,
-            rank = rank,
             rankingDate = rankingDate
         )
     }
@@ -49,7 +45,6 @@ class ProductRankingEntity(
                 productId = productRankingInfo.productId,
                 productName = productRankingInfo.productName,
                 totalSalesCount = productRankingInfo.totalSalesCount,
-                rank = productRankingInfo.rank,
                 rankingDate = productRankingInfo.rankingDate
             )
         }

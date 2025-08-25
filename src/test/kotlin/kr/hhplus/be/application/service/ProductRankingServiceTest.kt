@@ -6,8 +6,7 @@ import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import kr.hhplus.be.application.product.ProductRankingCommand
-import kr.hhplus.be.application.product.ProductRankingDtoV1
-import kr.hhplus.be.application.product.ProductRankingDtoV2
+import kr.hhplus.be.application.product.ProductRankingDto
 import kr.hhplus.be.domain.product.ProductRanking
 import kr.hhplus.be.domain.product.ProductRankingRepository
 import kr.hhplus.be.domain.product.ProductRedissonRepository
@@ -50,11 +49,11 @@ class ProductRankingServiceTest : BehaviorSpec({
                 rank = 2
             )
             val mockRankings = listOf(productRankingInfo1, productRankingInfo2)
-            val mockRankingInfo = mockRankings.map { ProductRankingDtoV1.ProductRankingInfo.from(it) }
+            val mockRankingInfo = mockRankings.map { ProductRankingDto.ProductRankingInfo.from(it) }
 
             every { productRankingRepository.findTopProducts(LocalDate.now(), LocalDate.now()) } returns mockRankings
 
-            val result = productRankingService.getTopProductsV1(command)
+            val result = productRankingService.getTopProducts(command)
 
             Then("인기 상품 목록이 반환된다") {
                 result shouldBe mockRankingInfo
@@ -69,7 +68,7 @@ class ProductRankingServiceTest : BehaviorSpec({
 
             every { productRankingRepository.findTopProducts(LocalDate.now(), LocalDate.now()) } returns emptyList()
 
-            val result = productRankingService.getTopProductsV1(command)
+            val result = productRankingService.getTopProducts(command)
 
             Then("빈 목록이 반환된다") {
                 result shouldBe emptyList()

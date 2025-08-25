@@ -29,9 +29,9 @@ class ProductRankingController(
     ): BaseResponse<ProductRankingListResponse> {
         val command = ProductRankingCommand(
             rankingDate = rankingDate ?: LocalDate.now(),
-            period = RankingPeriod.DAILY
+            period = RankingPeriod.THREE_DAYS
         )
-        val response = productRankingService.getTopProductsV2(command)
+        val response = productRankingService.getTopProducts(command)
         return BaseResponse.success(ProductRankingListResponse.from(response))
     }
 }

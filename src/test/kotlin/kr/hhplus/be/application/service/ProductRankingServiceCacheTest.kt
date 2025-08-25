@@ -31,9 +31,9 @@ class ProductRankingServiceCacheTest(
             val request = ProductRankingCommand(rankingDate = rankingDate, period = RankingPeriod.THREE_DAYS)
 
             // When
-            productRankingService.getTopProductsV1(request)
-            productRankingService.getTopProductsV1(request)
-            productRankingService.getTopProductsV1(request)
+            productRankingService.getTopProducts(request)
+            productRankingService.getTopProducts(request)
+            productRankingService.getTopProducts(request)
 
             // Then
             verify(exactly = 1) {
