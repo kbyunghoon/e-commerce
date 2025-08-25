@@ -1,11 +1,7 @@
 package kr.hhplus.be.global.config
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect
-import com.fasterxml.jackson.annotation.JsonTypeInfo
-import com.fasterxml.jackson.annotation.PropertyAccessor
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import kr.hhplus.be.global.cache.CacheType
 import org.springframework.cache.annotation.EnableCaching
@@ -31,12 +27,6 @@ class RedisConfig(
         val configuredObjectMapper = objectMapper.copy()
             .registerModule(JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-            .setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY)
-            .activateDefaultTyping(
-                LaissezFaireSubTypeValidator(),
-                ObjectMapper.DefaultTyping.NON_FINAL,
-                JsonTypeInfo.As.PROPERTY
-            )
 
         val valueSerializer = GenericJackson2JsonRedisSerializer(configuredObjectMapper)
 
