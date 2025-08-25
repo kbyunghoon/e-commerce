@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class DistributedLock(
-    val key: String,
+    val keyProvider: String,
 
     val timeUnit: TimeUnit = TimeUnit.SECONDS,
 

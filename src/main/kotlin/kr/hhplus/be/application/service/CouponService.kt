@@ -10,6 +10,7 @@ import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.user.UserCoupon
 import kr.hhplus.be.domain.user.UserCouponRepository
+import kr.hhplus.be.global.lock.CouponLockKeyProvider
 import kr.hhplus.be.global.lock.DistributedLock
 import kr.hhplus.be.global.lock.LockResource
 import kr.hhplus.be.global.lock.LockStrategy
@@ -32,44 +33,6 @@ class CouponService(
 
             else -> throw BusinessException(ErrorCode.UNKNOWN_ERROR)
         }
-    }
-
-    @DistributedLock(
-        resource = LockResource.COUPON,
-        key = "#command.couponId",
-        lockStrategy = LockStrategy.PUB_SUB_LOCK,
-        waitTime = 5,
-        leaseTime = 10
-    )
-    @Transactional
-    fun issueV1(command: CouponIssueCommand): UserCouponInfo {
-        val coupon = couponRepository.findByIdWithPessimisticLock(command.couponId)
-
-        if (!coupon.canBeIssued()) {
-            if (coupon.isExpired()) {
-                throw BusinessException(ErrorCode.COUPON_EXPIRED)
-            }
-            if (coupon.isSoldOut()) {
-                throw BusinessException(ErrorCode.COUPON_SOLD_OUT)
-            }
-        }
-
-        if (userCouponRepository.existsByUserIdAndCouponId(command.userId, command.couponId)) {
-            throw BusinessException(ErrorCode.COUPON_ALREADY_ISSUED)
-        }
-
-        coupon.issue()
-        couponRepository.save(coupon)
-
-        val userCoupon = UserCoupon(
-            userId = command.userId,
-            couponId = command.couponId,
-            status = CouponStatus.AVAILABLE
-        )
-
-        val savedUserCoupon = userCouponRepository.save(userCoupon)
-
-        return UserCouponInfo.from(savedUserCoupon, coupon)
     }
 
     @Transactional

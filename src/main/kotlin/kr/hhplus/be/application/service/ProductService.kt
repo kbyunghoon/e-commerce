@@ -13,6 +13,7 @@ import kr.hhplus.be.domain.product.events.StockChangedEvent
 import kr.hhplus.be.global.lock.DistributedLock
 import kr.hhplus.be.global.lock.LockResource
 import kr.hhplus.be.global.lock.LockStrategy
+import kr.hhplus.be.global.lock.ProductStockLockKeyProvider
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -81,13 +82,13 @@ class ProductService(
 
     @DistributedLock(
         resource = LockResource.PRODUCT_STOCK,
-        key = "#productId",
+        keyProvider = "productStockLockKeyProvider",
         lockStrategy = LockStrategy.PUB_SUB_LOCK,
         waitTime = 5,
         leaseTime = 10
     )
     @Transactional
-    fun deductStock(productId: Long, quantity: Int) {
+    fun deductStock(productId: Long, quantity: Int, keyProvider: ProductStockLockKeyProvider = ProductStockLockKeyProvider(productId)) {
         val product = productRepository.findByIdWithPessimisticLock(productId)
         val previousStock = product.stock
 
@@ -149,13 +150,13 @@ class ProductService(
 
     @DistributedLock(
         resource = LockResource.PRODUCT_STOCK,
-        key = "#productId",
+        keyProvider = "productStockLockKeyProvider",
         lockStrategy = LockStrategy.PUB_SUB_LOCK,
         waitTime = 5,
         leaseTime = 10
     )
     @Transactional
-    fun restoreStock(productId: Long, quantity: Int) {
+    fun restoreStock(productId: Long, quantity: Int, keyProvider: ProductStockLockKeyProvider = ProductStockLockKeyProvider(productId)) {
         val product = productRepository.findByIdOrThrow(productId)
         val previousStock = product.stock
 

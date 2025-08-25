@@ -14,6 +14,7 @@ import kr.hhplus.be.domain.order.*
 import kr.hhplus.be.global.lock.DistributedLock
 import kr.hhplus.be.global.lock.LockResource
 import kr.hhplus.be.global.lock.LockStrategy
+import kr.hhplus.be.global.lock.OrderLockKeyProvider
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -47,13 +48,13 @@ class OrderService(
 
     @DistributedLock(
         resource = LockResource.ORDER_PAYMENT,
-        key = "#command.orderId",
+        keyProvider = "orderLockKeyProvider",
         lockStrategy = LockStrategy.PUB_SUB_LOCK,
         waitTime = 5,
         leaseTime = 10
     )
     @Transactional
-    fun processPayment(request: PaymentProcessCommand): OrderDetails {
+    fun processPayment(request: PaymentProcessCommand, keyProvider: OrderLockKeyProvider = OrderLockKeyProvider(request.userId, request.orderId)): OrderDetails {
         val order = getOrderForPayment(request.orderId, request.userId)
 
         val paymentStatus = PaymentOperationsStatus()
