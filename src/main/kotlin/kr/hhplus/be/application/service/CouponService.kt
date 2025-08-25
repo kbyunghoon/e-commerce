@@ -3,6 +3,7 @@ package kr.hhplus.be.application.service
 import kr.hhplus.be.application.coupon.CouponDto
 import kr.hhplus.be.application.coupon.CouponDto.UserCouponInfo
 import kr.hhplus.be.application.coupon.CouponIssueCommand
+import kr.hhplus.be.domain.coupon.CouponIssueResult
 import kr.hhplus.be.domain.coupon.CouponRedisRepository
 import kr.hhplus.be.domain.coupon.CouponRepository
 import kr.hhplus.be.domain.coupon.CouponStatus
@@ -27,10 +28,9 @@ class CouponService(
         val status = couponRedisRepository.issueRequest(command.userId, command.couponId)
 
         when (status) {
-            "ALREADY_ISSUED" -> throw BusinessException(ErrorCode.COUPON_ALREADY_ISSUED)
-            "SOLD_OUT" -> throw BusinessException(ErrorCode.COUPON_SOLD_OUT)
-            "SUCCESS" -> {}
-
+            CouponIssueResult.ALREADY_ISSUED.value -> throw BusinessException(ErrorCode.COUPON_ALREADY_ISSUED)
+            CouponIssueResult.SOLD_OUT.value -> throw BusinessException(ErrorCode.COUPON_SOLD_OUT)
+            CouponIssueResult.SUCCESS.value -> {}
             else -> throw BusinessException(ErrorCode.UNKNOWN_ERROR)
         }
     }
