@@ -22,11 +22,13 @@ import org.springframework.data.redis.serializer.StringRedisSerializer
 
 @Configuration
 @EnableCaching
-class RedisConfig {
+class RedisConfig(
+    private val objectMapper: ObjectMapper
+) {
 
     @Bean
     fun redisCacheManager(connectionFactory: RedisConnectionFactory): RedisCacheManager {
-        val objectMapper = ObjectMapper()
+        val configuredObjectMapper = objectMapper.copy()
             .registerModule(JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
             .setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY)
@@ -36,7 +38,7 @@ class RedisConfig {
                 JsonTypeInfo.As.PROPERTY
             )
 
-        val valueSerializer = GenericJackson2JsonRedisSerializer(objectMapper)
+        val valueSerializer = GenericJackson2JsonRedisSerializer(configuredObjectMapper)
 
         val defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
             .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(RedisSerializer.string()))
