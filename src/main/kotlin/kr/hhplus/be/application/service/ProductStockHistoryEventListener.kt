@@ -23,18 +23,19 @@ class ProductStockHistoryEventListener(
             changeQuantity = event.changeQuantity,
             previousStock = event.previousStock,
             currentStock = event.currentStock,
-            reason = event.reason
+            reason = event.reason,
         )
 
         productService.saveProductStockHistory(history)
 
         when (event.changeType) {
-            StockChangeType.DEDUCT -> productRankingService.increaseProductStockCache(
-                event.productId,
-                event.changeQuantity
-            )
+            StockChangeType.DEDUCT -> {
+                productRankingService.updateSalesCount(event.productId, event.changeQuantity, event.date)
+            }
 
-            else -> {}
+            StockChangeType.RESTORE -> {
+                productRankingService.updateSalesCount(event.productId, -event.changeQuantity, event.date)
+            }
         }
     }
 }
