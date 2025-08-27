@@ -11,7 +11,6 @@ import kr.hhplus.be.application.service.BalanceService
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.presentation.dto.request.BalanceChargeRequest
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
@@ -24,8 +23,8 @@ import java.time.LocalDateTime
 @SpringBootTest
 @AutoConfigureMockMvc
 class BalanceControllerTest(
-    @Autowired private val mockMvc: MockMvc,
-    @Autowired private val objectMapper: ObjectMapper
+    private val mockMvc: MockMvc,
+    private val objectMapper: ObjectMapper
 ) : BehaviorSpec() {
 
     @MockkBean
@@ -49,7 +48,7 @@ class BalanceControllerTest(
                     updatedAt = now
                 )
 
-                every { balanceService.charge(any()) } returns mockBalanceInfo
+                every { balanceService.charge(any(), any()) } returns mockBalanceInfo
 
                 val result = mockMvc.perform(
                     post("/api/v1/balance/charge")
@@ -65,7 +64,7 @@ class BalanceControllerTest(
                         .andExpect(jsonPath("$.data.balance").value(15000))
                         .andExpect(jsonPath("$.data.chargedAmount").value(chargeAmount))
 
-                    verify(exactly = 1) { balanceService.charge(any()) }
+                    verify(exactly = 1) { balanceService.charge(any(), any()) }
                 }
             }
 
@@ -94,7 +93,7 @@ class BalanceControllerTest(
                 val chargeAmount = 10000
                 val request = BalanceChargeRequest(userId, chargeAmount)
 
-                every { balanceService.charge(any()) } throws BusinessException(ErrorCode.USER_NOT_FOUND)
+                every { balanceService.charge(any(), any()) } throws BusinessException(ErrorCode.USER_NOT_FOUND)
 
                 val result = mockMvc.perform(
                     post("/api/v1/balance/charge")
@@ -107,7 +106,7 @@ class BalanceControllerTest(
                         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                         .andExpect(jsonPath("$.success").value(false))
 
-                    verify(exactly = 1) { balanceService.charge(any()) }
+                    verify(exactly = 1) { balanceService.charge(any(), any()) }
                 }
             }
         }

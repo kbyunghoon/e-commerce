@@ -12,7 +12,6 @@ data class ProductRanking(
             this(productId, name, totalSalesCountLong.toInt(), rankingDate)
 }
 
-
 data class ProductRankingCache(
     val productId: Long,
     val totalSalesCount: Int,

@@ -9,7 +9,9 @@ import io.mockk.mockk
 import io.mockk.verify
 import kr.hhplus.be.application.coupon.CouponDto
 import kr.hhplus.be.application.order.OrderCreateCommand
+import kr.hhplus.be.application.order.OrderDto
 import kr.hhplus.be.application.order.OrderItemCreateCommand
+import kr.hhplus.be.application.order.PaymentProcessCommand
 import kr.hhplus.be.application.product.ProductDto
 import kr.hhplus.be.domain.coupon.Coupon
 import kr.hhplus.be.domain.coupon.CouponStatus
@@ -18,21 +20,23 @@ import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.*
 import kr.hhplus.be.domain.user.UserCoupon
+import org.springframework.context.ApplicationEventPublisher
 import java.time.LocalDateTime
 
 class OrderServiceTest : BehaviorSpec({
     val orderRepository: OrderRepository = mockk()
     val orderItemRepository: OrderItemRepository = mockk()
     val productService: ProductService = mockk()
-    val balanceService: BalanceService = mockk()
     val couponService: CouponService = mockk()
+    val applicationEventPublisher: ApplicationEventPublisher = mockk()
+    val paymentSagaOrchestrator: PaymentSagaOrchestrator = mockk()
 
     val orderService = OrderService(
         orderRepository,
         orderItemRepository,
         productService,
-        balanceService,
-        couponService
+        couponService,
+        applicationEventPublisher,
     )
 
     afterContainer {
@@ -193,68 +197,40 @@ class OrderServiceTest : BehaviorSpec({
         }
     }
 
-    Given("주문 완료(completePayment) 시나리오") {
+    Given("Saga 결제 처리(processPaymentWithSaga) 시나리오") {
         val orderId = 1L
         val userId = 1L
-        val orderItems =
-            listOf(
-                OrderItem(
-                    orderId = orderId,
-                    productId = 1L,
-                    productName = "상품 테스트",
-                    quantity = 10,
-                    pricePerItem = 10000
-                )
-            )
         val originalAmount = 10000
         val discountAmount = 0
         val finalAmount = 10000
-        val couponId = null
-        val now = LocalDateTime.now()
 
-        When("존재하는 주문 ID로 주문 완료를 요청하면") {
-            val pendingOrder = Order(
+        val paymentCommand = PaymentProcessCommand(
+            orderId = orderId,
+            userId = userId
+        )
+
+        When("유효한 결제 처리 요청을 하면") {
+            val expectedOrderDetails = OrderDto.OrderDetails(
                 id = orderId,
-                orderNumber = "테스트",
                 userId = userId,
                 originalAmount = originalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
-                status = OrderStatus.PENDING,
-                userCouponId = couponId,
-                orderDate = now
+                status = OrderStatus.COMPLETED,
+                userCouponId = null,
+                orderNumber = "",
+                orderDate = LocalDateTime.now(),
+                orderItems = emptyList()
             )
-            val completedOrder = pendingOrder.copy(status = OrderStatus.COMPLETED)
-            val completedOrderItems = orderItems.map { it.copy(status = OrderStatus.COMPLETED) }
 
-            every { orderRepository.findByIdOrThrow(orderId) } returns pendingOrder
-            every { orderRepository.save(any()) } returns completedOrder
-            every { orderItemRepository.findByOrderId(any()) } returns orderItems
-            every { orderItemRepository.saveAll(any()) } returns completedOrderItems
+            every { paymentSagaOrchestrator.executePaymentSaga(paymentCommand) } returns expectedOrderDetails
 
-            val result = orderService.completePayment(orderId)
+            val result = paymentSagaOrchestrator.executePaymentSaga(paymentCommand)
 
-            Then("주문 상태가 COMPLETED로 변경되고, 업데이트된 주문 정보가 반환된다") {
+            Then("PaymentSagaOrchestrator를 통해 결제가 처리된다") {
                 result.id shouldBe orderId
                 result.status shouldBe OrderStatus.COMPLETED
-                verify(exactly = 1) { orderRepository.findByIdOrThrow(orderId) }
-                verify(exactly = 1) { orderRepository.save(any()) }
-                verify(exactly = 1) { orderItemRepository.findByOrderId(orderId) }
-                verify(exactly = 1) { orderItemRepository.saveAll(any()) }
-            }
-        }
-
-        When("존재하지 않는 주문 ID로 주문 완료를 요청하면") {
-            every { orderRepository.findByIdOrThrow(orderId) } throws BusinessException(ErrorCode.ORDER_NOT_FOUND)
-
-            val exception = shouldThrow<BusinessException> {
-                orderService.completePayment(orderId)
-            }
-
-            Then("ORDER_NOT_FOUND 예외가 발생한다") {
-                exception.errorCode shouldBe ErrorCode.ORDER_NOT_FOUND
-                verify(exactly = 1) { orderRepository.findByIdOrThrow(orderId) }
-                verify(exactly = 0) { orderRepository.save(any()) }
+                verify(exactly = 1) { paymentSagaOrchestrator.executePaymentSaga(paymentCommand) }
             }
         }
     }
@@ -289,29 +265,34 @@ class OrderServiceTest : BehaviorSpec({
                 userCouponId = couponId,
                 orderDate = now
             )
-            every { orderRepository.findByIdOrThrow(orderId) } returns order
+            every { orderRepository.findByIdAndUserId(orderId, userId) } returns order
             every { orderItemRepository.findByOrderId(orderId) } returns orderItems
 
-            val result = orderService.getOrder(orderId)
+            val result = orderService.getOrder(orderId, userId)
 
             Then("해당 주문 정보가 반환된다") {
                 result.id shouldBe orderId
                 result.finalAmount shouldBe finalAmount
-                verify(exactly = 1) { orderRepository.findByIdOrThrow(orderId) }
+                verify(exactly = 1) { orderRepository.findByIdAndUserId(orderId, userId) }
                 verify(exactly = 1) { orderItemRepository.findByOrderId(orderId) }
             }
         }
 
         When("존재하지 않는 주문 ID로 조회를 요청하면") {
-            every { orderRepository.findByIdOrThrow(orderId) } throws BusinessException(ErrorCode.ORDER_NOT_FOUND)
+            every {
+                orderRepository.findByIdAndUserId(
+                    orderId,
+                    userId
+                )
+            } throws BusinessException(ErrorCode.ORDER_NOT_FOUND)
 
             val exception = shouldThrow<BusinessException> {
-                orderService.getOrder(orderId)
+                orderService.getOrder(orderId, userId)
             }
 
             Then("ORDER_NOT_FOUND 예외가 발생한다") {
                 exception.errorCode shouldBe ErrorCode.ORDER_NOT_FOUND
-                verify(exactly = 1) { orderRepository.findByIdOrThrow(orderId) }
+                verify(exactly = 1) { orderRepository.findByIdAndUserId(orderId, userId) }
             }
         }
     }

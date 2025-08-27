@@ -86,4 +86,14 @@ class CouponService(
 
         return CouponDto.ValidatedUserCoupon(userCoupon, coupon)
     }
+
+    @Transactional
+    fun useCouponForSaga(userId: Long, couponId: Long) {
+        use(userId, couponId)
+    }
+
+    @Transactional
+    fun restoreCouponForSaga(userId: Long, couponId: Long) {
+        restore(userId, couponId)
+    }
 }

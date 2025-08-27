@@ -29,7 +29,7 @@ class ProductStockEventListenerTest : BehaviorSpec({
             )
 
             every { productService.saveProductStockHistory(any()) } returns mockk()
-            every { productRankingService.increaseProductStockCache(any(), any()) } just Runs
+            every { productRankingService.updateSalesCount(any(), any()) } just Runs
 
             eventListener.handleStockChanged(event)
 
@@ -38,7 +38,7 @@ class ProductStockEventListenerTest : BehaviorSpec({
                     productService.saveProductStockHistory(any())
                 }
                 verify(exactly = 1) {
-                    productRankingService.increaseProductStockCache(1L, 5)
+                    productRankingService.updateSalesCount(1L, 5)
                 }
             }
         }

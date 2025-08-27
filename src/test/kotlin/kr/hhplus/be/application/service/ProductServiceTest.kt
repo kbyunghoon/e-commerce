@@ -18,9 +18,12 @@ import java.time.LocalDateTime
 class ProductServiceTest : BehaviorSpec({
     val productRepository: ProductRepository = mockk()
     val applicationEventPublisher: ApplicationEventPublisher = mockk(relaxed = true)
-    val productRedissonRepository: ProductRedissonRepository = mockk()
     val productStockHistoryRepository: ProductStockHistoryRepository = mockk()
-    val productService = ProductService(productRepository, applicationEventPublisher, productStockHistoryRepository)
+    val productService = ProductService(
+        productRepository,
+        applicationEventPublisher,
+        productStockHistoryRepository,
+    )
 
     afterContainer {
         clearAllMocks()

@@ -15,9 +15,6 @@ import kr.hhplus.be.global.lock.LockResource
 import kr.hhplus.be.global.lock.LockStrategy
 import kr.hhplus.be.global.lock.UserBalanceLockKeyProvider
 import org.springframework.context.ApplicationEventPublisher
-import org.springframework.orm.ObjectOptimisticLockingFailureException
-import org.springframework.retry.annotation.Backoff
-import org.springframework.retry.annotation.Retryable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -26,11 +23,6 @@ class BalanceService(
     private val userRepository: UserRepository,
     private val applicationEventPublisher: ApplicationEventPublisher
 ) {
-    @Retryable(
-        value = [ObjectOptimisticLockingFailureException::class],
-        maxAttempts = 3,
-        backoff = Backoff(delay = 200)
-    )
     @DistributedLock(
         resource = LockResource.USER_BALANCE,
         keyProvider = "userBalanceLockKeyProvider",
@@ -39,7 +31,10 @@ class BalanceService(
         leaseTime = 10
     )
     @Transactional
-    fun charge(command: BalanceChargeCommand, keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(command.userId)): BalanceInfo {
+    fun charge(
+        command: BalanceChargeCommand,
+        keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(command.userId)
+    ): BalanceInfo {
         if (command.amount <= 0) {
             throw BusinessException(ErrorCode.CHARGE_INVALID_AMOUNT)
         }
@@ -62,11 +57,6 @@ class BalanceService(
         return BalanceInfo.from(updatedUser)
     }
 
-    @Retryable(
-        value = [ObjectOptimisticLockingFailureException::class],
-        maxAttempts = 3,
-        backoff = Backoff(delay = 200)
-    )
     @DistributedLock(
         resource = LockResource.USER_BALANCE,
         keyProvider = "userBalanceLockKeyProvider",
@@ -75,7 +65,10 @@ class BalanceService(
         leaseTime = 10
     )
     @Transactional
-    fun use(command: BalanceDeductCommand, keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(command.userId)): BalanceInfo {
+    fun use(
+        command: BalanceDeductCommand,
+        keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(command.userId)
+    ): BalanceInfo {
         val user = userRepository.findByIdOrThrow(command.userId)
 
         val beforeAmount = user.balance
@@ -95,11 +88,6 @@ class BalanceService(
         return BalanceInfo.from(updatedUser)
     }
 
-    @Retryable(
-        value = [ObjectOptimisticLockingFailureException::class],
-        maxAttempts = 3,
-        backoff = Backoff(delay = 200)
-    )
     @DistributedLock(
         resource = LockResource.USER_BALANCE,
         keyProvider = "userBalanceLockKeyProvider",
@@ -108,7 +96,10 @@ class BalanceService(
         leaseTime = 10
     )
     @Transactional
-    fun refund(command: BalanceRefundCommand, keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(command.userId)): BalanceInfo {
+    fun refund(
+        command: BalanceRefundCommand,
+        keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(command.userId)
+    ): BalanceInfo {
         val user = userRepository.findByIdOrThrow(command.userId)
         val beforeAmount = user.balance
 
@@ -131,5 +122,17 @@ class BalanceService(
     fun getBalance(userId: Long): BalanceInfo {
         val user = userRepository.findByIdOrThrow(userId)
         return BalanceInfo.from(user)
+    }
+
+    @Transactional
+    fun deductBalanceForSaga(userId: Long, amount: Int) {
+        val command = BalanceDeductCommand(userId = userId, amount = amount)
+        use(command)
+    }
+
+    @Transactional
+    fun refundBalanceForSaga(userId: Long, amount: Int) {
+        val command = BalanceRefundCommand(userId = userId, amount = amount)
+        refund(command)
     }
 }

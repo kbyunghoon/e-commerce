@@ -7,21 +7,13 @@ import io.mockk.every
 import io.mockk.mockk
 import kr.hhplus.be.application.product.ProductRankingCommand
 import kr.hhplus.be.application.product.ProductRankingDto
-import kr.hhplus.be.domain.product.ProductRanking
-import kr.hhplus.be.domain.product.ProductRankingRepository
-import kr.hhplus.be.domain.product.ProductRedissonRepository
-import kr.hhplus.be.domain.product.ProductRepository
-import kr.hhplus.be.domain.product.RankingPeriod
+import kr.hhplus.be.domain.product.*
 import java.time.LocalDate
 
 class ProductRankingServiceTest : BehaviorSpec({
     val productRankingRepository: ProductRankingRepository = mockk()
-    val productRedissonRepository: ProductRedissonRepository = mockk()
-    val productRepository: ProductRepository = mockk()
     val productRankingService = ProductRankingService(
         productRankingRepository,
-        productRedissonRepository,
-        productRepository
     )
 
     afterContainer {
@@ -39,14 +31,12 @@ class ProductRankingServiceTest : BehaviorSpec({
                 productName = "상품 A",
                 totalSalesCount = 10,
                 rankingDate = LocalDate.now(),
-                rank = 1
             )
             val productRankingInfo2 = ProductRanking(
                 productId = 1L,
                 productName = "상품 B",
                 totalSalesCount = 5,
                 rankingDate = LocalDate.now(),
-                rank = 2
             )
             val mockRankings = listOf(productRankingInfo1, productRankingInfo2)
             val mockRankingInfo = mockRankings.map { ProductRankingDto.ProductRankingInfo.from(it) }

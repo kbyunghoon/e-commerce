@@ -28,8 +28,8 @@ class ProductRankingServiceCacheUnitTest(
             val request = ProductRankingCommand(rankingDate = rankingDate, period = RankingPeriod.THREE_DAYS)
 
             val productRankingsList = listOf(
-                ProductRanking(1L, "상품 1", 100, 1, rankingDate),
-                ProductRanking(2L, "상품 2", 90, 2, rankingDate)
+                ProductRanking(1L, "상품 1", 100, rankingDate),
+                ProductRanking(2L, "상품 2", 90, rankingDate)
             )
 
             every { productRankingRepository.findTopProducts(any(), any()) } returns productRankingsList

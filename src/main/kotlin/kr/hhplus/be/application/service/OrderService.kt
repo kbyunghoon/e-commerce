@@ -1,20 +1,13 @@
 package kr.hhplus.be.application.service
 
-import kr.hhplus.be.application.balance.BalanceDeductCommand
-import kr.hhplus.be.application.balance.BalanceRefundCommand
 import kr.hhplus.be.application.order.OrderCreateCommand
 import kr.hhplus.be.application.order.OrderDto
 import kr.hhplus.be.application.order.OrderDto.OrderDetails
-import kr.hhplus.be.application.order.PaymentOperationsStatus
-import kr.hhplus.be.application.order.PaymentProcessCommand
-import kr.hhplus.be.application.product.ProductDto
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.*
-import kr.hhplus.be.global.lock.DistributedLock
-import kr.hhplus.be.global.lock.LockResource
-import kr.hhplus.be.global.lock.LockStrategy
-import kr.hhplus.be.global.lock.OrderLockKeyProvider
+import kr.hhplus.be.domain.order.events.OrderCompletedEvent
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -23,8 +16,8 @@ class OrderService(
     private val orderRepository: OrderRepository,
     private val orderItemRepository: OrderItemRepository,
     private val productService: ProductService,
-    private val balanceService: BalanceService,
-    private val couponService: CouponService
+    private val couponService: CouponService,
+    private val applicationEventPublisher: ApplicationEventPublisher,
 ) {
 
     @Transactional
@@ -46,39 +39,6 @@ class OrderService(
         return OrderDetails.from(savedOrder, savedOrderItems)
     }
 
-    @DistributedLock(
-        resource = LockResource.ORDER_PAYMENT,
-        keyProvider = "orderLockKeyProvider",
-        lockStrategy = LockStrategy.PUB_SUB_LOCK,
-        waitTime = 5,
-        leaseTime = 10
-    )
-    @Transactional
-    fun processPayment(request: PaymentProcessCommand, keyProvider: OrderLockKeyProvider = OrderLockKeyProvider(request.userId, request.orderId)): OrderDetails {
-        val order = getOrderForPayment(request.orderId, request.userId)
-
-        val paymentStatus = PaymentOperationsStatus()
-        try {
-            performPaymentOperations(
-                userId = order.userId,
-                finalAmount = order.finalAmount,
-                userCouponId = order.userCouponId,
-                items = order.orderItems,
-                paymentStatus = paymentStatus
-            )
-
-            return completePayment(request.orderId)
-        } catch (e: Exception) {
-            rollbackPaymentOperations(
-                userId = order.userId,
-                finalAmount = order.finalAmount,
-                couponId = order.userCouponId,
-                paymentStatus = paymentStatus
-            )
-            throw e
-        }
-    }
-
     @Transactional(readOnly = true)
     fun calculateOrderAmounts(request: OrderCreateCommand): OrderDto.CalculatedOrderDetails {
         val products = productService.validateOrderItems(request.items)
@@ -97,47 +57,33 @@ class OrderService(
         return OrderDto.CalculatedOrderDetails(totalAmount, discountAmount, finalAmount, products)
     }
 
-    private fun performPaymentOperations(
-        userId: Long,
-        finalAmount: Int,
-        userCouponId: Long?,
-        items: List<OrderDto.OrderItemDetails>,
-        paymentStatus: PaymentOperationsStatus
-    ) {
-        balanceService.use(BalanceDeductCommand(userId = userId, amount = finalAmount))
-        paymentStatus.balanceDeducted = true
+    @Transactional(readOnly = true)
+    fun getOrder(orderId: Long, userId: Long): OrderDetails {
+        val order =
+            orderRepository.findByIdAndUserId(orderId, userId) ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
 
-        val stockDeductions = items.map { item ->
-            ProductDto.ProductStockDeduction(
-                productId = item.productId,
-                quantity = item.quantity
-            )
-        }
+        val orderItems = orderItemRepository.findByOrderId(orderId)
 
-        productService.batchDeductStock(stockDeductions)
-        
-        paymentStatus.deductedProducts.addAll(items)
-
-        userCouponId?.let { id ->
-            couponService.use(userId, id)
-            paymentStatus.couponUsed = true
-        }
+        return OrderDetails.from(order, orderItems)
     }
 
-    private fun rollbackPaymentOperations(
-        userId: Long,
-        finalAmount: Int,
-        couponId: Long?,
-        paymentStatus: PaymentOperationsStatus
-    ) {
-        if (paymentStatus.balanceDeducted) {
-            balanceService.refund(BalanceRefundCommand(userId = userId, amount = finalAmount))
-        }
-        paymentStatus.deductedProducts.forEach { item ->
-            productService.restoreStock(item.productId, item.quantity)
-        }
-        if (paymentStatus.couponUsed && couponId != null) {
-            couponService.restore(userId, couponId)
+    private fun createOrderItems(
+        request: OrderCreateCommand,
+        calculatedDetails: OrderDto.CalculatedOrderDetails,
+        orderId: Long
+    ): List<OrderItem> {
+        return request.items.map { orderItemRequest ->
+            val product = calculatedDetails.products.find { it.id == orderItemRequest.productId }
+                ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+
+            OrderItem(
+                orderId = orderId,
+                productId = orderItemRequest.productId,
+                quantity = orderItemRequest.quantity,
+                productName = product.name,
+                pricePerItem = product.price,
+                status = OrderStatus.PENDING
+            )
         }
     }
 
@@ -159,34 +105,8 @@ class OrderService(
         return OrderDetails.from(cancelledOrder, cancelledOrderItems)
     }
 
-    fun getOrder(orderId: Long): OrderDetails {
-        val order = orderRepository.findByIdOrThrow(orderId)
-
-        val orderItems = orderItemRepository.findByOrderId(orderId)
-
-        return OrderDetails.from(order, orderItems)
-    }
-
-    fun getDomainOrder(orderId: Long): Order {
-        return orderRepository.findByIdOrThrow(orderId)
-    }
-
-    fun getOrderForPayment(orderId: Long, userId: Long): OrderDetails {
-        val order = orderRepository.findByIdOrThrow(orderId)
-
-        if (order.userId != userId) {
-            throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
-        }
-
-        if (!order.isPending()) {
-            throw BusinessException(ErrorCode.ORDER_ALREADY_PROCESSED)
-        }
-
-        val orderItems = orderItemRepository.findByOrderId(orderId)
-        return OrderDetails.from(order, orderItems)
-    }
-
-    fun completePayment(orderId: Long): OrderDetails {
+    @Transactional
+    fun completeOrderForSaga(orderId: Long) {
         val order = orderRepository.findByIdOrThrow(orderId)
 
         order.completeOrder()
@@ -201,31 +121,72 @@ class OrderService(
 
         val completedOrderItems = orderItemRepository.saveAll(updatedOrderItems)
 
-        return OrderDetails.from(completedOrder, completedOrderItems)
+        val orderDetails = OrderDetails.from(completedOrder, completedOrderItems)
+
+        // 주문 완료 이벤트 발행
+        publishOrderCompletedEvent(orderDetails)
+    }
+
+    @Transactional
+    fun cancelOrderForSaga(orderId: Long) {
+        val order = orderRepository.findByIdOrThrow(orderId)
+
+        order.cancelOrder()
+        orderRepository.save(order)
+
+        val orderItems = orderItemRepository.findByOrderId(orderId)
+
+        val updatedOrderItems = orderItems.map { item ->
+            item.cancelOrder()
+            item
+        }
+
+        orderItemRepository.saveAll(updatedOrderItems)
+    }
+
+    private fun publishOrderCompletedEvent(orderDetails: OrderDto.OrderDetails) {
+        val event = OrderCompletedEvent(
+            orderId = orderDetails.id!!,
+            userId = orderDetails.userId,
+            totalAmount = orderDetails.originalAmount,
+            finalAmount = orderDetails.finalAmount,
+            discountAmount = orderDetails.discountAmount,
+            userCouponId = orderDetails.userCouponId,
+            orderItems = orderDetails.orderItems.map { item ->
+                OrderCompletedEvent.OrderItemInfo(
+                    productId = item.productId,
+                    productName = item.productName,
+                    quantity = item.quantity,
+                    pricePerItem = item.price
+                )
+            }
+        )
+
+        applicationEventPublisher.publishEvent(event)
     }
 
     @Transactional(readOnly = true)
-    fun getOrder(userId: Long, orderId: Long): OrderDetails {
-        return getOrder(orderId)
+    fun getOrderForPayment(orderId: Long, userId: Long): OrderDto.OrderDetails {
+        val order = orderRepository.findByIdOrThrow(orderId)
+
+        if (order.userId != userId) {
+            throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+        }
+
+        if (!order.isPending()) {
+            throw BusinessException(ErrorCode.ORDER_ALREADY_PROCESSED)
+        }
+
+        val orderItems = orderItemRepository.findByOrderId(orderId)
+        return OrderDto.OrderDetails.from(order, orderItems)
     }
 
-    private fun createOrderItems(
-        request: OrderCreateCommand,
-        calculatedDetails: OrderDto.CalculatedOrderDetails,
-        orderId: Long
-    ): List<OrderItem> {
-        return request.items.map { orderItemRequest ->
-            val product = calculatedDetails.products.find { it.id == orderItemRequest.productId }
-                ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+    @Transactional
+    fun deductStockForSaga(orderId: Long, userId: Long) {
+        val order = getOrder(orderId, userId)
 
-            OrderItem(
-                orderId = orderId,
-                productId = orderItemRequest.productId,
-                quantity = orderItemRequest.quantity,
-                productName = product.name,
-                pricePerItem = product.price,
-                status = OrderStatus.PENDING
-            )
+        order.orderItems.forEach { item ->
+            productService.deductStock(item.productId, item.quantity)
         }
     }
 }

@@ -71,7 +71,7 @@ class ProductRankingControllerTest(
                 every { productRankingService.getTopProducts(any()) } returns mockProductRankings
 
                 val result = mockMvc.perform(
-                    get("/api/v2/products/top")
+                    get("/api/v1/products/top")
                         .contentType(MediaType.APPLICATION_JSON)
                 )
 
