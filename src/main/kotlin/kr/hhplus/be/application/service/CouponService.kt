@@ -6,15 +6,9 @@ import kr.hhplus.be.application.coupon.CouponIssueCommand
 import kr.hhplus.be.domain.coupon.CouponIssueResult
 import kr.hhplus.be.domain.coupon.CouponRedisRepository
 import kr.hhplus.be.domain.coupon.CouponRepository
-import kr.hhplus.be.domain.coupon.CouponStatus
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
-import kr.hhplus.be.domain.user.UserCoupon
 import kr.hhplus.be.domain.user.UserCouponRepository
-import kr.hhplus.be.global.lock.CouponLockKeyProvider
-import kr.hhplus.be.global.lock.DistributedLock
-import kr.hhplus.be.global.lock.LockResource
-import kr.hhplus.be.global.lock.LockStrategy
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 

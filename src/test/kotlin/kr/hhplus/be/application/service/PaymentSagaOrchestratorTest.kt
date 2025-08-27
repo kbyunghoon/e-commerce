@@ -14,22 +14,23 @@ import kr.hhplus.be.domain.coupon.DiscountType
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.*
+import kr.hhplus.be.domain.order.saga.PaymentSaga
 import kr.hhplus.be.domain.order.saga.PaymentSagaRepository
+import kr.hhplus.be.domain.order.saga.PaymentSagaStep
+import kr.hhplus.be.domain.order.saga.SagaStatus
+import kr.hhplus.be.domain.order.saga.events.*
+import org.springframework.context.ApplicationEventPublisher
 import java.time.LocalDateTime
 
 class PaymentSagaOrchestratorTest : BehaviorSpec({
     val sagaRepository: PaymentSagaRepository = mockk()
-    val balanceService: BalanceService = mockk()
-    val productService: ProductService = mockk()
-    val couponService: CouponService = mockk()
     val orderService: OrderService = mockk()
+    val applicationEventPublisher: ApplicationEventPublisher = mockk(relaxed = true)
 
     val paymentSagaOrchestrator = PaymentSagaOrchestrator(
         sagaRepository,
-        balanceService,
-        productService,
-        couponService,
         orderService,
+        applicationEventPublisher,
     )
 
     afterContainer {
@@ -85,51 +86,35 @@ class PaymentSagaOrchestratorTest : BehaviorSpec({
 
         When("정상적인 결제 사가 실행 요청을 하면") {
             val orderDto = kr.hhplus.be.application.order.OrderDto.OrderDetails.from(order, orderItems)
-            val completedOrderDto = orderDto.copy(status = OrderStatus.COMPLETED)
             every { orderService.getOrderForPayment(orderId, userId) } returns orderDto
-            every { orderService.getOrder(orderId, userId) } returns completedOrderDto
-            every { orderService.completeOrderForSaga(orderId) } returns Unit
             every { sagaRepository.save(any()) } returnsArgument 0
-            every { balanceService.deductBalanceForSaga(userId, finalAmount) } returns Unit
-            every { orderService.deductStockForSaga(orderId, userId) } returns Unit
-            every { couponService.use(userId, userCouponId) } returns userCouponInfo
 
             val result = paymentSagaOrchestrator.executePaymentSaga(command)
 
-            Then("모든 사가 단계가 성공적으로 실행되고 완료된 주문이 반환된다") {
+            Then("Saga가 생성되고 PaymentSagaStartedEvent가 발행된다") {
                 result.id shouldBe orderId
                 result.userId shouldBe userId
-                result.status shouldBe OrderStatus.COMPLETED
                 result.finalAmount shouldBe finalAmount
 
-                verify(exactly = 1) { balanceService.deductBalanceForSaga(userId, finalAmount) }
-                verify(exactly = 1) { orderService.deductStockForSaga(orderId, userId) }
-                verify(exactly = 1) { couponService.use(userId, userCouponId) }
-                verify(atLeast = 5) { sagaRepository.save(any()) }
+                verify(exactly = 1) { sagaRepository.save(any()) }
+                verify(exactly = 1) { applicationEventPublisher.publishEvent(any<PaymentSagaStartedEvent>()) }
             }
         }
 
         When("쿠폰 없는 주문으로 결제 사가를 실행하면") {
             val orderWithoutCoupon = order.copy(userCouponId = null, discountAmount = 0, finalAmount = 12000)
             val orderDtoWithoutCoupon = kr.hhplus.be.application.order.OrderDto.OrderDetails.from(orderWithoutCoupon, orderItems)
-            val completedOrderDtoWithoutCoupon = orderDtoWithoutCoupon.copy(status = OrderStatus.COMPLETED)
 
             every { orderService.getOrderForPayment(orderId, userId) } returns orderDtoWithoutCoupon
-            every { orderService.getOrder(orderId, userId) } returns completedOrderDtoWithoutCoupon
-            every { orderService.completeOrderForSaga(orderId) } returns Unit
             every { sagaRepository.save(any()) } returnsArgument 0
-            every { balanceService.deductBalanceForSaga(userId, 12000) } returns Unit
-            every { orderService.deductStockForSaga(orderId, userId) } returns Unit
 
             val result = paymentSagaOrchestrator.executePaymentSaga(command)
 
-            Then("쿠폰 사용 단계를 제외하고 사가가 성공적으로 실행된다") {
-                result.status shouldBe OrderStatus.COMPLETED
+            Then("Saga가 생성되고 이벤트가 발행된다") {
                 result.finalAmount shouldBe 12000
 
-                verify(exactly = 1) { balanceService.deductBalanceForSaga(userId, 12000) }
-                verify(exactly = 1) { orderService.deductStockForSaga(orderId, userId) }
-                verify(exactly = 0) { couponService.use(any(), any()) }
+                verify(exactly = 1) { sagaRepository.save(any()) }
+                verify(exactly = 1) { applicationEventPublisher.publishEvent(any<PaymentSagaStartedEvent>()) }
             }
         }
 
@@ -171,82 +156,141 @@ class PaymentSagaOrchestratorTest : BehaviorSpec({
                 verify(exactly = 0) { sagaRepository.save(any()) }
             }
         }
+    }
 
-        When("잔액 부족으로 결제가 실패하면") {
-            val orderDto = kr.hhplus.be.application.order.OrderDto.OrderDetails.from(order, orderItems)
-            every { orderService.getOrderForPayment(orderId, userId) } returns orderDto
-            every { orderService.cancelOrderForSaga(orderId) } returns Unit
+    Given("이벤트 핸들러 테스트") {
+        val sagaId = "test-saga-id"
+        val orderId = 1L
+        val userId = 1L
+        val finalAmount = 10000
+        val userCouponId = 1L
+
+        val saga = PaymentSaga(
+            sagaId = sagaId,
+            orderId = orderId,
+            userId = userId,
+            finalAmount = finalAmount,
+            userCouponId = userCouponId,
+            currentStep = PaymentSagaStep.CREATE_ORDER,
+            status = SagaStatus.STARTED
+        )
+
+        When("BalanceDeductedEvent를 받으면") {
+            val event = BalanceDeductedEvent(
+                sagaId = sagaId,
+                orderId = orderId,
+                userId = userId,
+                amount = finalAmount
+            )
+
+            every { sagaRepository.findBySagaId(sagaId) } returns saga
             every { sagaRepository.save(any()) } returnsArgument 0
-            every {
-                balanceService.deductBalanceForSaga(
-                    userId,
-                    finalAmount
-                )
-            } throws BusinessException(ErrorCode.INSUFFICIENT_BALANCE)
-            every { balanceService.refundBalanceForSaga(userId, finalAmount) } returns Unit
 
-            val exception = shouldThrow<BusinessException> {
-                paymentSagaOrchestrator.executePaymentSaga(command)
-            }
+            paymentSagaOrchestrator.handleBalanceDeducted(event)
 
-            Then("INSUFFICIENT_BALANCE 예외가 발생한다 (첫 번째 단계 실패로 보상 불필요)") {
-                exception.errorCode shouldBe ErrorCode.INSUFFICIENT_BALANCE
-                verify(exactly = 0) { balanceService.refundBalanceForSaga(any(), any()) }
+            Then("다음 단계인 StockDeductionRequestedEvent가 발행된다") {
+                verify(exactly = 1) { sagaRepository.findBySagaId(sagaId) }
+                verify(exactly = 1) { sagaRepository.save(any()) }
+                verify(exactly = 1) { applicationEventPublisher.publishEvent(any<StockDeductionRequestedEvent>()) }
             }
         }
 
-        When("재고 부족으로 결제가 실패하면") {
-            val orderDto = kr.hhplus.be.application.order.OrderDto.OrderDetails.from(order, orderItems)
-            every { orderService.getOrderForPayment(orderId, userId) } returns orderDto
-            every { orderService.cancelOrderForSaga(orderId) } returns Unit
+        When("StockDeductedEvent를 받으면") {
+            val event = StockDeductedEvent(
+                sagaId = sagaId,
+                orderId = orderId
+            )
+
+            val updatedSaga = saga.markStepCompleted(PaymentSagaStep.DEDUCT_BALANCE)
+            every { sagaRepository.findBySagaId(sagaId) } returns updatedSaga
             every { sagaRepository.save(any()) } returnsArgument 0
-            every { balanceService.deductBalanceForSaga(userId, finalAmount) } returns Unit
-            every {
-                orderService.deductStockForSaga(
-                    orderId,
-                    userId
-                )
-            } throws BusinessException(ErrorCode.INSUFFICIENT_STOCK)
-            every { balanceService.refundBalanceForSaga(userId, finalAmount) } returns Unit
-            every { productService.restoreStockForSaga(orderId) } returns Unit
 
-            val exception = shouldThrow<BusinessException> {
-                paymentSagaOrchestrator.executePaymentSaga(command)
-            }
+            paymentSagaOrchestrator.handleStockDeducted(event)
 
-            Then("INSUFFICIENT_STOCK 예외가 발생하고 잔액만 보상된다") {
-                exception.errorCode shouldBe ErrorCode.INSUFFICIENT_STOCK
-                verify(exactly = 1) { balanceService.refundBalanceForSaga(userId, finalAmount) }
-                verify(exactly = 0) { productService.restoreStockForSaga(orderId) }
+            Then("쿠폰이 있으면 CouponUsageRequestedEvent가 발행된다") {
+                verify(exactly = 1) { sagaRepository.findBySagaId(sagaId) }
+                verify(exactly = 1) { sagaRepository.save(any()) }
+                verify(exactly = 1) { applicationEventPublisher.publishEvent(any<CouponUsageRequestedEvent>()) }
             }
         }
 
-        When("쿠폰 사용 중 결제가 실패하면") {
-            val orderDto = kr.hhplus.be.application.order.OrderDto.OrderDetails.from(order, orderItems)
-            every { orderService.getOrderForPayment(orderId, userId) } returns orderDto
-            every { orderService.cancelOrderForSaga(orderId) } returns Unit
+        When("StockDeductedEvent를 받고 쿠폰이 없으면") {
+            val sagaWithoutCoupon = saga.copy(userCouponId = null)
+            val event = StockDeductedEvent(
+                sagaId = sagaId,
+                orderId = orderId
+            )
+
+            every { sagaRepository.findBySagaId(sagaId) } returns sagaWithoutCoupon
             every { sagaRepository.save(any()) } returnsArgument 0
-            every { balanceService.deductBalanceForSaga(userId, finalAmount) } returns Unit
-            every { orderService.deductStockForSaga(orderId, userId) } returns Unit
-            every {
-                couponService.use(
-                    userId,
-                    userCouponId
-                )
-            } throws BusinessException(ErrorCode.COUPON_NOT_AVAILABLE)
-            every { balanceService.refundBalanceForSaga(userId, finalAmount) } returns Unit
-            every { productService.restoreStockForSaga(orderId) } returns Unit
-            every { couponService.restoreCouponForSaga(userId, userCouponId) } returns Unit
 
-            val exception = shouldThrow<BusinessException> {
-                paymentSagaOrchestrator.executePaymentSaga(command)
+            paymentSagaOrchestrator.handleStockDeducted(event)
+
+            Then("바로 OrderCompletionRequestedEvent가 발행된다") {
+                verify(exactly = 1) { sagaRepository.findBySagaId(sagaId) }
+                verify(exactly = 1) { sagaRepository.save(any()) }
+                verify(exactly = 1) { applicationEventPublisher.publishEvent(any<OrderCompletionRequestedEvent>()) }
             }
+        }
 
-            Then("COUPON_ALREADY_USED 예외가 발생하고 잔액과 재고가 보상된다") {
-                exception.errorCode shouldBe ErrorCode.COUPON_NOT_AVAILABLE
-                verify(exactly = 1) { balanceService.refundBalanceForSaga(userId, finalAmount) }
-                verify(exactly = 1) { productService.restoreStockForSaga(orderId) }
-                verify(exactly = 0) { couponService.restoreCouponForSaga(any(), any()) }
+        When("CouponUsedEvent를 받으면") {
+            val event = CouponUsedEvent(
+                sagaId = sagaId,
+                orderId = orderId,
+                userId = userId,
+                couponId = userCouponId
+            )
+
+            val updatedSaga = saga.markStepCompleted(PaymentSagaStep.DEDUCT_STOCK)
+            every { sagaRepository.findBySagaId(sagaId) } returns updatedSaga
+            every { sagaRepository.save(any()) } returnsArgument 0
+
+            paymentSagaOrchestrator.handleCouponUsed(event)
+
+            Then("OrderCompletionRequestedEvent가 발행된다") {
+                verify(exactly = 1) { sagaRepository.findBySagaId(sagaId) }
+                verify(exactly = 1) { sagaRepository.save(any()) }
+                verify(exactly = 1) { applicationEventPublisher.publishEvent(any<OrderCompletionRequestedEvent>()) }
+            }
+        }
+
+        When("OrderCompletedEvent를 받으면") {
+            val event = OrderCompletedEvent(
+                sagaId = sagaId,
+                orderId = orderId
+            )
+
+            val updatedSaga = saga.markStepCompleted(PaymentSagaStep.USE_COUPON)
+            every { sagaRepository.findBySagaId(sagaId) } returns updatedSaga
+            every { sagaRepository.save(any()) } returnsArgument 0
+
+            paymentSagaOrchestrator.handleOrderCompleted(event)
+
+            Then("PaymentSagaCompletedEvent가 발행되고 Saga가 완료된다") {
+                verify(exactly = 1) { sagaRepository.findBySagaId(sagaId) }
+                verify(exactly = 1) { sagaRepository.save(any()) }
+                verify(exactly = 1) { applicationEventPublisher.publishEvent(any<PaymentSagaCompletedEvent>()) }
+            }
+        }
+
+        When("BalanceDeductionFailedEvent를 받으면") {
+            val event = BalanceDeductionFailedEvent(
+                sagaId = sagaId,
+                orderId = orderId,
+                userId = userId,
+                amount = finalAmount,
+                reason = "Insufficient balance"
+            )
+
+            every { sagaRepository.findBySagaId(sagaId) } returns saga
+            every { sagaRepository.save(any()) } returnsArgument 0
+
+            paymentSagaOrchestrator.handleBalanceDeductionFailed(event)
+
+            Then("PaymentSagaFailedEvent가 발행되고 보상 트랜잭션이 시작된다") {
+                verify(exactly = 1) { sagaRepository.findBySagaId(sagaId) }
+                verify(exactly = 1) { sagaRepository.save(any()) }
+                verify(atLeast = 1) { applicationEventPublisher.publishEvent(any<PaymentSagaFailedEvent>()) }
             }
         }
     }

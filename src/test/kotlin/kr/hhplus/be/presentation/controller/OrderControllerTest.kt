@@ -13,6 +13,7 @@ import kr.hhplus.be.application.service.PaymentSagaOrchestrator
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.OrderStatus
+import kr.hhplus.be.presentation.controller.GlobalExceptionHandler
 import kr.hhplus.be.presentation.dto.request.OrderItemRequest
 import kr.hhplus.be.presentation.dto.request.OrderRequest
 import kr.hhplus.be.presentation.dto.request.PaymentRequest
@@ -309,7 +310,7 @@ class OrderControllerTest : FunSpec({
 
     context("결제 처리 API 테스트") {
 
-        test("유효한 결제 요청을 보내면 200 상태코드와 함께 결제가 처리된다") {
+        test("유효한 결제 요청을 보내면 200 상태코드와 함께 결제 처리가 시작된다") {
             // Given
             val orderId = 1L
             val userId = 1L
@@ -319,7 +320,7 @@ class OrderControllerTest : FunSpec({
                 orderId = orderId
             )
 
-            val completedOrderInfo = OrderDto.OrderDetails(
+            val orderInfo = OrderDto.OrderDetails(
                 id = orderId,
                 orderNumber = "테스트",
                 userId = userId,
@@ -331,15 +332,15 @@ class OrderControllerTest : FunSpec({
                 orderItems = listOf(
                     OrderDto.OrderItemDetails(
                         productId = 1L,
-                        productName = "결제 완료 상품",
+                        productName = "결제 처리중 상품",
                         quantity = 2,
                         price = 10000
                     )
                 ),
-                status = OrderStatus.COMPLETED
+                status = OrderStatus.PENDING  // 이벤트 기반이므로 즉시 완료되지 않음
             )
 
-            every { paymentSagaOrchestrator.executePaymentSaga(any()) } returns completedOrderInfo
+            every { paymentSagaOrchestrator.executePaymentSaga(any()) } returns orderInfo
 
             // When
             val result = mockMvc.perform(
@@ -351,7 +352,6 @@ class OrderControllerTest : FunSpec({
             // Then
             result.andExpect(status().isOk)
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.data.finalAmount").value(20000))
 
             verify(exactly = 1) { paymentSagaOrchestrator.executePaymentSaga(any()) }
@@ -597,8 +597,8 @@ class OrderControllerTest : FunSpec({
             val orderId = 1L
             val paymentRequest = PaymentRequest(userId = userId, orderId = orderId)
 
-            val completedOrderInfo = createdOrderInfo.copy(status = OrderStatus.COMPLETED)
-            every { paymentSagaOrchestrator.executePaymentSaga(any()) } returns completedOrderInfo
+            val paymentProcessingOrderInfo = createdOrderInfo.copy(status = OrderStatus.PENDING) // 이벤트 기반 처리
+            every { paymentSagaOrchestrator.executePaymentSaga(any()) } returns paymentProcessingOrderInfo
 
             // When
             val paymentResult = mockMvc.perform(
@@ -609,7 +609,6 @@ class OrderControllerTest : FunSpec({
 
             // Then
             paymentResult.andExpect(status().isOk)
-                .andExpect(jsonPath("$.data.status").value("COMPLETED"))
 
             verify(exactly = 1) { orderService.processOrder(any()) }
             verify(exactly = 1) { paymentSagaOrchestrator.executePaymentSaga(any()) }
