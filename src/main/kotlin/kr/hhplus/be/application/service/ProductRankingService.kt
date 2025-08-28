@@ -26,6 +26,7 @@ class ProductRankingService(
             .map { ProductRankingDto.ProductRankingInfo.from(it) }
     }
 
+    @Transactional
     fun updateSalesCount(productId: Long, quantity: Int, date: LocalDate? = LocalDate.now()) {
         productRankingRepository.updateSalesCount(productId, quantity, date!!)
     }

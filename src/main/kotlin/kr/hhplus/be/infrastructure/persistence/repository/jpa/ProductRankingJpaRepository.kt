@@ -25,7 +25,7 @@ interface ProductRankingJpaRepository : JpaRepository<ProductRankingEntity, Long
     ): List<ProductRanking>
 
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE ProductRankingEntity pr SET pr.totalSalesCount = pr.totalSalesCount + :quantity WHERE pr.productId = :productId AND pr.rankingDate = :date")
     fun updateSalesCount(@Param("productId") productId: Long, @Param("quantity") quantity: Int, @Param("date") today: LocalDate)
 }
