@@ -19,7 +19,7 @@ class NotificationEventHandler(
     private val log = LoggerFactory.getLogger(javaClass)
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Async("notificationTaskExecutor")
+    @Async
     @Retryable(value = [Exception::class], maxAttempts = 3, backoff = Backoff(delay = 1000))
     fun handleOrderCompletedForNotification(event: OrderCompletedEvent) {
         log.info("주문 완료 알림 처리 시작 - orderId: {}", event.orderId)

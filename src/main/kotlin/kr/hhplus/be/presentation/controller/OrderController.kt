@@ -38,11 +38,10 @@ class OrderController(
 
     @PostMapping("/{orderId}/pay")
     override fun pay(
-        @PathVariable orderId: Long,
         @RequestBody @Valid request: PaymentRequest
     ): BaseResponse<PaymentResponse> {
         val command = PaymentProcessCommand(
-            orderId = orderId,
+            orderId = request.orderId,
             userId = request.userId
         )
 

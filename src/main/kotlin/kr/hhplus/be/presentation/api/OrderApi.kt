@@ -54,8 +54,6 @@ interface OrderApi {
         ]
     )
     fun pay(
-        @Parameter(description = "주문 생성 시 발급된 임시 주문 ID", required = true)
-        @PathVariable orderId: Long,
         @RequestBody request: PaymentRequest
     ): BaseResponse<PaymentResponse>
 }

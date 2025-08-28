@@ -189,4 +189,13 @@ class OrderService(
             productService.deductStock(item.productId, item.quantity)
         }
     }
+
+    @Transactional
+    fun restoreStockForSaga(orderId: Long, userId: Long) {
+        val order = getOrder(orderId, userId)
+
+        order.orderItems.forEach { item ->
+            productService.restoreStock(item.productId, item.quantity)
+        }
+    }
 }

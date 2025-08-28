@@ -40,7 +40,7 @@ class CouponSagaEventHandler(
                     orderId = event.orderId,
                     userId = event.userId,
                     couponId = event.couponId,
-                    reason = e.message ?: "Coupon usage failed"
+                    reason = e.message ?: "쿠폰 사용 실패"
                 )
             )
         }

@@ -132,6 +132,7 @@ data class BalanceRefundRequestedEvent(
 data class StockRestoreRequestedEvent(
     override val sagaId: String,
     override val orderId: Long,
+    val userId: Long,
     override val timestamp: LocalDateTime = LocalDateTime.now()
 ) : SagaEvent(sagaId, orderId, timestamp)
 

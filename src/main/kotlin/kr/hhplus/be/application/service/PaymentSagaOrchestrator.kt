@@ -240,7 +240,8 @@ class PaymentSagaOrchestrator(
                 applicationEventPublisher.publishEvent(
                     StockRestoreRequestedEvent(
                         sagaId = saga.sagaId,
-                        orderId = saga.orderId
+                        orderId = saga.orderId,
+                        userId = saga.userId,
                     )
                 )
             }

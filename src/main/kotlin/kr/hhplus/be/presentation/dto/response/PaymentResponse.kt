@@ -23,7 +23,7 @@ data class PaymentResponse(
     val status: OrderStatus,
 
     @field:Schema(description = "주문 완료 일시", example = "2025-01-15T10:30:00")
-    val orderedAt: LocalDateTime
+    val orderedAt: LocalDateTime?
 ) {
     companion object {
         fun from(orderInfo: OrderDetails): PaymentResponse {
@@ -33,7 +33,7 @@ data class PaymentResponse(
                 userId = orderInfo.userId,
                 finalAmount = orderInfo.finalAmount,
                 status = orderInfo.status,
-                orderedAt = orderInfo.orderDate!!
+                orderedAt = orderInfo.orderDate
             )
         }
     }

@@ -185,9 +185,4 @@ class ProductService(
     fun saveProductStockHistory(productStockHistory: ProductStockHistory) {
         productStockHistoryRepository.save(productStockHistory)
     }
-
-    @Transactional
-    fun restoreStockForSaga(orderId: Long) {
-        // 주문 아이템 정보를 가져와서 재고 복구
-    }
 }

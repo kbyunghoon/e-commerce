@@ -43,7 +43,7 @@ class BalanceSagaEventHandler(
                     orderId = event.orderId,
                     userId = event.userId,
                     amount = event.amount,
-                    reason = e.message ?: "Balance deduction failed"
+                    reason = e.message ?: "잔액 차감 실패"
                 )
             )
         }

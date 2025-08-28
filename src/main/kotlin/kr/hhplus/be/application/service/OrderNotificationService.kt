@@ -23,26 +23,5 @@ class OrderNotificationService {
         }
     }
 
-    private fun sendToExternalSystem(event: OrderCompletedEvent) {
-        val payload = mapOf(
-            "orderId" to event.orderId,
-            "userId" to event.userId,
-            "totalAmount" to event.totalAmount,
-            "finalAmount" to event.finalAmount,
-            "discountAmount" to event.discountAmount,
-            "items" to event.orderItems.map { item ->
-                mapOf(
-                    "productId" to item.productId,
-                    "productName" to item.productName,
-                    "quantity" to item.quantity,
-                    "pricePerItem" to item.pricePerItem
-                )
-            },
-            "completedAt" to event.completedAt
-        )
-
-        log.debug("외부 시스템 전송 데이터: {}", payload)
-
-        restTemplate.postForObject("http://external-api/orders", payload, String::class.java)
-    }
+    private fun sendToExternalSystem(event: OrderCompletedEvent) {}
 }

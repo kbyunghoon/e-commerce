@@ -36,7 +36,7 @@ class ProductSagaEventHandler(
                 StockDeductionFailedEvent(
                     sagaId = event.sagaId,
                     orderId = event.orderId,
-                    reason = e.message ?: "Stock deduction failed"
+                    reason = e.message ?: "재고 차감 실패"
                 )
             )
         }
@@ -48,7 +48,7 @@ class ProductSagaEventHandler(
         try {
             log.info("재고 복구 요청 - sagaId: {}, orderId: {}", event.sagaId, event.orderId)
             
-            productService.restoreStockForSaga(event.orderId)
+            orderService.restoreStockForSaga(event.orderId, event.userId)
         } catch (e: Exception) {
             log.error("재고 복구 실패 - sagaId: {}, reason: {}", event.sagaId, e.message, e)
         }

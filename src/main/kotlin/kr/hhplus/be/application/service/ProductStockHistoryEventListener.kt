@@ -5,6 +5,8 @@ import kr.hhplus.be.domain.product.ProductStockHistoryRepository
 import kr.hhplus.be.domain.product.StockChangeType
 import kr.hhplus.be.domain.product.events.StockChangedEvent
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Propagation
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.event.TransactionPhase
 import org.springframework.transaction.event.TransactionalEventListener
 
@@ -16,6 +18,7 @@ class ProductStockHistoryEventListener(
 ) {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun handleStockChanged(event: StockChangedEvent) {
         val history = ProductStockHistory(
             productId = event.productId,

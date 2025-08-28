@@ -35,7 +35,7 @@ class OrderSagaEventHandler(
                 OrderCompletionFailedEvent(
                     sagaId = event.sagaId,
                     orderId = event.orderId,
-                    reason = e.message ?: "Order completion failed"
+                    reason = e.message ?: "주문 완료 실패"
                 )
             )
         }
