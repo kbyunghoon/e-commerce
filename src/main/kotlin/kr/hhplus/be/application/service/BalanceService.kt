@@ -124,15 +124,52 @@ class BalanceService(
         return BalanceInfo.from(user)
     }
 
+    @DistributedLock(
+        resource = LockResource.USER_BALANCE,
+        keyProvider = "userBalanceLockKeyProvider",
+        lockStrategy = LockStrategy.SPIN_LOCK,
+        waitTime = 5,
+        leaseTime = 10
+    )
     @Transactional
-    fun deductBalanceForSaga(userId: Long, amount: Int) {
-        val command = BalanceDeductCommand(userId = userId, amount = amount)
-        use(command)
+    fun deductForSaga(
+        userId: Long,
+        amount: Int,
+        keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(userId)
+    ) {
+        if (amount <= 0) {
+            throw BusinessException(ErrorCode.DEDUCTION_INVALID_AMOUNT)
+        }
+
+        val user = userRepository.findByIdOrThrow(userId)
+
+        if (user.balance < amount) {
+            throw BusinessException(ErrorCode.INSUFFICIENT_BALANCE)
+        }
+
+        user.deductBalance(amount)
+        userRepository.save(user)
     }
 
+    @DistributedLock(
+        resource = LockResource.USER_BALANCE,
+        keyProvider = "userBalanceLockKeyProvider",
+        lockStrategy = LockStrategy.SPIN_LOCK,
+        waitTime = 5,
+        leaseTime = 10
+    )
     @Transactional
-    fun refundBalanceForSaga(userId: Long, amount: Int) {
-        val command = BalanceRefundCommand(userId = userId, amount = amount)
-        refund(command)
+    fun refundForSaga(
+        userId: Long,
+        amount: Int,
+        keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(userId)
+    ) {
+        if (amount <= 0) {
+            throw BusinessException(ErrorCode.REFUND_INVALID_AMOUNT)
+        }
+
+        val user = userRepository.findByIdOrThrow(userId)
+        user.chargeBalance(amount)
+        userRepository.save(user)
     }
 }

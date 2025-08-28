@@ -16,6 +16,29 @@ data class PaymentSaga(
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now()
 ) {
+    companion object {
+        fun create(
+            sagaId: String,
+            orderId: Long,
+            userId: Long,
+            finalAmount: Int,
+            userCouponId: Long?
+        ): PaymentSaga {
+            return PaymentSaga(
+                sagaId = sagaId,
+                orderId = orderId,
+                userId = userId,
+                finalAmount = finalAmount,
+                userCouponId = userCouponId,
+                currentStep = PaymentSagaStep.CREATE_ORDER,
+                status = SagaStatus.STARTED,
+                completedSteps = mutableListOf(),
+                compensatedSteps = mutableListOf(),
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now()
+            )
+        }
+    }
     fun markStepCompleted(step: PaymentSagaStep): PaymentSaga {
         completedSteps.add(step)
         return this.copy(

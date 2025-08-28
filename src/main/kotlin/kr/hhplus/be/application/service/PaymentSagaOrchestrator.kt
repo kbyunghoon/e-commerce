@@ -2,26 +2,25 @@ package kr.hhplus.be.application.service
 
 import kr.hhplus.be.application.order.OrderDto
 import kr.hhplus.be.application.order.PaymentProcessCommand
+import kr.hhplus.be.application.service.saga.*
+import kr.hhplus.be.domain.exception.BusinessException
+import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.saga.PaymentSaga
 import kr.hhplus.be.domain.order.saga.PaymentSagaRepository
 import kr.hhplus.be.domain.order.saga.PaymentSagaStep
 import kr.hhplus.be.domain.order.saga.SagaStatus
-import kr.hhplus.be.domain.order.saga.events.*
 import org.slf4j.LoggerFactory
-import org.springframework.context.ApplicationEventPublisher
-import org.springframework.context.event.EventListener
-import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.transaction.event.TransactionPhase
-import org.springframework.transaction.event.TransactionalEventListener
 import java.util.*
 
 @Service
 class PaymentSagaOrchestrator(
     private val sagaRepository: PaymentSagaRepository,
-    private val orderService: OrderService,
-    private val applicationEventPublisher: ApplicationEventPublisher,
+    private val sagaOrderService: SagaOrderService,
+    private val sagaUserService: SagaUserService,
+    private val sagaProductService: SagaProductService,
+    private val sagaCouponService: SagaCouponService,
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -31,177 +30,59 @@ class PaymentSagaOrchestrator(
         val sagaId = UUID.randomUUID().toString()
         log.info("Payment Saga 시작 - sagaId: {}, orderId: {}", sagaId, command.orderId)
 
-        val orderDetails = orderService.getOrderForPayment(command.orderId, command.userId)
-
-        val saga = PaymentSaga(
+        val orderDetails = sagaOrderService.getOrderForPayment(command.orderId, command.userId)
+        var saga = PaymentSaga.create(
             sagaId = sagaId,
             orderId = command.orderId,
             userId = command.userId,
             finalAmount = orderDetails.finalAmount,
-            userCouponId = orderDetails.userCouponId,
-            currentStep = PaymentSagaStep.CREATE_ORDER,
-            status = SagaStatus.STARTED
+            userCouponId = orderDetails.userCouponId
         )
 
         sagaRepository.save(saga)
 
-        applicationEventPublisher.publishEvent(
-            PaymentSagaStartedEvent(
-                sagaId = sagaId,
-                orderId = command.orderId,
-                userId = command.userId,
-                finalAmount = orderDetails.finalAmount,
-                userCouponId = orderDetails.userCouponId
-            )
-        )
+        try {
+            log.info("Step 1: 잔액 차감 시작 - sagaId: {}, amount: {}", sagaId, saga.finalAmount)
+            sagaUserService.deductBalance(saga.userId, saga.finalAmount)
+            saga = saga.markStepCompleted(PaymentSagaStep.DEDUCT_BALANCE)
+            sagaRepository.save(saga)
+            log.info("Step 1: 잔액 차감 완료 - sagaId: {}", sagaId)
 
-        return orderDetails
-    }
+            log.info("Step 2: 재고 차감 시작 - sagaId: {}, orderId: {}", sagaId, saga.orderId)
+            sagaProductService.deductStock(saga.orderId, saga.userId)
+            saga = saga.markStepCompleted(PaymentSagaStep.DEDUCT_STOCK)
+            sagaRepository.save(saga)
+            log.info("Step 2: 재고 차감 완료 - sagaId: {}", sagaId)
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Async
-    fun handlePaymentSagaStarted(event: PaymentSagaStartedEvent) {
-        log.info("Payment Saga 시작 이벤트 처리 - sagaId: {}, orderId: {}", event.sagaId, event.orderId)
+            if (saga.userCouponId != null) {
+                log.info("Step 3: 쿠폰 사용 시작 - sagaId: {}, couponId: {}", sagaId, saga.userCouponId)
+                sagaCouponService.useCoupon(saga.userId, saga.userCouponId)
+                saga = saga.markStepCompleted(PaymentSagaStep.USE_COUPON)
+                sagaRepository.save(saga)
+                log.info("Step 3: 쿠폰 사용 완료 - sagaId: {}", sagaId)
+            }
 
-        applicationEventPublisher.publishEvent(
-            BalanceDeductionRequestedEvent(
-                sagaId = event.sagaId,
-                orderId = event.orderId,
-                userId = event.userId,
-                amount = event.finalAmount
-            )
-        )
-    }
+            log.info("Step 4: 주문 완료 처리 시작 - sagaId: {}, orderId: {}", sagaId, saga.orderId)
+            sagaOrderService.completeOrder(saga.orderId)
+            saga = saga.markStepCompleted(PaymentSagaStep.COMPLETE_ORDER)
+                .updateStatus(SagaStatus.COMPLETED)
+            sagaRepository.save(saga)
+            log.info("Payment Saga 완료 - sagaId: {}", sagaId)
 
-    @EventListener
-    fun handleBalanceDeducted(event: BalanceDeductedEvent) {
-        log.info("잔액 차감 완료 - sagaId: {}, orderId: {}", event.sagaId, event.orderId)
+            return sagaOrderService.getOrder(command.orderId, command.userId)
 
-        val saga = sagaRepository.findBySagaId(event.sagaId)
-            ?: throw IllegalStateException("Saga not found: ${event.sagaId}")
+        } catch (e: Exception) {
+            log.error("Payment Saga 실패 - sagaId: {}, reason: {}", sagaId, e.message, e)
+            saga = saga.updateStatus(SagaStatus.COMPENSATING)
+            sagaRepository.save(saga)
 
-        val updatedSaga = saga.markStepCompleted(PaymentSagaStep.DEDUCT_BALANCE)
-            .updateStatus(SagaStatus.IN_PROGRESS)
-        sagaRepository.save(updatedSaga)
+            startCompensation(saga)
 
-        applicationEventPublisher.publishEvent(
-            StockDeductionRequestedEvent(
-                sagaId = event.sagaId,
-                orderId = event.orderId,
-                userId = event.userId
-            )
-        )
-    }
+            saga = saga.updateStatus(SagaStatus.FAILED)
+            sagaRepository.save(saga)
 
-    @EventListener
-    fun handleStockDeducted(event: StockDeductedEvent) {
-        log.info("재고 차감 완료 - sagaId: {}, orderId: {}", event.sagaId, event.orderId)
-
-        val saga = sagaRepository.findBySagaId(event.sagaId)
-            ?: throw IllegalStateException("Saga not found: ${event.sagaId}")
-
-        val updatedSaga = saga.markStepCompleted(PaymentSagaStep.DEDUCT_STOCK)
-            .updateStatus(SagaStatus.IN_PROGRESS)
-        sagaRepository.save(updatedSaga)
-
-        if (saga.userCouponId != null) {
-            applicationEventPublisher.publishEvent(
-                CouponUsageRequestedEvent(
-                    sagaId = event.sagaId,
-                    orderId = event.orderId,
-                    userId = saga.userId,
-                    couponId = saga.userCouponId
-                )
-            )
-        } else {
-            applicationEventPublisher.publishEvent(
-                OrderCompletionRequestedEvent(
-                    sagaId = event.sagaId,
-                    orderId = event.orderId
-                )
-            )
+            throw BusinessException(ErrorCode.PAYMENT_PROCESSING_FAILED)
         }
-    }
-
-    @EventListener
-    fun handleCouponUsed(event: CouponUsedEvent) {
-        log.info("쿠폰 사용 완료 - sagaId: {}, orderId: {}", event.sagaId, event.orderId)
-
-        val saga = sagaRepository.findBySagaId(event.sagaId)
-            ?: throw IllegalStateException("Saga not found: ${event.sagaId}")
-
-        val updatedSaga = saga.markStepCompleted(PaymentSagaStep.USE_COUPON)
-            .updateStatus(SagaStatus.IN_PROGRESS)
-        sagaRepository.save(updatedSaga)
-
-        applicationEventPublisher.publishEvent(
-            OrderCompletionRequestedEvent(
-                sagaId = event.sagaId,
-                orderId = event.orderId
-            )
-        )
-    }
-
-    @EventListener
-    fun handleOrderCompleted(event: OrderCompletedEvent) {
-        log.info("주문 완료 - sagaId: {}, orderId: {}", event.sagaId, event.orderId)
-
-        val saga = sagaRepository.findBySagaId(event.sagaId)
-            ?: throw IllegalStateException("Saga not found: ${event.sagaId}")
-
-        val updatedSaga = saga.markStepCompleted(PaymentSagaStep.COMPLETE_ORDER)
-            .updateStatus(SagaStatus.COMPLETED)
-        sagaRepository.save(updatedSaga)
-
-        applicationEventPublisher.publishEvent(
-            PaymentSagaCompletedEvent(
-                sagaId = event.sagaId,
-                orderId = event.orderId
-            )
-        )
-    }
-
-    @EventListener
-    fun handleBalanceDeductionFailed(event: BalanceDeductionFailedEvent) {
-        log.error("잔액 차감 실패 - sagaId: {}, reason: {}", event.sagaId, event.reason)
-        handleSagaStepFailed(event.sagaId, PaymentSagaStep.DEDUCT_BALANCE, event.reason)
-    }
-
-    @EventListener
-    fun handleStockDeductionFailed(event: StockDeductionFailedEvent) {
-        log.error("재고 차감 실패 - sagaId: {}, reason: {}", event.sagaId, event.reason)
-        handleSagaStepFailed(event.sagaId, PaymentSagaStep.DEDUCT_STOCK, event.reason)
-    }
-
-    @EventListener
-    fun handleCouponUsageFailed(event: CouponUsageFailedEvent) {
-        log.error("쿠폰 사용 실패 - sagaId: {}, reason: {}", event.sagaId, event.reason)
-        handleSagaStepFailed(event.sagaId, PaymentSagaStep.USE_COUPON, event.reason)
-    }
-
-    @EventListener
-    fun handleOrderCompletionFailed(event: OrderCompletionFailedEvent) {
-        log.error("주문 완료 실패 - sagaId: {}, reason: {}", event.sagaId, event.reason)
-        handleSagaStepFailed(event.sagaId, PaymentSagaStep.COMPLETE_ORDER, event.reason)
-    }
-
-    private fun handleSagaStepFailed(sagaId: String, failedStep: PaymentSagaStep, reason: String) {
-        val saga = sagaRepository.findBySagaId(sagaId)
-            ?: throw IllegalStateException("Saga not found: $sagaId")
-
-        val updatedSaga = saga.updateStatus(SagaStatus.COMPENSATING)
-        sagaRepository.save(updatedSaga)
-
-        applicationEventPublisher.publishEvent(
-            PaymentSagaFailedEvent(
-                sagaId = sagaId,
-                orderId = saga.orderId,
-                failedStep = failedStep.stepName,
-                reason = reason
-            )
-        )
-
-        startCompensation(updatedSaga)
     }
 
     private fun startCompensation(saga: PaymentSaga) {
@@ -210,56 +91,43 @@ class PaymentSagaOrchestrator(
         val stepsToCompensate = saga.getStepsToCompensate()
 
         for (step in stepsToCompensate) {
-            publishCompensationEvent(saga, step)
+            try {
+                executeCompensation(saga, step)
+                log.info("보상 트랜잭션 완료 - sagaId: {}, step: {}", saga.sagaId, step)
+            } catch (e: Exception) {
+                log.error(
+                    "보상 트랜잭션 실패 - sagaId: {}, step: {}, reason: {}",
+                    saga.sagaId, step, e.message, e
+                )
+            }
         }
     }
 
-    private fun publishCompensationEvent(saga: PaymentSaga, step: PaymentSagaStep) {
+    private fun executeCompensation(saga: PaymentSaga, step: PaymentSagaStep) {
         when (step) {
-            PaymentSagaStep.CREATE_ORDER -> {
-                applicationEventPublisher.publishEvent(
-                    OrderCancellationRequestedEvent(
-                        sagaId = saga.sagaId,
-                        orderId = saga.orderId
-                    )
-                )
-            }
-
             PaymentSagaStep.DEDUCT_BALANCE -> {
-                applicationEventPublisher.publishEvent(
-                    BalanceRefundRequestedEvent(
-                        sagaId = saga.sagaId,
-                        orderId = saga.orderId,
-                        userId = saga.userId,
-                        amount = saga.finalAmount
-                    )
-                )
+                log.info("잔액 환불 실행 - sagaId: {}, amount: {}", saga.sagaId, saga.finalAmount)
+                sagaUserService.refundBalance(saga.userId, saga.finalAmount)
             }
 
             PaymentSagaStep.DEDUCT_STOCK -> {
-                applicationEventPublisher.publishEvent(
-                    StockRestoreRequestedEvent(
-                        sagaId = saga.sagaId,
-                        orderId = saga.orderId,
-                        userId = saga.userId,
-                    )
-                )
+                log.info("재고 복구 실행 - sagaId: {}, orderId: {}", saga.sagaId, saga.orderId)
+                sagaProductService.restoreStock(saga.orderId, saga.userId)
             }
 
             PaymentSagaStep.USE_COUPON -> {
                 saga.userCouponId?.let { couponId ->
-                    applicationEventPublisher.publishEvent(
-                        CouponRestoreRequestedEvent(
-                            sagaId = saga.sagaId,
-                            orderId = saga.orderId,
-                            userId = saga.userId,
-                            couponId = couponId
-                        )
-                    )
+                    log.info("쿠폰 복구 실행 - sagaId: {}, couponId: {}", saga.sagaId, couponId)
+                    sagaCouponService.restoreCoupon(saga.userId, couponId)
                 }
             }
 
-            PaymentSagaStep.COMPLETE_ORDER -> {}
+            PaymentSagaStep.COMPLETE_ORDER -> {
+                log.info("주문 취소 실행 - sagaId: {}, orderId: {}", saga.sagaId, saga.orderId)
+                sagaOrderService.cancelOrder(saga.orderId)
+            }
+
+            PaymentSagaStep.CREATE_ORDER -> {}
         }
     }
 
@@ -271,7 +139,7 @@ class PaymentSagaOrchestrator(
     fun getPaymentResult(orderId: Long, userId: Long): OrderDto.OrderDetails? {
         val saga = sagaRepository.findByOrderId(orderId) ?: return null
         return if (saga.status == SagaStatus.COMPLETED) {
-            orderService.getOrder(orderId, userId)
+            sagaOrderService.getOrder(orderId, userId)
         } else {
             null
         }

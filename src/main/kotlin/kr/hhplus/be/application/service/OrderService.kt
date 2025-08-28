@@ -123,7 +123,6 @@ class OrderService(
 
         val orderDetails = OrderDetails.from(completedOrder, completedOrderItems)
 
-        // 주문 완료 이벤트 발행
         publishOrderCompletedEvent(orderDetails)
     }
 

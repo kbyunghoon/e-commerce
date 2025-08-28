@@ -86,10 +86,10 @@ class UserTest : FunSpec({
         // Then
         shouldThrow<BusinessException> {
             user.deductBalance(0)
-        }.errorCode shouldBe ErrorCode.DEDUCT_INVALID_AMOUNT
+        }.errorCode shouldBe ErrorCode.DEDUCTION_INVALID_AMOUNT
 
         shouldThrow<BusinessException> {
             user.deductBalance(-1000)
-        }.errorCode shouldBe ErrorCode.DEDUCT_INVALID_AMOUNT
+        }.errorCode shouldBe ErrorCode.DEDUCTION_INVALID_AMOUNT
     }
 })
