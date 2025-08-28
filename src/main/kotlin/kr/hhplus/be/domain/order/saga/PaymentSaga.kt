@@ -1,5 +1,6 @@
 package kr.hhplus.be.domain.order.saga
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import java.time.LocalDateTime
 
 data class PaymentSaga(
@@ -47,11 +48,8 @@ data class PaymentSaga(
         }
     }
 
+    @JsonIgnore
     fun getStepsToCompensate(): List<PaymentSagaStep> {
         return completedSteps.filter { !compensatedSteps.contains(it) }.reversed()
     }
-
-    fun isCompleted(): Boolean = status == SagaStatus.COMPLETED
-    fun isFailed(): Boolean = status == SagaStatus.FAILED
-    fun isCompensating(): Boolean = status == SagaStatus.COMPENSATING
 }

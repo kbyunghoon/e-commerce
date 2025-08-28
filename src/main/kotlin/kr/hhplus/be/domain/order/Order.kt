@@ -97,8 +97,13 @@ data class Order(
     fun completeOrder() {
         validateInvariants()
 
-        if (!isPending()) {
-            throw BusinessException(ErrorCode.ORDER_ALREADY_PROCESSED)
+
+        if (isCompleted()) {
+            throw BusinessException(ErrorCode.ORDER_ALREADY_COMPLETED)
+        }
+
+        if (isCancelled()) {
+            throw BusinessException(ErrorCode.ORDER_ALREADY_CANCELLED)
         }
         this.status = OrderStatus.COMPLETED
 
@@ -150,7 +155,7 @@ data class Order(
 }
 
 data class OrderItem(
-    val id: Long? = 0,
+    val id: Long? = null,
     val orderId: Long? = null,
     val productId: Long,
     val productName: String,
@@ -205,8 +210,12 @@ data class OrderItem(
     fun completeOrder() {
         validateInvariants()
 
-        if (!isPending()) {
-            throw BusinessException(ErrorCode.ORDER_ALREADY_PROCESSED)
+        if (isCompleted()) {
+            throw BusinessException(ErrorCode.ORDER_ALREADY_COMPLETED)
+        }
+
+        if (isCancelled()) {
+            throw BusinessException(ErrorCode.ORDER_ALREADY_CANCELLED)
         }
         this.status = OrderStatus.COMPLETED
 
@@ -241,10 +250,10 @@ data class OrderItem(
     fun getTotalPrice(): Int = quantity * pricePerItem
 
     private fun validateInvariants() {
-        if (quantity < MIN_QUANTITY || quantity > MAX_QUANTITY) {
+        if (quantity !in MIN_QUANTITY..MAX_QUANTITY) {
             throw BusinessException(ErrorCode.INVALID_ORDER_QUANTITY)
         }
-        if (pricePerItem < MIN_PRICE || pricePerItem > MAX_PRICE) {
+        if (pricePerItem !in MIN_PRICE..MAX_PRICE) {
             throw BusinessException(ErrorCode.INVALID_PRODUCT_PRICE)
         }
         if (productId <= 0) {

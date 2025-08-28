@@ -144,7 +144,7 @@ class OrderService(
         orderItemRepository.saveAll(updatedOrderItems)
     }
 
-    private fun publishOrderCompletedEvent(orderDetails: OrderDto.OrderDetails) {
+    private fun publishOrderCompletedEvent(orderDetails: OrderDetails) {
         val event = OrderCompletedEvent(
             orderId = orderDetails.id!!,
             userId = orderDetails.userId,
@@ -166,19 +166,23 @@ class OrderService(
     }
 
     @Transactional(readOnly = true)
-    fun getOrderForPayment(orderId: Long, userId: Long): OrderDto.OrderDetails {
+    fun getOrderForPayment(orderId: Long, userId: Long): OrderDetails {
         val order = orderRepository.findByIdOrThrow(orderId)
 
         if (order.userId != userId) {
             throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
         }
 
-        if (!order.isPending()) {
-            throw BusinessException(ErrorCode.ORDER_ALREADY_PROCESSED)
+        if (order.isCompleted()) {
+            throw BusinessException(ErrorCode.ORDER_ALREADY_COMPLETED)
+        }
+
+        if (order.isCancelled()) {
+            throw BusinessException(ErrorCode.ORDER_ALREADY_CANCELLED)
         }
 
         val orderItems = orderItemRepository.findByOrderId(orderId)
-        return OrderDto.OrderDetails.from(order, orderItems)
+        return OrderDetails.from(order, orderItems)
     }
 
     @Transactional
