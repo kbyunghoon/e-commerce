@@ -1,7 +1,6 @@
 package kr.hhplus.be.presentation.controller
 
 import jakarta.validation.Valid
-import kr.hhplus.be.application.balance.BalanceChargeCommand
 import kr.hhplus.be.application.service.BalanceService
 import kr.hhplus.be.presentation.api.BalanceApi
 import kr.hhplus.be.presentation.dto.common.BaseResponse
@@ -20,7 +19,7 @@ class BalanceController(
     override fun charge(
         @RequestBody @Valid request: BalanceChargeRequest
     ): BaseResponse<BalanceChargeResponse> {
-        val result = balanceService.charge(BalanceChargeCommand(request.userId, request.amount))
+        val result = balanceService.charge(request.toCommand())
 
         return BaseResponse.success(BalanceChargeResponse.from(result))
     }

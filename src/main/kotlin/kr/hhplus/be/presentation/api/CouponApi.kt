@@ -7,8 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import kr.hhplus.be.presentation.dto.common.BaseResponse
 import kr.hhplus.be.presentation.dto.request.CouponIssueRequest
-import kr.hhplus.be.presentation.dto.response.CouponIssueResponse
-import kr.hhplus.be.presentation.dto.response.CouponListResponse
+import kr.hhplus.be.presentation.dto.response.UserCouponListResponse
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
@@ -38,7 +37,7 @@ interface CouponApi {
         ]
     )
     @ResponseStatus(HttpStatus.CREATED)
-    fun issueCoupon(@RequestBody request: CouponIssueRequest): BaseResponse<CouponIssueResponse>
+    fun issueCoupon(@RequestBody request: CouponIssueRequest): BaseResponse<Unit>
 
     @Operation(
         summary = "보유 쿠폰 조회",
@@ -57,5 +56,5 @@ interface CouponApi {
         @RequestParam userId: Long,
         @Parameter(description = "쿠폰 상태 필터", required = false, example = "AVAILABLE")
         @RequestParam status: String? = null
-    ): BaseResponse<CouponListResponse>
+    ): BaseResponse<UserCouponListResponse>
 }

@@ -3,6 +3,7 @@ package kr.hhplus.be.presentation.dto.request
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
+import kr.hhplus.be.application.balance.BalanceChargeCommand
 
 @Schema(description = "잔액 충전 요청")
 data class BalanceChargeRequest(
@@ -15,4 +16,11 @@ data class BalanceChargeRequest(
     @field:NotNull(message = "충전 금액은 필수입니다")
     @field:Positive(message = "충전 금액은 양수여야 합니다")
     val amount: Int,
-)
+) {
+    fun toCommand(): BalanceChargeCommand {
+        return BalanceChargeCommand(
+            userId = this.userId,
+            amount = this.amount,
+        )
+    }
+}

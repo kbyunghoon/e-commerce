@@ -3,6 +3,7 @@ package kr.hhplus.be.presentation.dto.request
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
+import kr.hhplus.be.application.coupon.CouponIssueCommand
 
 @Schema(description = "쿠폰 발급 요청")
 data class CouponIssueRequest(
@@ -15,5 +16,12 @@ data class CouponIssueRequest(
     @field:NotNull(message = "쿠폰 ID는 필수입니다")
     @field:Positive(message = "쿠폰 ID는 양수여야 합니다")
     val couponId: Long,
-)
+) {
+    fun toCommand(): CouponIssueCommand {
+        return CouponIssueCommand(
+            userId = userId,
+            couponId = couponId,
+        )
+    }
+}
 

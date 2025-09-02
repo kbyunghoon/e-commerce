@@ -5,6 +5,7 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.NotEmpty
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
+import kr.hhplus.be.application.order.OrderCreateCommand
 
 @Schema(description = "주문 생성 요청")
 data class OrderRequest(
@@ -21,4 +22,12 @@ data class OrderRequest(
     @field:Schema(description = "사용할 쿠폰 ID", example = "1", required = false)
     @field:Positive(message = "쿠폰 ID는 양수여야 합니다")
     val couponId: Long?
-)
+) {
+    fun toCommand(): OrderCreateCommand {
+        return OrderCreateCommand(
+            userId = userId,
+            items = items.map { it.toCommand() },
+            userCouponId = couponId
+        )
+    }
+}
