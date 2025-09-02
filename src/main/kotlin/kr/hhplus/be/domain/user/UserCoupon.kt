@@ -6,7 +6,7 @@ import kr.hhplus.be.domain.exception.ErrorCode
 import java.time.LocalDateTime
 
 data class UserCoupon(
-    val id: Long = 0,
+    val id: Long? = null,
     val userId: Long,
     val couponId: Long,
     var status: CouponStatus,

@@ -6,16 +6,16 @@ import java.time.LocalDateTime
 import kotlin.math.min
 
 data class Coupon(
-    val id: Long = 0,
+    val id: Long? = null,
     val name: String,
     val code: String,
     val discountType: DiscountType,
     val discountValue: Int,
     val expiresAt: LocalDateTime,
     val totalQuantity: Int,
-    var issuedQuantity: Int,
+    val issuedQuantity: Int,
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    var updatedAt: LocalDateTime = LocalDateTime.now()
+    val updatedAt: LocalDateTime = LocalDateTime.now()
 ) {
     companion object {
         const val MIN_DISCOUNT_VALUE = 1
@@ -86,7 +86,7 @@ data class Coupon(
         }
     }
 
-    fun issue() {
+    fun issue(): Coupon {
         validateInvariants()
 
         if (!canBeIssued()) {
@@ -97,23 +97,17 @@ data class Coupon(
             throw BusinessException(ErrorCode.COUPON_ISSUE_LIMIT_EXCEEDED)
         }
 
-        this.issuedQuantity++
-        this.updatedAt = LocalDateTime.now()
-
+        return this.copy(issuedQuantity = issuedQuantity + 1, updatedAt = LocalDateTime.now())
     }
 
-    fun restore() {
+    fun restore(): Coupon {
         validateInvariants()
 
         if (issuedQuantity <= 0) {
             throw BusinessException(ErrorCode.COUPON_NOT_FOUND)
         }
-        this.issuedQuantity--
-        this.updatedAt = LocalDateTime.now()
 
-        if (this.issuedQuantity < 0) {
-            throw BusinessException(ErrorCode.INVALID_COUPON_STATE)
-        }
+        return this.copy(issuedQuantity = issuedQuantity - 1, updatedAt = LocalDateTime.now())
     }
 
     fun calculateDiscount(amount: Int): Int {
@@ -129,6 +123,8 @@ data class Coupon(
         }
         return min(amount, discount)
     }
+
+    fun valid(): Boolean = expiresAt.isAfter(LocalDateTime.now())
 
     fun isAvailable(): Boolean = hasRemainingQuantity() && !isExpired()
 
