@@ -11,7 +11,7 @@ class BalanceHistoryEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "balance_history_id")
-    val id: Long = 0,
+    val id: Long? = null,
 
     @Column(name = "user_id", nullable = false)
     val userId: Long,
@@ -40,6 +40,7 @@ class BalanceHistoryEntity(
             beforeAmount = beforeAmount,
             afterAmount = afterAmount,
             type = type,
+            transactionAt = transactionAt
         )
     }
 

@@ -2,26 +2,25 @@ package kr.hhplus.be.application.service
 
 import kr.hhplus.be.application.balance.BalanceChargeCommand
 import kr.hhplus.be.application.balance.BalanceDeductCommand
-import kr.hhplus.be.application.balance.BalanceDto.BalanceInfo
+import kr.hhplus.be.application.balance.BalanceHistoryCommand
 import kr.hhplus.be.application.balance.BalanceRefundCommand
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
+import kr.hhplus.be.domain.user.BalanceHistory
+import kr.hhplus.be.domain.user.TransactionType
+import kr.hhplus.be.domain.user.User
 import kr.hhplus.be.domain.user.UserRepository
-import kr.hhplus.be.domain.user.events.BalanceChargedEvent
-import kr.hhplus.be.domain.user.events.BalanceDeductedEvent
-import kr.hhplus.be.domain.user.events.BalanceRefundedEvent
 import kr.hhplus.be.global.lock.DistributedLock
 import kr.hhplus.be.global.lock.LockResource
 import kr.hhplus.be.global.lock.LockStrategy
 import kr.hhplus.be.global.lock.UserBalanceLockKeyProvider
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 class BalanceService(
     private val userRepository: UserRepository,
-    private val applicationEventPublisher: ApplicationEventPublisher
+    private val balanceHistoryService: BalanceHistoryService
 ) {
     @DistributedLock(
         resource = LockResource.USER_BALANCE,
@@ -34,7 +33,7 @@ class BalanceService(
     fun charge(
         command: BalanceChargeCommand,
         keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(command.userId)
-    ): BalanceInfo {
+    ): BalanceHistory {
         if (command.amount <= 0) {
             throw BusinessException(ErrorCode.CHARGE_INVALID_AMOUNT)
         }
@@ -42,19 +41,20 @@ class BalanceService(
         val user = userRepository.findByIdOrThrow(command.userId)
         val beforeAmount = user.balance
 
-        user.chargeBalance(command.amount)
-        val updatedUser = userRepository.save(user)
+        val updatedUser = userRepository.save(user.chargeBalance(command.amount))
 
-        applicationEventPublisher.publishEvent(
-            BalanceChargedEvent(
-                _userId = updatedUser.id,
-                _beforeAmount = beforeAmount,
-                _afterAmount = updatedUser.balance,
-                _chargedAmount = command.amount
+        val balanceHistory = balanceHistoryService.save(
+            BalanceHistoryCommand(
+                userId = command.userId,
+                amount = command.amount,
+                beforeAmount = beforeAmount,
+                afterAmount = updatedUser.balance,
+                type = TransactionType.CHARGE,
+                transactionAt = updatedUser.updatedAt
             )
         )
 
-        return BalanceInfo.from(updatedUser)
+        return balanceHistory
     }
 
     @DistributedLock(
@@ -68,24 +68,25 @@ class BalanceService(
     fun use(
         command: BalanceDeductCommand,
         keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(command.userId)
-    ): BalanceInfo {
+    ): User {
         val user = userRepository.findByIdOrThrow(command.userId)
 
         val beforeAmount = user.balance
 
-        user.deductBalance(command.amount)
-        val updatedUser = userRepository.save(user)
+        val updatedUser = userRepository.save(user.deductBalance(command.amount))
 
-        applicationEventPublisher.publishEvent(
-            BalanceDeductedEvent(
-                _userId = updatedUser.id,
-                _beforeAmount = beforeAmount,
-                _afterAmount = updatedUser.balance,
-                _deductedAmount = command.amount
-            )
+        val balanceHistory = BalanceHistoryCommand(
+            userId = command.userId,
+            amount = command.amount,
+            beforeAmount = beforeAmount,
+            afterAmount = updatedUser.balance,
+            type = TransactionType.DEDUCT,
+            transactionAt = updatedUser.updatedAt
         )
 
-        return BalanceInfo.from(updatedUser)
+        balanceHistoryService.save(balanceHistory)
+
+        return updatedUser
     }
 
     @DistributedLock(
@@ -99,29 +100,29 @@ class BalanceService(
     fun refund(
         command: BalanceRefundCommand,
         keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(command.userId)
-    ): BalanceInfo {
+    ): User {
         val user = userRepository.findByIdOrThrow(command.userId)
         val beforeAmount = user.balance
 
-        user.chargeBalance(command.amount)
-        val updatedUser = userRepository.save(user)
+        val updatedUser = userRepository.save(user.chargeBalance(command.amount))
 
-        applicationEventPublisher.publishEvent(
-            BalanceRefundedEvent(
-                _userId = updatedUser.id,
-                _beforeAmount = beforeAmount,
-                _afterAmount = updatedUser.balance,
-                _refundedAmount = command.amount
-            )
+        val balanceHistory = BalanceHistoryCommand(
+            userId = command.userId,
+            amount = command.amount,
+            beforeAmount = beforeAmount,
+            afterAmount = updatedUser.balance,
+            type = TransactionType.REFUND,
+            transactionAt = updatedUser.updatedAt
         )
 
-        return BalanceInfo.from(updatedUser)
+        balanceHistoryService.save(balanceHistory)
+
+        return updatedUser
     }
 
     @Transactional(readOnly = true)
-    fun getBalance(userId: Long): BalanceInfo {
-        val user = userRepository.findByIdOrThrow(userId)
-        return BalanceInfo.from(user)
+    fun getBalance(userId: Long): User {
+        return userRepository.findByIdOrThrow(userId)
     }
 
     @DistributedLock(
@@ -147,8 +148,7 @@ class BalanceService(
             throw BusinessException(ErrorCode.INSUFFICIENT_BALANCE)
         }
 
-        user.deductBalance(amount)
-        userRepository.save(user)
+        userRepository.save(user.deductBalance(amount))
     }
 
     @DistributedLock(
@@ -169,7 +169,6 @@ class BalanceService(
         }
 
         val user = userRepository.findByIdOrThrow(userId)
-        user.chargeBalance(amount)
-        userRepository.save(user)
+        userRepository.save(user.chargeBalance(amount))
     }
 }

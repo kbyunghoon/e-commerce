@@ -1,10 +1,10 @@
 package kr.hhplus.be.application.service.saga
 
-import kr.hhplus.be.application.order.OrderDto
+import kr.hhplus.be.domain.order.Order
 
 interface SagaOrderService {
 
-    fun getOrderForPayment(orderId: Long, userId: Long): OrderDto.OrderDetails
+    fun getOrderForPayment(orderId: Long, userId: Long): Order
 
     fun deductStock(orderId: Long, userId: Long)
 
@@ -14,5 +14,5 @@ interface SagaOrderService {
 
     fun cancelOrder(orderId: Long)
 
-    fun getOrder(orderId: Long, userId: Long): OrderDto.OrderDetails
+    fun getOrder(orderId: Long, userId: Long): Order
 }

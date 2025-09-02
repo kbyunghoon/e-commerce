@@ -11,7 +11,7 @@ class ProductRankingEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ranking_id")
-    val id: Long = 0,
+    val id: Long? = null,
 
     @Column(name = "product_id", nullable = false, unique = true)
     val productId: Long,
@@ -30,7 +30,7 @@ class ProductRankingEntity(
 ) {
     fun toDomain(): ProductRanking {
         return ProductRanking(
-            productId = id,
+            productId = productId,
             productName = productName,
             totalSalesCount = totalSalesCount,
             rankingDate = rankingDate

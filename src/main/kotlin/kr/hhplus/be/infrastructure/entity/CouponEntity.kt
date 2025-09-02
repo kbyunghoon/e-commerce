@@ -11,7 +11,7 @@ class CouponEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "coupon_id")
-    val id: Long = 0,
+    val id: Long? = null,
 
     @Column(name = "name", nullable = false)
     val name: String,

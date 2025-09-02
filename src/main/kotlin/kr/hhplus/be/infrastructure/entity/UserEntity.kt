@@ -10,7 +10,7 @@ class UserEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
-    val id: Long = 0,
+    val id: Long? = null,
 
     @Column(name = "balance", nullable = false)
     var balance: Int = 0,

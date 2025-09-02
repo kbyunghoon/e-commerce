@@ -1,7 +1,7 @@
 package kr.hhplus.be.application.service.saga
 
-import kr.hhplus.be.application.order.OrderDto
 import kr.hhplus.be.application.service.OrderService
+import kr.hhplus.be.domain.order.Order
 import org.springframework.stereotype.Service
 
 /**
@@ -13,7 +13,7 @@ class SagaOrderServiceImpl(
     private val orderService: OrderService
 ) : SagaOrderService {
 
-    override fun getOrderForPayment(orderId: Long, userId: Long): OrderDto.OrderDetails {
+    override fun getOrderForPayment(orderId: Long, userId: Long): Order {
         return orderService.getOrderForPayment(orderId, userId)
     }
 
@@ -33,7 +33,7 @@ class SagaOrderServiceImpl(
         orderService.cancelOrderForSaga(orderId)
     }
 
-    override fun getOrder(orderId: Long, userId: Long): OrderDto.OrderDetails {
+    override fun getOrder(orderId: Long, userId: Long): Order {
         return orderService.getOrder(orderId, userId)
     }
 }

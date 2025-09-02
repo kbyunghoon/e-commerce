@@ -1,8 +1,6 @@
 package kr.hhplus.be.application.service
 
 import kr.hhplus.be.application.order.OrderCreateCommand
-import kr.hhplus.be.application.order.OrderDto
-import kr.hhplus.be.application.order.OrderDto.OrderDetails
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.*
@@ -21,26 +19,7 @@ class OrderService(
 ) {
 
     @Transactional
-    fun processOrder(request: OrderCreateCommand): OrderDetails {
-        val calculatedDetails = calculateOrderAmounts(request)
-
-        val order = Order.create(
-            userId = request.userId,
-            originalAmount = calculatedDetails.totalAmount,
-            discountAmount = calculatedDetails.discountAmount,
-            finalAmount = calculatedDetails.finalAmount,
-            userCouponId = request.userCouponId
-        )
-
-        val savedOrder = orderRepository.save(order)
-        val orderItems = createOrderItems(request, calculatedDetails, savedOrder.id)
-        val savedOrderItems = orderItemRepository.saveAll(orderItems)
-
-        return OrderDetails.from(savedOrder, savedOrderItems)
-    }
-
-    @Transactional(readOnly = true)
-    fun calculateOrderAmounts(request: OrderCreateCommand): OrderDto.CalculatedOrderDetails {
+    fun processOrder(request: OrderCreateCommand): Order {
         val products = productService.validateOrderItems(request.items)
         val totalAmount = request.items.sumOf { orderItem ->
             val product = products.find { it.id == orderItem.productId }
@@ -49,35 +28,28 @@ class OrderService(
         }
 
         val discountAmount = request.userCouponId?.let { couponId ->
-            couponService.findAndValidateUserCoupon(request.userId, couponId)
+            couponService.getUserCouponWithValid(request.userId, couponId)
             couponService.calculateDiscount(request.userId, couponId, totalAmount)
         } ?: 0
 
         val finalAmount = totalAmount - discountAmount
-        return OrderDto.CalculatedOrderDetails(totalAmount, discountAmount, finalAmount, products)
-    }
 
-    @Transactional(readOnly = true)
-    fun getOrder(orderId: Long, userId: Long): OrderDetails {
-        val order =
-            orderRepository.findByIdAndUserId(orderId, userId) ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+        val order = Order.create(
+            userId = request.userId,
+            originalAmount = totalAmount,
+            discountAmount = discountAmount,
+            finalAmount = finalAmount,
+            userCouponId = request.userCouponId
+        )
 
-        val orderItems = orderItemRepository.findByOrderId(orderId)
+        val savedOrder = orderRepository.save(order)
 
-        return OrderDetails.from(order, orderItems)
-    }
-
-    private fun createOrderItems(
-        request: OrderCreateCommand,
-        calculatedDetails: OrderDto.CalculatedOrderDetails,
-        orderId: Long
-    ): List<OrderItem> {
-        return request.items.map { orderItemRequest ->
-            val product = calculatedDetails.products.find { it.id == orderItemRequest.productId }
+        val orderItems = request.items.map { orderItemRequest ->
+            val product = products.find { it.id == orderItemRequest.productId }
                 ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
 
             OrderItem(
-                orderId = orderId,
+                orderId = order.id,
                 productId = orderItemRequest.productId,
                 quantity = orderItemRequest.quantity,
                 productName = product.name,
@@ -85,13 +57,26 @@ class OrderService(
                 status = OrderStatus.PENDING
             )
         }
+
+        val savedOrderItems = orderItemRepository.saveAll(orderItems)
+
+        return savedOrder.withOrderItems(savedOrderItems)
     }
 
-    fun cancelOrder(orderId: Long): OrderDetails {
+    @Transactional(readOnly = true)
+    fun getOrder(orderId: Long, userId: Long): Order {
+        val order =
+            orderRepository.findByIdAndUserId(orderId, userId) ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
+
+        val orderItems = orderItemRepository.findByOrderId(orderId)
+
+        return order.withOrderItems(orderItems)
+    }
+
+    fun cancelOrder(orderId: Long): Order {
         val order = orderRepository.findByIdOrThrow(orderId)
 
-        order.cancelOrder()
-        val cancelledOrder = orderRepository.save(order)
+        val updatedOrder = orderRepository.save(order.cancelOrder())
 
         val orderItems = orderItemRepository.findByOrderId(orderId)
 
@@ -102,15 +87,14 @@ class OrderService(
 
         val cancelledOrderItems = orderItemRepository.saveAll(updatedOrderItems)
 
-        return OrderDetails.from(cancelledOrder, cancelledOrderItems)
+        return updatedOrder.withOrderItems(cancelledOrderItems)
     }
 
     @Transactional
     fun completeOrderForSaga(orderId: Long) {
         val order = orderRepository.findByIdOrThrow(orderId)
 
-        order.completeOrder()
-        val completedOrder = orderRepository.save(order)
+        val completedOrder = orderRepository.save(order.completeOrder())
 
         val orderItems = orderItemRepository.findByOrderId(orderId)
 
@@ -121,17 +105,14 @@ class OrderService(
 
         val completedOrderItems = orderItemRepository.saveAll(updatedOrderItems)
 
-        val orderDetails = OrderDetails.from(completedOrder, completedOrderItems)
-
-        publishOrderCompletedEvent(orderDetails)
+        publishOrderCompletedEvent(completedOrder.withOrderItems(completedOrderItems))
     }
 
     @Transactional
     fun cancelOrderForSaga(orderId: Long) {
         val order = orderRepository.findByIdOrThrow(orderId)
 
-        order.cancelOrder()
-        orderRepository.save(order)
+        orderRepository.save(order.cancelOrder())
 
         val orderItems = orderItemRepository.findByOrderId(orderId)
 
@@ -143,7 +124,7 @@ class OrderService(
         orderItemRepository.saveAll(updatedOrderItems)
     }
 
-    private fun publishOrderCompletedEvent(orderDetails: OrderDetails) {
+    private fun publishOrderCompletedEvent(orderDetails: Order) {
         val event = OrderCompletedEvent(
             orderId = orderDetails.id!!,
             userId = orderDetails.userId,
@@ -151,12 +132,12 @@ class OrderService(
             finalAmount = orderDetails.finalAmount,
             discountAmount = orderDetails.discountAmount,
             userCouponId = orderDetails.userCouponId,
-            orderItems = orderDetails.orderItems.map { item ->
+            orderItems = orderDetails.orderItems!!.map { item ->
                 OrderCompletedEvent.OrderItemInfo(
                     productId = item.productId,
                     productName = item.productName,
                     quantity = item.quantity,
-                    pricePerItem = item.price
+                    pricePerItem = item.pricePerItem
                 )
             }
         )
@@ -165,7 +146,7 @@ class OrderService(
     }
 
     @Transactional(readOnly = true)
-    fun getOrderForPayment(orderId: Long, userId: Long): OrderDetails {
+    fun getOrderForPayment(orderId: Long, userId: Long): Order {
         val order = orderRepository.findByIdOrThrow(orderId)
 
         if (order.userId != userId) {
@@ -181,14 +162,14 @@ class OrderService(
         }
 
         val orderItems = orderItemRepository.findByOrderId(orderId)
-        return OrderDetails.from(order, orderItems)
+        return order.withOrderItems(orderItems)
     }
 
     @Transactional
     fun deductStockForSaga(orderId: Long, userId: Long) {
         val order = getOrder(orderId, userId)
 
-        order.orderItems.forEach { item ->
+        order.orderItems?.forEach { item ->
             productService.deductStock(item.productId, item.quantity)
         }
     }
@@ -197,7 +178,7 @@ class OrderService(
     fun restoreStockForSaga(orderId: Long, userId: Long) {
         val order = getOrder(orderId, userId)
 
-        order.orderItems.forEach { item ->
+        order.orderItems?.forEach { item ->
             productService.restoreStock(item.productId, item.quantity)
         }
     }

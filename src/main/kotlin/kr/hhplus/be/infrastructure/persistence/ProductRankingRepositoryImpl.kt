@@ -16,12 +16,26 @@ class ProductRankingRepositoryImpl(
         return productRankingJpaRepository.findTopProducts(startDate, endDate)
     }
 
-    override fun saveAll(products: List<ProductRanking>): List<ProductRanking> {
-        return productRankingJpaRepository.saveAll(products.map { ProductRankingEntity.from(it) }).map { it.toDomain() }
+    @Transactional
+    override fun updateSalesCount(productId: Long, quantity: Int, date: LocalDate): Int {
+        return productRankingJpaRepository.updateSalesCount(productId, quantity, date)
     }
 
-    @Transactional
-    override fun updateSalesCount(productId: Long, quantity: Int, date: LocalDate) {
-        productRankingJpaRepository.updateSalesCount(productId, quantity, date)
+    override fun save(productRanking: ProductRanking): ProductRanking {
+        return productRankingJpaRepository.save(ProductRankingEntity.from(productRanking)).toDomain()
+    }
+
+    override fun existsByProductIdAndRankingDate(
+        productId: Long,
+        rankingDate: LocalDate
+    ): Boolean {
+        return productRankingJpaRepository.existsByProductIdAndRankingDate(productId, rankingDate)
+    }
+
+    override fun findByProductIdAndRankingDate(
+        productId: Long,
+        rankingDate: LocalDate
+    ): ProductRanking? {
+        return productRankingJpaRepository.findByProductIdAndRankingDate(productId, rankingDate)
     }
 }

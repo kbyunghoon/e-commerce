@@ -1,18 +1,15 @@
 package kr.hhplus.be.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
-import kr.hhplus.be.application.coupon.CouponDto.UserCouponInfo
 import kr.hhplus.be.domain.coupon.CouponStatus
 import kr.hhplus.be.domain.coupon.DiscountType
+import kr.hhplus.be.domain.user.UserCouponDetail
 import java.time.LocalDateTime
 
 @Schema(description = "쿠폰 정보")
-data class CouponResponse(
+data class UserCouponResponse(
     @field:Schema(description = "사용자 쿠폰 ID", example = "1")
     val id: Long,
-
-    @field:Schema(description = "쿠폰 ID", example = "1")
-    val couponId: Long,
 
     @field:Schema(description = "쿠폰명", example = "10% 할인 쿠폰")
     val couponName: String,
@@ -33,16 +30,15 @@ data class CouponResponse(
     val issuedAt: LocalDateTime
 ) {
     companion object {
-        fun from(userCouponInfo: UserCouponInfo): CouponResponse {
-            return CouponResponse(
-                id = userCouponInfo.id,
-                couponId = userCouponInfo.couponId,
-                couponName = userCouponInfo.couponName,
-                discountType = userCouponInfo.discountType,
-                discountValue = userCouponInfo.discountValue,
-                status = userCouponInfo.status,
-                expiresAt = userCouponInfo.expiresAt,
-                issuedAt = userCouponInfo.issuedAt
+        fun from(userCouponDetail: UserCouponDetail): UserCouponResponse {
+            return UserCouponResponse(
+                id = userCouponDetail.id,
+                couponName = userCouponDetail.couponName,
+                discountType = userCouponDetail.discountType,
+                discountValue = userCouponDetail.discountValue,
+                status = userCouponDetail.status,
+                expiresAt = userCouponDetail.expiresAt,
+                issuedAt = userCouponDetail.issuedAt
             )
         }
     }
