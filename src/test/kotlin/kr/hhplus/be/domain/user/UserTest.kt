@@ -18,10 +18,10 @@ class UserTest : FunSpec({
         )
 
         // When
-        user.chargeBalance(5000)
+        val result= user.chargeBalance(5000)
 
         // Then
-        user.balance shouldBe 6000
+        result.balance shouldBe 6000
     }
 
     test("0원 또는 음수 금액으로 충전하면 예외가 발생한다") {
@@ -53,10 +53,10 @@ class UserTest : FunSpec({
         )
 
         // When
-        user.deductBalance(3000)
+        val result = user.deductBalance(3000)
 
         // Then
-        user.balance shouldBe 7000
+        result.balance shouldBe 7000
     }
 
     test("잔액보다 큰 금액을 차감하려고 하면 예외가 발생한다") {

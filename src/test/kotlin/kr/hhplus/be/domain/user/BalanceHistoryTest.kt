@@ -25,7 +25,7 @@ class BalanceHistoryTest : FunSpec({
                 beforeAmount = beforeAmount,
                 afterAmount = afterAmount,
                 type = transactionType,
-                transactionAt = transactionAt
+                transactionAt = transactionAt,
             )
 
             // Then
@@ -37,41 +37,6 @@ class BalanceHistoryTest : FunSpec({
             balanceHistory.transactionAt shouldBe transactionAt
         }
 
-        test("id를 지정하지 않으면 기본값 0으로 설정된다") {
-            // Given & When
-            val balanceHistory = BalanceHistory(
-                userId = 1L,
-                amount = 10000,
-                beforeAmount = 5000,
-                afterAmount = 15000,
-                type = TransactionType.CHARGE
-            )
-
-            // Then
-            balanceHistory.id shouldBe 0
-        }
-
-        test("transactionAt을 지정하지 않으면 현재 시간으로 자동 설정된다") {
-            // Given
-            val beforeCreation = LocalDateTime.now().minusSeconds(1)
-            
-            // When
-            val balanceHistory = BalanceHistory(
-                userId = 1L,
-                amount = 10000,
-                beforeAmount = 5000,
-                afterAmount = 15000,
-                type = TransactionType.CHARGE
-            )
-            
-            val afterCreation = LocalDateTime.now().plusSeconds(1)
-
-            // Then
-            balanceHistory.transactionAt shouldNotBe null
-            balanceHistory.transactionAt.isAfter(beforeCreation) shouldBe true
-            balanceHistory.transactionAt.isBefore(afterCreation) shouldBe true
-        }
-
         test("충전 타입의 잔액 히스토리를 생성할 수 있다") {
             // Given & When
             val balanceHistory = BalanceHistory(
@@ -79,7 +44,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = 10000,
                 beforeAmount = 5000,
                 afterAmount = 15000,
-                type = TransactionType.CHARGE
+                type = TransactionType.CHARGE,
+                transactionAt = LocalDateTime.now(),
             )
 
             // Then
@@ -96,7 +62,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = -3000,
                 beforeAmount = 10000,
                 afterAmount = 7000,
-                type = TransactionType.DEDUCT
+                type = TransactionType.DEDUCT,
+                transactionAt = LocalDateTime.now(),
             )
 
             // Then
@@ -113,7 +80,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = 5000,
                 beforeAmount = 2000,
                 afterAmount = 7000,
-                type = TransactionType.REFUND
+                type = TransactionType.REFUND,
+                transactionAt = LocalDateTime.now(),
             )
 
             // Then
@@ -138,7 +106,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = chargeAmount,
                 beforeAmount = beforeAmount,
                 afterAmount = afterAmount,
-                type = TransactionType.CHARGE
+                type = TransactionType.CHARGE,
+                transactionAt = LocalDateTime.now(),
             )
 
             // Then
@@ -157,7 +126,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = deductAmount,
                 beforeAmount = beforeAmount,
                 afterAmount = afterAmount,
-                type = TransactionType.DEDUCT
+                type = TransactionType.DEDUCT,
+                transactionAt = LocalDateTime.now(),
             )
 
             // Then
@@ -176,7 +146,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = refundAmount,
                 beforeAmount = beforeAmount,
                 afterAmount = afterAmount,
-                type = TransactionType.REFUND
+                type = TransactionType.REFUND,
+                transactionAt = LocalDateTime.now(),
             )
 
             // Then
@@ -190,7 +161,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = 10000,
                 beforeAmount = 0,
                 afterAmount = 10000,
-                type = TransactionType.CHARGE
+                type = TransactionType.CHARGE,
+                transactionAt = LocalDateTime.now(),
             )
 
             // Then
@@ -204,7 +176,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = 0,
                 beforeAmount = 5000,
                 afterAmount = 5000,
-                type = TransactionType.CHARGE
+                type = TransactionType.CHARGE,
+                transactionAt = LocalDateTime.now(),
             )
 
             // Then
@@ -222,7 +195,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = largeAmount,
                 beforeAmount = 0,
                 afterAmount = largeAmount,
-                type = TransactionType.CHARGE
+                type = TransactionType.CHARGE,
+                transactionAt = LocalDateTime.now(),
             )
 
             // Then
@@ -239,7 +213,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = smallAmount,
                 beforeAmount = 0,
                 afterAmount = smallAmount,
-                type = TransactionType.DEDUCT
+                type = TransactionType.DEDUCT,
+                transactionAt = LocalDateTime.now(),
             )
 
             // Then
@@ -264,7 +239,7 @@ class BalanceHistoryTest : FunSpec({
                 beforeAmount = beforeAmount,
                 afterAmount = afterAmount,
                 type = transactionType,
-                transactionAt = transactionAt
+                transactionAt = transactionAt,
             )
 
             val balanceHistory2 = BalanceHistory(
@@ -273,7 +248,7 @@ class BalanceHistoryTest : FunSpec({
                 beforeAmount = beforeAmount,
                 afterAmount = afterAmount,
                 type = transactionType,
-                transactionAt = transactionAt
+                transactionAt = transactionAt,
             )
 
             // When & Then
@@ -291,7 +266,7 @@ class BalanceHistoryTest : FunSpec({
                 beforeAmount = 5000,
                 afterAmount = 15000,
                 type = TransactionType.CHARGE,
-                transactionAt = transactionAt
+                transactionAt = transactionAt,
             )
 
             val balanceHistory2 = BalanceHistory(
@@ -300,7 +275,7 @@ class BalanceHistoryTest : FunSpec({
                 beforeAmount = 5000,
                 afterAmount = 15000,
                 type = TransactionType.CHARGE,
-                transactionAt = transactionAt
+                transactionAt = transactionAt,
             )
 
             // When & Then
@@ -343,7 +318,7 @@ class BalanceHistoryTest : FunSpec({
                 beforeAmount = 5000,
                 afterAmount = 15000,
                 type = TransactionType.CHARGE,
-                transactionAt = LocalDateTime.now()
+                transactionAt = LocalDateTime.now(),
             )
 
             // When
@@ -366,7 +341,7 @@ class BalanceHistoryTest : FunSpec({
                 beforeAmount = 5000,
                 afterAmount = 15000,
                 type = TransactionType.CHARGE,
-                transactionAt = LocalDateTime.now()
+                transactionAt = LocalDateTime.now(),
             )
 
             val newAmount = 20000
@@ -442,7 +417,7 @@ class BalanceHistoryTest : FunSpec({
 
         test("TransactionType.values()로 모든 값을 조회할 수 있다") {
             // When
-            val values = TransactionType.values()
+            val values = TransactionType.entries.toTypedArray()
 
             // Then
             values.size shouldBe 3
@@ -468,7 +443,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = 10000,
                 beforeAmount = 0,
                 afterAmount = 10000,
-                type = TransactionType.CHARGE
+                type = TransactionType.CHARGE,
+                transactionAt = LocalDateTime.now(),
             )
 
             // Then
@@ -485,7 +461,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = -5000,
                 beforeAmount = 15000,
                 afterAmount = 10000,
-                type = TransactionType.DEDUCT
+                type = TransactionType.DEDUCT,
+                transactionAt = LocalDateTime.now(),
             )
 
             // Then
@@ -502,7 +479,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = 3000,
                 beforeAmount = 10000,
                 afterAmount = 13000,
-                type = TransactionType.REFUND
+                type = TransactionType.REFUND,
+                transactionAt = LocalDateTime.now(),
             )
 
             // Then
@@ -526,7 +504,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = chargeAmount,
                 beforeAmount = initialBalance,
                 afterAmount = initialBalance + chargeAmount,
-                type = TransactionType.CHARGE
+                type = TransactionType.CHARGE,
+                transactionAt = LocalDateTime.now(),
             )
 
             val firstPurchaseHistory = BalanceHistory(
@@ -534,7 +513,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = firstPurchase,
                 beforeAmount = chargeHistory.afterAmount,
                 afterAmount = chargeHistory.afterAmount + firstPurchase,
-                type = TransactionType.DEDUCT
+                type = TransactionType.DEDUCT,
+                transactionAt = LocalDateTime.now(),
             )
 
             val secondPurchaseHistory = BalanceHistory(
@@ -542,7 +522,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = secondPurchase,
                 beforeAmount = firstPurchaseHistory.afterAmount,
                 afterAmount = firstPurchaseHistory.afterAmount + secondPurchase,
-                type = TransactionType.DEDUCT
+                type = TransactionType.DEDUCT,
+                transactionAt = LocalDateTime.now(),
             )
 
             val refundHistory = BalanceHistory(
@@ -550,7 +531,8 @@ class BalanceHistoryTest : FunSpec({
                 amount = refundAmount,
                 beforeAmount = secondPurchaseHistory.afterAmount,
                 afterAmount = secondPurchaseHistory.afterAmount + refundAmount,
-                type = TransactionType.REFUND
+                type = TransactionType.REFUND,
+                transactionAt = LocalDateTime.now(),
             )
 
             // Then

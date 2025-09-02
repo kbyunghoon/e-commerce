@@ -23,10 +23,10 @@ class CouponTest : FunSpec({
         )
 
         // When
-        coupon.issue()
+        val result = coupon.issue()
 
         // Then
-        coupon.issuedQuantity shouldBe 51
+        result.issuedQuantity shouldBe 51
     }
 
     test("발급 수량이 모두 소진된 상태에서 발급하면 예외가 발생한다") {

@@ -2,17 +2,11 @@ package kr.hhplus.be.application.service
 
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
-import io.mockk.clearAllMocks
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.slot
-import io.mockk.verify
+import io.mockk.*
+import kr.hhplus.be.application.balance.BalanceHistoryCommand
 import kr.hhplus.be.domain.user.BalanceHistory
 import kr.hhplus.be.domain.user.BalanceHistoryRepository
 import kr.hhplus.be.domain.user.TransactionType
-import kr.hhplus.be.domain.user.events.BalanceChargedEvent
-import kr.hhplus.be.domain.user.events.BalanceDeductedEvent
-import kr.hhplus.be.domain.user.events.BalanceRefundedEvent
 import java.time.LocalDateTime
 
 class BalanceHistoryServiceTest : BehaviorSpec({
@@ -29,24 +23,25 @@ class BalanceHistoryServiceTest : BehaviorSpec({
         val afterAmount = 15000
         val chargedAmount = 5000
         val chargedAt = LocalDateTime.now()
-        
-        val event = BalanceChargedEvent(
-            _userId = userId,
-            _beforeAmount = beforeAmount,
-            _afterAmount = afterAmount,
-            _chargedAmount = chargedAmount,
-            _chargedAt = chargedAt
+
+        val command = BalanceHistoryCommand(
+            userId = userId,
+            beforeAmount = beforeAmount,
+            afterAmount = afterAmount,
+            amount = chargedAmount,
+            type = TransactionType.CHARGE,
+            transactionAt = chargedAt
         )
 
         When("잔액 충전 이벤트가 발행되면") {
             val historySlot = slot<BalanceHistory>()
             every { balanceHistoryRepository.save(capture(historySlot)) } answers { it.invocation.args[0] as BalanceHistory }
 
-            balanceHistoryService.handleBalanceCharged(event)
+            balanceHistoryService.save(command)
 
             Then("CHARGE 타입의 히스토리가 저장된다") {
                 verify(exactly = 1) { balanceHistoryRepository.save(any()) }
-                
+
                 val savedHistory = historySlot.captured
                 savedHistory.userId shouldBe userId
                 savedHistory.amount shouldBe chargedAmount
@@ -64,24 +59,25 @@ class BalanceHistoryServiceTest : BehaviorSpec({
         val afterAmount = 10000
         val deductedAmount = 5000
         val deductedAt = LocalDateTime.now()
-        
-        val event = BalanceDeductedEvent(
-            _userId = userId,
-            _beforeAmount = beforeAmount,
-            _afterAmount = afterAmount,
-            _deductedAmount = deductedAmount,
-            _deductedAt = deductedAt
+
+        val command = BalanceHistoryCommand(
+            userId = userId,
+            amount = deductedAmount,
+            beforeAmount = beforeAmount,
+            afterAmount = afterAmount,
+            type = TransactionType.DEDUCT,
+            transactionAt = deductedAt
         )
 
         When("잔액 차감 이벤트가 발행되면") {
             val historySlot = slot<BalanceHistory>()
             every { balanceHistoryRepository.save(capture(historySlot)) } answers { it.invocation.args[0] as BalanceHistory }
 
-            balanceHistoryService.handleBalanceDeducted(event)
+            balanceHistoryService.save(command)
 
             Then("DEDUCT 타입의 히스토리가 저장된다") {
                 verify(exactly = 1) { balanceHistoryRepository.save(any()) }
-                
+
                 val savedHistory = historySlot.captured
                 savedHistory.userId shouldBe userId
                 savedHistory.amount shouldBe deductedAmount
@@ -99,24 +95,25 @@ class BalanceHistoryServiceTest : BehaviorSpec({
         val afterAmount = 15000
         val refundedAmount = 5000
         val refundedAt = LocalDateTime.now()
-        
-        val event = BalanceRefundedEvent(
-            _userId = userId,
-            _beforeAmount = beforeAmount,
-            _afterAmount = afterAmount,
-            _refundedAmount = refundedAmount,
-            _refundedAt = refundedAt
+
+        val command = BalanceHistoryCommand(
+            userId = userId,
+            amount = refundedAmount,
+            beforeAmount = beforeAmount,
+            afterAmount = afterAmount,
+            type = TransactionType.REFUND,
+            transactionAt = refundedAt
         )
 
         When("잔액 환불 이벤트가 발행되면") {
             val historySlot = slot<BalanceHistory>()
             every { balanceHistoryRepository.save(capture(historySlot)) } answers { it.invocation.args[0] as BalanceHistory }
 
-            balanceHistoryService.handleBalanceRefunded(event)
+            balanceHistoryService.save(command)
 
             Then("REFUND 타입의 히스토리가 저장된다") {
                 verify(exactly = 1) { balanceHistoryRepository.save(any()) }
-                
+
                 val savedHistory = historySlot.captured
                 savedHistory.userId shouldBe userId
                 savedHistory.amount shouldBe refundedAmount

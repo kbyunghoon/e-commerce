@@ -9,18 +9,19 @@ import io.mockk.mockk
 import io.mockk.verify
 import kr.hhplus.be.application.balance.BalanceChargeCommand
 import kr.hhplus.be.application.balance.BalanceDeductCommand
+import kr.hhplus.be.application.balance.BalanceHistoryCommand
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
+import kr.hhplus.be.domain.user.BalanceHistory
+import kr.hhplus.be.domain.user.TransactionType
 import kr.hhplus.be.domain.user.User
 import kr.hhplus.be.domain.user.UserRepository
-import kr.hhplus.be.domain.user.events.BalanceChargedEvent
-import kr.hhplus.be.domain.user.events.BalanceDeductedEvent
-import org.springframework.context.ApplicationEventPublisher
+import java.time.LocalDateTime
 
 class BalanceServiceTest : BehaviorSpec({
     val userRepository: UserRepository = mockk()
-    val applicationEventPublisher: ApplicationEventPublisher = mockk()
-    val balanceService = BalanceService(userRepository, applicationEventPublisher)
+    val balanceHistoryService: BalanceHistoryService = mockk()
+    val balanceService = BalanceService(userRepository, balanceHistoryService)
 
     afterContainer {
         clearAllMocks()
@@ -35,19 +36,27 @@ class BalanceServiceTest : BehaviorSpec({
             val chargeAmount = 5000
             val command = BalanceChargeCommand(userId, chargeAmount)
             val expectedBalance = initialBalance + chargeAmount
+            val balanceHistory = BalanceHistory(
+                    userId = userId,
+                    amount = chargeAmount,
+                    beforeAmount = initialBalance,
+                    afterAmount = chargeAmount + initialBalance,
+                    type = TransactionType.CHARGE,
+                    transactionAt = LocalDateTime.now()
+            )
 
             every { userRepository.findByIdOrThrow(userId) } returns user
             every { userRepository.save(any()) } answers { it.invocation.args[0] as User }
-            every { applicationEventPublisher.publishEvent(any<BalanceChargedEvent>()) } returns Unit
+            every { balanceHistoryService.save(any()) } returns balanceHistory
 
             val result = balanceService.charge(command)
 
             Then("사용자의 잔액이 증가하고, 이벤트가 발행된다") {
                 result.userId shouldBe userId
-                result.amount shouldBe expectedBalance
+                result.afterAmount shouldBe expectedBalance
                 verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
                 verify(exactly = 1) { userRepository.save(any()) }
-                verify(exactly = 1) { applicationEventPublisher.publishEvent(any<BalanceChargedEvent>()) }
+                verify(exactly = 1) { balanceHistoryService.save(any()) }
             }
         }
 
@@ -63,7 +72,6 @@ class BalanceServiceTest : BehaviorSpec({
                 exception.errorCode shouldBe ErrorCode.CHARGE_INVALID_AMOUNT
                 verify(exactly = 0) { userRepository.findByIdOrThrow(any()) }
                 verify(exactly = 0) { userRepository.save(any()) }
-                verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
             }
         }
 
@@ -81,7 +89,6 @@ class BalanceServiceTest : BehaviorSpec({
                 exception.errorCode shouldBe ErrorCode.USER_NOT_FOUND
                 verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
                 verify(exactly = 0) { userRepository.save(any()) }
-                verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
             }
         }
     }
@@ -95,19 +102,27 @@ class BalanceServiceTest : BehaviorSpec({
             val deductAmount = 5000
             val command = BalanceDeductCommand(userId, deductAmount)
             val expectedBalance = initialBalance - deductAmount
+            val balanceHistory = BalanceHistory(
+                    userId = userId,
+                    amount = deductAmount,
+                    beforeAmount = initialBalance,
+                    afterAmount = expectedBalance,
+                    type = TransactionType.CHARGE,
+                    transactionAt = LocalDateTime.now()
+            )
 
             every { userRepository.findByIdOrThrow(userId) } returns user
             every { userRepository.save(any()) } answers { it.invocation.args[0] as User }
-            every { applicationEventPublisher.publishEvent(any<BalanceDeductedEvent>()) } returns Unit
+            every { balanceHistoryService.save(any()) } returns balanceHistory
 
             val result = balanceService.use(command)
 
             Then("사용자의 잔액이 감소하고, 이벤트가 발행된다") {
-                result.userId shouldBe userId
-                result.amount shouldBe expectedBalance
+                result.id shouldBe userId
+                result.balance shouldBe expectedBalance
                 verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
                 verify(exactly = 1) { userRepository.save(any()) }
-                verify(exactly = 1) { applicationEventPublisher.publishEvent(any<BalanceDeductedEvent>()) }
+                verify(exactly = 1) { balanceHistoryService.save(any()) }
             }
         }
 
@@ -124,7 +139,6 @@ class BalanceServiceTest : BehaviorSpec({
                 exception.errorCode shouldBe ErrorCode.DEDUCTION_INVALID_AMOUNT
                 verify(exactly = 1) { userRepository.findByIdOrThrow(any()) }
                 verify(exactly = 0) { userRepository.save(any()) }
-                verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
             }
         }
 
@@ -142,7 +156,6 @@ class BalanceServiceTest : BehaviorSpec({
                 exception.errorCode shouldBe ErrorCode.INSUFFICIENT_BALANCE
                 verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
                 verify(exactly = 0) { userRepository.save(any()) }
-                verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
             }
         }
 
@@ -160,7 +173,6 @@ class BalanceServiceTest : BehaviorSpec({
                 exception.errorCode shouldBe ErrorCode.USER_NOT_FOUND
                 verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
                 verify(exactly = 0) { userRepository.save(any()) }
-                verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
             }
         }
     }
@@ -176,8 +188,8 @@ class BalanceServiceTest : BehaviorSpec({
             val result = balanceService.getBalance(userId)
 
             Then("사용자의 현재 잔액 정보가 반환된다") {
-                result.userId shouldBe userId
-                result.amount shouldBe balance
+                result.id shouldBe userId
+                result.balance shouldBe balance
                 verify(exactly = 1) { userRepository.findByIdOrThrow(userId) }
             }
         }

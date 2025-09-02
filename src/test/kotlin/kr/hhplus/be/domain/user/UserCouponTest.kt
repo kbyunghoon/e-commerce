@@ -36,18 +36,6 @@ class UserCouponTest : FunSpec({
             userCoupon.usedAt shouldBe null
         }
 
-        test("id를 지정하지 않으면 기본값 0으로 설정된다") {
-            // Given & When
-            val userCoupon = UserCoupon(
-                userId = 1L,
-                couponId = 10L,
-                status = CouponStatus.AVAILABLE
-            )
-
-            // Then
-            userCoupon.id shouldBe 0
-        }
-
         test("issuedAt을 지정하지 않으면 현재 시간으로 자동 설정된다") {
             // Given
             val beforeCreation = LocalDateTime.now().minusSeconds(1)
