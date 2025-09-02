@@ -9,7 +9,6 @@ import io.mockk.mockk
 import io.mockk.verify
 import kr.hhplus.be.application.balance.BalanceChargeCommand
 import kr.hhplus.be.application.balance.BalanceDeductCommand
-import kr.hhplus.be.application.balance.BalanceHistoryCommand
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.user.BalanceHistory

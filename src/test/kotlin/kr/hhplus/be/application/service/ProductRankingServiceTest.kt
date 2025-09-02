@@ -6,7 +6,9 @@ import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import kr.hhplus.be.application.product.ProductRankingCommand
-import kr.hhplus.be.domain.product.*
+import kr.hhplus.be.domain.product.ProductRanking
+import kr.hhplus.be.domain.product.ProductRankingRepository
+import kr.hhplus.be.domain.product.RankingPeriod
 import java.time.LocalDate
 
 class ProductRankingServiceTest : BehaviorSpec({

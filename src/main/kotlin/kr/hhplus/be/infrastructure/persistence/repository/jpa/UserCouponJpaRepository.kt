@@ -1,6 +1,5 @@
 package kr.hhplus.be.infrastructure.persistence.repository.jpa
 
-import kr.hhplus.be.domain.user.UserCoupon
 import kr.hhplus.be.domain.user.UserCouponDetail
 import kr.hhplus.be.infrastructure.entity.UserCouponEntity
 import org.springframework.data.jpa.repository.JpaRepository

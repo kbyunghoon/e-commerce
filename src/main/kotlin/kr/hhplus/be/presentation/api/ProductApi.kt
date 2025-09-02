@@ -13,7 +13,6 @@ import kr.hhplus.be.presentation.dto.response.ProductResponse
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
 import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestParam
 
 @Tag(name = "상품 관리", description = "상품 목록 조회 및 상세 정보 조회 API")
 interface ProductApi {

@@ -2,7 +2,6 @@ package kr.hhplus.be.domain.user
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import java.time.LocalDateTime
 
 class BalanceHistoryTest : FunSpec({

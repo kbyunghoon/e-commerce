@@ -10,7 +10,6 @@ import kr.hhplus.be.domain.coupon.CouponStatus
 import kr.hhplus.be.domain.coupon.DiscountType
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
-import kr.hhplus.be.domain.user.UserCoupon
 import kr.hhplus.be.domain.user.UserCouponDetail
 import kr.hhplus.be.presentation.dto.request.CouponIssueRequest
 import org.springframework.beans.factory.annotation.Autowired
