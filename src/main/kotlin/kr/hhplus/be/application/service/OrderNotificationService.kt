@@ -1,14 +1,12 @@
 package kr.hhplus.be.application.service
 
-import kr.hhplus.be.domain.order.events.OrderCompletedEvent
+import kr.hhplus.be.domain.order.OrderCompletedEvent
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import org.springframework.web.client.RestTemplate
 
 @Service
 class OrderNotificationService {
 
-    private var restTemplate: RestTemplate = RestTemplate()
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun sendOrderNotification(event: OrderCompletedEvent) {

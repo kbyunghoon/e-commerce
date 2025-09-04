@@ -4,7 +4,8 @@ import kr.hhplus.be.application.order.OrderCreateCommand
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.*
-import kr.hhplus.be.domain.order.events.OrderCompletedEvent
+import kr.hhplus.be.domain.order.OrderCompletedEvent
+import kr.hhplus.be.domain.order.OrderItemInfo
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -133,7 +134,7 @@ class OrderService(
             discountAmount = orderDetails.discountAmount,
             userCouponId = orderDetails.userCouponId,
             orderItems = orderDetails.orderItems!!.map { item ->
-                OrderCompletedEvent.OrderItemInfo(
+                OrderItemInfo(
                     productId = item.productId,
                     productName = item.productName,
                     quantity = item.quantity,
