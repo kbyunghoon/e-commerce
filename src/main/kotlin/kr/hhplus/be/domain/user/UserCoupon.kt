@@ -9,10 +9,20 @@ data class UserCoupon(
     val id: Long? = null,
     val userId: Long,
     val couponId: Long,
-    var status: CouponStatus,
+    var status: CouponStatus = CouponStatus.AVAILABLE,
     val issuedAt: LocalDateTime = LocalDateTime.now(),
     var usedAt: LocalDateTime? = null,
 ) {
+    companion object {
+        fun create(userId:Long, couponId:Long, issuedAt: LocalDateTime): UserCoupon {
+            return UserCoupon(
+                userId = userId,
+                couponId = couponId,
+                issuedAt = issuedAt,
+            )
+        }
+    }
+
     fun use() {
         if (!isAvailable()) {
             throw BusinessException(ErrorCode.COUPON_NOT_AVAILABLE)
