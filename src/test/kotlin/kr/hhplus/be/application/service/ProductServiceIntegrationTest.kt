@@ -20,7 +20,6 @@ class ProductServiceIntegrationTest @Autowired constructor(
         When("상품을 생성하고 조회하면") {
             val now = LocalDateTime.now()
             val product = Product(
-                id = 0L,
                 name = "통합테스트 상품",
                 stock = 50,
                 price = 15000,
@@ -30,7 +29,7 @@ class ProductServiceIntegrationTest @Autowired constructor(
             )
 
             val savedProduct = productRepository.save(product)
-            val retrievedProduct = productService.getProduct(savedProduct.id)
+            val retrievedProduct = productService.getProduct(savedProduct.id!!)
 
             Then("저장된 상품이 정확히 조회된다") {
                 retrievedProduct.name shouldBe "통합테스트 상품"
@@ -42,7 +41,6 @@ class ProductServiceIntegrationTest @Autowired constructor(
         When("재고를 차감하면") {
             val now = LocalDateTime.now()
             val product = Product(
-                id = 0L,
                 name = "재고차감 테스트 상품",
                 stock = 100,
                 price = 10000,
@@ -52,9 +50,9 @@ class ProductServiceIntegrationTest @Autowired constructor(
             )
 
             val savedProduct = productRepository.save(product)
-            productService.deductStock(savedProduct.id, 30)
+            productService.deductStock(savedProduct.id!!, 30)
 
-            val updatedProduct = productService.getProduct(savedProduct.id)
+            val updatedProduct = productService.getProduct(savedProduct.id!!)
 
             Then("재고가 정확히 차감된다") {
                 updatedProduct.stock shouldBe 70
@@ -64,13 +62,34 @@ class ProductServiceIntegrationTest @Autowired constructor(
         When("여러 상품을 동시에 처리하면") {
             val now = LocalDateTime.now()
             val products = listOf(
-                Product(0L, "상품1", 10, 1000, now, now, ProductStatus.ACTIVE),
-                Product(0L, "상품2", 20, 2000, now, now, ProductStatus.ACTIVE),
-                Product(0L, "상품3", 30, 3000, now, now, ProductStatus.ACTIVE)
+                Product(
+                    name = "상품1",
+                    stock = 10,
+                    price = 1000,
+                    createdAt = now,
+                    updatedAt = now,
+                    status = ProductStatus.ACTIVE
+                ),
+                Product(
+                    name = "상품2",
+                    stock = 20,
+                    price = 2000,
+                    createdAt = now,
+                    updatedAt = now,
+                    status = ProductStatus.ACTIVE
+                ),
+                Product(
+                    name = "상품3",
+                    stock = 30,
+                    price = 3000,
+                    createdAt = now,
+                    updatedAt = now,
+                    status = ProductStatus.ACTIVE
+                )
             )
 
             val savedProducts = products.map { productRepository.save(it) }
-            val productIds = savedProducts.map { it.id }
+            val productIds = savedProducts.map { it.id!! }
 
             val retrievedProducts = productService.getProductsByIds(productIds)
 

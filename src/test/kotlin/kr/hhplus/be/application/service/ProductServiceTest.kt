@@ -3,13 +3,15 @@ package kr.hhplus.be.application.service
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
-import io.mockk.*
+import io.mockk.clearAllMocks
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import kr.hhplus.be.application.order.OrderItemCreateCommand
+import kr.hhplus.be.application.product.ProductSearchCommand
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.product.*
-import kr.hhplus.be.domain.product.events.StockChangedEvent
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -17,12 +19,16 @@ import java.time.LocalDateTime
 
 class ProductServiceTest : BehaviorSpec({
     val productRepository: ProductRepository = mockk()
-    val applicationEventPublisher: ApplicationEventPublisher = mockk(relaxed = true)
+    val productStockHistoryService: ProductStockHistoryService = mockk()
     val productStockHistoryRepository: ProductStockHistoryRepository = mockk()
+    val productRankingService: ProductRankingService = mockk()
+    val productRankingRepository: ProductRankingRepository = mockk()
     val productService = ProductService(
         productRepository,
-        applicationEventPublisher,
         productStockHistoryRepository,
+        productStockHistoryService,
+        productRankingService,
+        productRankingRepository
     )
 
     afterContainer {
@@ -92,26 +98,27 @@ class ProductServiceTest : BehaviorSpec({
                 createdAt = now,
                 updatedAt = now,
             )
+            val command = ProductStockHistory.create(
+                productId = productId,
+                changeType = StockChangeType.DEDUCT,
+                changeQuantity = updatedProduct.stock,
+                previousStock = product.stock,
+                transactionAt = updatedProduct.updatedAt
+            )
+
             every { productRepository.findByIdWithPessimisticLock(productId) } returns product
             every { productRepository.save(any()) } returns updatedProduct
+            every { productStockHistoryService.save(any()) } returns command
+            every { productRankingService.updateSalesCount(any(), any()) } returns Unit
 
-            productService.deductStock(productId, quantity)
+            val result = productService.deductStock(productId, quantity)
 
             Then("상품의 재고가 감소하고, 재고 변경 이벤트가 발행된다") {
-                product.stock shouldBe 5
+                result.stock shouldBe 5
                 verify(exactly = 1) { productRepository.findByIdWithPessimisticLock(productId) }
                 verify(exactly = 1) { productRepository.save(any()) }
-
-                val eventSlot = slot<StockChangedEvent>()
-                verify(exactly = 1) { applicationEventPublisher.publishEvent(capture(eventSlot)) }
-
-                val capturedEvent = eventSlot.captured
-                capturedEvent.productId shouldBe productId
-                capturedEvent.changeType shouldBe StockChangeType.DEDUCT
-                capturedEvent.changeQuantity shouldBe quantity
-                capturedEvent.previousStock shouldBe 10
-                capturedEvent.currentStock shouldBe 5
-                capturedEvent.reason shouldBe StockChangeType.DEDUCT.reason
+                verify(exactly = 1) { productStockHistoryService.save(any()) }
+                verify(exactly = 1) { productRankingService.updateSalesCount(any(), any()) }
             }
         }
 
@@ -135,7 +142,6 @@ class ProductServiceTest : BehaviorSpec({
                 exception.errorCode shouldBe ErrorCode.INSUFFICIENT_STOCK
                 verify(exactly = 1) { productRepository.findByIdWithPessimisticLock(productId) }
                 verify(exactly = 0) { productRepository.save(any()) }
-                verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
             }
         }
 
@@ -150,7 +156,6 @@ class ProductServiceTest : BehaviorSpec({
                 exception.errorCode shouldBe ErrorCode.PRODUCT_NOT_FOUND
                 verify(exactly = 1) { productRepository.findByIdWithPessimisticLock(productId) }
                 verify(exactly = 0) { productRepository.save(any()) }
-                verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }
             }
         }
     }
@@ -179,26 +184,27 @@ class ProductServiceTest : BehaviorSpec({
                 createdAt = now,
                 updatedAt = now,
             )
+            val command = ProductStockHistory.create(
+                productId = productId,
+                changeType = StockChangeType.DEDUCT,
+                changeQuantity = updatedProduct.stock,
+                previousStock = product.stock,
+                transactionAt = updatedProduct.updatedAt
+            )
+
             every { productRepository.findByIdOrThrow(productId) } returns product
             every { productRepository.save(any()) } returns updatedProduct
+            every { productStockHistoryService.save(any()) } returns command
+            every { productRankingService.updateSalesCount(any(), any()) } returns Unit
 
-            productService.restoreStock(productId, quantity)
+            val result = productService.restoreStock(productId, quantity)
 
             Then("상품의 재고가 증가하고, 재고 변경 이벤트가 발행된다") {
-                product.stock shouldBe 15
+                result.stock shouldBe 15
                 verify(exactly = 1) { productRepository.findByIdOrThrow(productId) }
                 verify(exactly = 1) { productRepository.save(any()) }
-
-                val eventSlot = slot<StockChangedEvent>()
-                verify(exactly = 1) { applicationEventPublisher.publishEvent(capture(eventSlot)) }
-
-                val capturedEvent = eventSlot.captured
-                capturedEvent.productId shouldBe productId
-                capturedEvent.changeType shouldBe StockChangeType.RESTORE
-                capturedEvent.changeQuantity shouldBe quantity
-                capturedEvent.previousStock shouldBe 10
-                capturedEvent.currentStock shouldBe 15
-                capturedEvent.reason shouldBe StockChangeType.RESTORE.reason
+                verify(exactly = 1) { productStockHistoryService.save(any()) }
+                verify(exactly = 1) { productRankingService.updateSalesCount(any(), any()) }
             }
         }
     }
@@ -309,8 +315,9 @@ class ProductServiceTest : BehaviorSpec({
 
         When("검색 조건 없이 상품 목록 조회를 요청하면") {
             every { productRepository.findAvailableProducts(pageable, null, null, null) } returns productsPage
+            val command = ProductSearchCommand(pageable, null, null, null)
 
-            val result = productService.getProducts(pageable, null, null, null)
+            val result = productService.getProducts(command)
 
             Then("페이징된 상품 정보가 반환된다") {
                 result.content.size shouldBe 2
@@ -325,19 +332,18 @@ class ProductServiceTest : BehaviorSpec({
             val filteredProductsPage = PageImpl(listOf(product1), pageable, 1)
             every {
                 productRepository.findAvailableProducts(
-                    pageable,
-                    searchKeyword,
-                    null,
-                    null
+                    any(), any(), any(), any()
                 )
             } returns filteredProductsPage
 
-            val result = productService.getProducts(pageable, searchKeyword, null, null)
+            val command = ProductSearchCommand(pageable, null, null, null)
+
+            val result = productService.getProducts(command)
 
             Then("검색 키워드에 해당하는 페이징된 상품 정보가 반환된다") {
                 result.content.size shouldBe 1
                 result.content[0].name shouldBe "상품 A"
-                verify(exactly = 1) { productRepository.findAvailableProducts(pageable, searchKeyword, null, null) }
+                verify(exactly = 1) { productRepository.findAvailableProducts(any(), any(), any(), any()) }
             }
         }
 
@@ -346,20 +352,16 @@ class ProductServiceTest : BehaviorSpec({
             val maxPrice = 1500
             val filteredProductsPage = PageImpl(listOf(product1), pageable, 1)
             every {
-                productRepository.findAvailableProducts(
-                    pageable,
-                    null,
-                    minPrice,
-                    maxPrice
-                )
+                productRepository.findAvailableProducts(any(), any(), any(), any())
             } returns filteredProductsPage
 
-            val result = productService.getProducts(pageable, null, minPrice, maxPrice)
+            val command = ProductSearchCommand(pageable, null, null, null)
+            val result = productService.getProducts(command)
 
             Then("가격 범위에 해당하는 페이징된 상품 정보가 반환된다") {
                 result.content.size shouldBe 1
                 result.content[0].price shouldBe 1000
-                verify(exactly = 1) { productRepository.findAvailableProducts(pageable, null, minPrice, maxPrice) }
+                verify(exactly = 1) { productRepository.findAvailableProducts(any(), any(), any(), any()) }
             }
         }
     }

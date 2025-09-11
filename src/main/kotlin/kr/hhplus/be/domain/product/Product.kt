@@ -5,9 +5,9 @@ import kr.hhplus.be.domain.exception.ErrorCode
 import java.time.LocalDateTime
 
 data class Product(
-    val id: Long,
+    val id: Long? = null,
     val name: String,
-    var stock: Int,
+    val stock: Int,
     val price: Int,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
@@ -20,12 +20,12 @@ data class Product(
         }
     }
 
-    fun deductStock(quantity: Int) {
+    fun deductStock(quantity: Int): Product {
         validateStock(quantity)
-        this.stock -= quantity
+        return this.copy(stock = this.stock - quantity, updatedAt = LocalDateTime.now())
     }
 
-    fun addStock(quantity: Int) {
-        this.stock += quantity
+    fun addStock(quantity: Int): Product {
+        return this.copy(stock = this.stock + quantity, updatedAt = LocalDateTime.now())
     }
 }

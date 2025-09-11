@@ -27,13 +27,15 @@ class BalanceConcurrencyTest(
         it("유저 포인트 충전 2번 동시성 테스트") {
             // given
             val user = User(
-                id = 0,
                 balance = 0,
                 name = "충전테스트유저1",
                 email = "charge1@example.com"
             )
+            println("user = $user")
             val savedUser = userRepository.save(user)
-            val command = BalanceChargeCommand(userId = savedUser.id, amount = 1000)
+            println("savedUser = $savedUser")
+            val command = BalanceChargeCommand(userId = savedUser.id!!, amount = 1000)
+            println("command = $command")
 
             // when
             val result: ConcurrentTestResult = executor.execute(2, 2) {
@@ -59,13 +61,12 @@ class BalanceConcurrencyTest(
         it("유저 포인트 충전 10번 동시성 테스트") {
             // given
             val user = User(
-                id = 0,
                 balance = 0,
                 name = "충전테스트유저2",
                 email = "charge2@example.com"
             )
             val savedUser = userRepository.save(user)
-            val command = BalanceChargeCommand(userId = savedUser.id, amount = 100)
+            val command = BalanceChargeCommand(userId = savedUser.id!!, amount = 100)
 
             // when
             val result: ConcurrentTestResult = executor.execute(5, 10) {
@@ -91,13 +92,12 @@ class BalanceConcurrencyTest(
         it("대량 포인트 충전 동시성 테스트") {
             // given
             val user = User(
-                id = 0,
                 balance = 0,
                 name = "대량충전테스트유저",
                 email = "bulk@example.com"
             )
             val savedUser = userRepository.save(user)
-            val command = BalanceChargeCommand(userId = savedUser.id, amount = 1)
+            val command = BalanceChargeCommand(userId = savedUser.id!!, amount = 1)
             val threadCount = 50
             val taskCount = 100
 
@@ -128,14 +128,13 @@ class BalanceConcurrencyTest(
         it("유저 포인트 차감 동시성 테스트") {
             // given
             val user = User(
-                id = 0,
                 balance = 0,
                 name = "차감테스트유저1",
                 email = "deduct1@example.com"
             )
             val savedUser = userRepository.save(user)
 
-            val chargeCommand = BalanceChargeCommand(userId = savedUser.id, amount = 5000)
+            val chargeCommand = BalanceChargeCommand(userId = savedUser.id!!, amount = 5000)
             balanceService.charge(chargeCommand)
 
             val deductCommand = BalanceDeductCommand(userId = savedUser.id, amount = 100)
@@ -165,14 +164,13 @@ class BalanceConcurrencyTest(
         it("잔액 부족 상황에서 동시 차감 테스트") {
             // given
             val user = User(
-                id = 0,
                 balance = 0,
                 name = "차감테스트유저2",
                 email = "deduct2@example.com"
             )
             val savedUser = userRepository.save(user)
 
-            val chargeCommand = BalanceChargeCommand(userId = savedUser.id, amount = 500)
+            val chargeCommand = BalanceChargeCommand(userId = savedUser.id!!, amount = 500)
             balanceService.charge(chargeCommand)
 
             val deductCommand = BalanceDeductCommand(userId = savedUser.id, amount = 100)

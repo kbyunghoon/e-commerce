@@ -7,13 +7,13 @@ import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import kr.hhplus.be.application.order.OrderDto
 import kr.hhplus.be.application.service.OrderService
 import kr.hhplus.be.application.service.PaymentSagaOrchestrator
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
+import kr.hhplus.be.domain.order.Order
+import kr.hhplus.be.domain.order.OrderItem
 import kr.hhplus.be.domain.order.OrderStatus
-import kr.hhplus.be.presentation.controller.GlobalExceptionHandler
 import kr.hhplus.be.presentation.dto.request.OrderItemRequest
 import kr.hhplus.be.presentation.dto.request.OrderRequest
 import kr.hhplus.be.presentation.dto.request.PaymentRequest
@@ -61,7 +61,7 @@ class OrderControllerTest : FunSpec({
                 couponId = couponId
             )
 
-            val orderInfo = OrderDto.OrderDetails(
+            val orderInfo = Order(
                 id = 1L,
                 orderNumber = "테스트",
                 userId = userId,
@@ -71,11 +71,11 @@ class OrderControllerTest : FunSpec({
                 finalAmount = 19000,
                 orderDate = LocalDateTime.now(),
                 orderItems = listOf(
-                    OrderDto.OrderItemDetails(
+                    OrderItem(
                         productId = productId,
                         productName = "테스트 상품",
                         quantity = quantity,
-                        price = 10000
+                        pricePerItem = 10000
                     )
                 ),
                 status = OrderStatus.PENDING
@@ -119,7 +119,7 @@ class OrderControllerTest : FunSpec({
                 couponId = null
             )
 
-            val orderInfo = OrderDto.OrderDetails(
+            val orderInfo = Order(
                 id = 1L,
                 orderNumber = "테스트",
                 userId = userId,
@@ -129,11 +129,11 @@ class OrderControllerTest : FunSpec({
                 finalAmount = 10000,
                 orderDate = LocalDateTime.now(),
                 orderItems = listOf(
-                    OrderDto.OrderItemDetails(
+                    OrderItem(
                         productId = productId,
                         productName = "쿠폰 미사용 상품",
                         quantity = quantity,
-                        price = 10000
+                        pricePerItem = 10000
                     )
                 ),
                 status = OrderStatus.PENDING
@@ -170,7 +170,7 @@ class OrderControllerTest : FunSpec({
                 couponId = null
             )
 
-            val orderInfo = OrderDto.OrderDetails(
+            val orderInfo = Order(
                 id = 1L,
                 orderNumber = "테스트",
                 userId = userId,
@@ -180,23 +180,23 @@ class OrderControllerTest : FunSpec({
                 finalAmount = 60000,
                 orderDate = LocalDateTime.now(),
                 orderItems = listOf(
-                    OrderDto.OrderItemDetails(
+                    OrderItem(
                         productId = 1L,
                         productName = "상품1",
                         quantity = 2,
-                        price = 10000
+                        pricePerItem = 10000
                     ),
-                    OrderDto.OrderItemDetails(
+                    OrderItem(
                         productId = 2L,
                         productName = "상품2",
                         quantity = 1,
-                        price = 15000
+                        pricePerItem = 15000
                     ),
-                    OrderDto.OrderItemDetails(
+                    OrderItem(
                         productId = 3L,
                         productName = "상품3",
                         quantity = 3,
-                        price = 5000
+                        pricePerItem = 5000
                     )
                 ),
                 status = OrderStatus.PENDING
@@ -320,7 +320,7 @@ class OrderControllerTest : FunSpec({
                 orderId = orderId
             )
 
-            val orderInfo = OrderDto.OrderDetails(
+            val orderInfo = Order(
                 id = orderId,
                 orderNumber = "테스트",
                 userId = userId,
@@ -330,11 +330,11 @@ class OrderControllerTest : FunSpec({
                 finalAmount = 20000,
                 orderDate = LocalDateTime.now(),
                 orderItems = listOf(
-                    OrderDto.OrderItemDetails(
+                    OrderItem(
                         productId = 1L,
                         productName = "결제 처리중 상품",
                         quantity = 2,
-                        price = 10000
+                        pricePerItem = 10000
                     )
                 ),
                 status = OrderStatus.PENDING  // 이벤트 기반이므로 즉시 완료되지 않음
@@ -440,7 +440,7 @@ class OrderControllerTest : FunSpec({
             val orderId = 1L
             val userId = 1L
 
-            val orderInfo = OrderDto.OrderDetails(
+            val orderInfo = Order(
                 id = orderId,
                 orderNumber = "테스트",
                 userId = userId,
@@ -450,17 +450,17 @@ class OrderControllerTest : FunSpec({
                 finalAmount = 22500,
                 orderDate = LocalDateTime.now(),
                 orderItems = listOf(
-                    OrderDto.OrderItemDetails(
+                    OrderItem(
                         productId = 1L,
                         productName = "조회된 상품1",
                         quantity = 1,
-                        price = 15000
+                        pricePerItem = 15000
                     ),
-                    OrderDto.OrderItemDetails(
+                    OrderItem(
                         productId = 2L,
                         productName = "조회된 상품2",
                         quantity = 1,
-                        price = 10000
+                        pricePerItem = 10000
                     )
                 ),
                 status = OrderStatus.COMPLETED
@@ -560,7 +560,7 @@ class OrderControllerTest : FunSpec({
                 couponId = null
             )
 
-            val createdOrderInfo = OrderDto.OrderDetails(
+            val createdOrderInfo = Order(
                 id = 1L,
                 orderNumber = "테스트",
                 userId = userId,
@@ -570,11 +570,11 @@ class OrderControllerTest : FunSpec({
                 finalAmount = 20000,
                 orderDate = LocalDateTime.now(),
                 orderItems = listOf(
-                    OrderDto.OrderItemDetails(
+                    OrderItem(
                         productId = productId,
                         productName = "통합테스트 상품",
                         quantity = quantity,
-                        price = 10000
+                        pricePerItem = 10000
                     )
                 ),
                 status = OrderStatus.PENDING
@@ -627,7 +627,7 @@ class OrderControllerTest : FunSpec({
                 couponId = couponId
             )
 
-            val orderInfo = OrderDto.OrderDetails(
+            val orderInfo = Order(
                 id = 1L,
                 orderNumber = "테스트",
                 userId = userId,
@@ -637,11 +637,11 @@ class OrderControllerTest : FunSpec({
                 finalAmount = 45000,
                 orderDate = LocalDateTime.now(),
                 orderItems = listOf(
-                    OrderDto.OrderItemDetails(
+                    OrderItem(
                         productId = 1L,
                         productName = "쿠폰 적용 상품",
                         quantity = 1,
-                        price = 50000
+                        pricePerItem = 50000
                     )
                 ),
                 status = OrderStatus.PENDING

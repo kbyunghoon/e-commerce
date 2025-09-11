@@ -1,9 +1,11 @@
 package kr.hhplus.be.infrastructure.persistence
 
 import kr.hhplus.be.domain.user.UserCoupon
+import kr.hhplus.be.domain.user.UserCouponDetail
 import kr.hhplus.be.domain.user.UserCouponRepository
 import kr.hhplus.be.infrastructure.entity.UserCouponEntity
 import kr.hhplus.be.infrastructure.persistence.repository.jpa.UserCouponJpaRepository
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
@@ -28,5 +30,13 @@ class UserCouponRepositoryImpl(
 
     override fun findByCouponId(couponId: Long): List<UserCoupon> {
         return userCouponJpaRepository.findByCouponId(couponId).map { it.toDomain() }
+    }
+
+    override fun findUserCouponDetails(userId: Long): List<UserCouponDetail> {
+        return userCouponJpaRepository.findUserCouponDetails(userId)
+    }
+
+    override fun findById(userCouponId: Long): UserCoupon? {
+        return userCouponJpaRepository.findByIdOrNull(userCouponId)?.toDomain()
     }
 }

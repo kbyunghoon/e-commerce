@@ -1,10 +1,10 @@
+package kr.hhplus.be.domain.product
+
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
-import kr.hhplus.be.domain.product.Product
-import kr.hhplus.be.domain.product.ProductStatus
 import java.time.LocalDateTime
 
 class ProductTest : FunSpec({
@@ -24,8 +24,8 @@ class ProductTest : FunSpec({
 
     test("재고 범위 내에서 차감하면 재고가 감소한다") {
         val product = createProduct()
-        product.deductStock(3)
-        product.stock shouldBe 7
+        val updatedProduct = product.deductStock(3)
+        updatedProduct.stock shouldBe 7
     }
 
     test("재고보다 많은 수량을 차감하면 예외가 발생한다") {
@@ -37,15 +37,15 @@ class ProductTest : FunSpec({
 
     test("연속으로 재고를 차감하면 누적 차감된다") {
         val product = createProduct()
-        product.deductStock(3)
-        product.deductStock(2)
-        product.stock shouldBe 5
+        val updatedProduct1 = product.deductStock(3)
+        val updatedProduct2 = updatedProduct1.deductStock(2)
+        updatedProduct2.stock shouldBe 5
     }
 
     test("재고를 모두 차감하면 재고가 0이 된다") {
         val product = createProduct()
-        product.deductStock(10)
-        product.stock shouldBe 0
+        val updatedProduct = product.deductStock(10)
+        updatedProduct.stock shouldBe 0
     }
 
 }) {

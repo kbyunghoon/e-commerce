@@ -1,4 +1,4 @@
-package kr.hhplus.be.domain.order.events
+package kr.hhplus.be.domain.order
 
 import java.time.LocalDateTime
 
@@ -11,11 +11,11 @@ data class OrderCompletedEvent(
     val userCouponId: Long?,
     val orderItems: List<OrderItemInfo>,
     val completedAt: LocalDateTime = LocalDateTime.now()
-) {
-    data class OrderItemInfo(
-        val productId: Long,
-        val productName: String,
-        val quantity: Int,
-        val pricePerItem: Int
-    )
-}
+)
+
+data class OrderItemInfo(
+    val productId: Long,
+    val productName: String,
+    val quantity: Int,
+    val pricePerItem: Int
+)

@@ -49,9 +49,13 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
     implementation("org.springframework.retry:spring-retry")
     implementation("org.springframework:spring-aspects")
+
+    // Kafka
+    implementation("org.springframework.kafka:spring-kafka")
 
     // DB
     runtimeOnly("com.mysql:mysql-connector-j")
@@ -75,11 +79,17 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:mysql")
-    
+    testImplementation("org.testcontainers:kafka")
+    testImplementation("org.springframework.kafka:spring-kafka-test")
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
-    systemProperty("user.timezone", "UTC")
+    systemProperty("user.timezone", "Asia/Seoul")
+}
+
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    systemProperty("user.timezone", "Asia/Seoul")
 }

@@ -5,6 +5,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
+import java.time.LocalDateTime
 
 class OrderItemTest : FunSpec({
 
@@ -197,12 +198,12 @@ class OrderItemTest : FunSpec({
             )
 
             // When
-            orderItem.completeOrder()
+            val result = orderItem.completeOrder()
 
             // Then
-            orderItem.status shouldBe OrderStatus.COMPLETED
-            orderItem.isCompleted() shouldBe true
-            orderItem.isPending() shouldBe false
+            result.status shouldBe OrderStatus.COMPLETED
+            result.isCompleted() shouldBe true
+            result.isPending() shouldBe false
         }
 
         test("이미 완료된 주문 항목을 다시 완료하려고 하면 예외가 발생한다") {
@@ -214,11 +215,11 @@ class OrderItemTest : FunSpec({
                 pricePerItem = 10000,
                 orderId = 1L
             )
-            orderItem.completeOrder()
+            val updatedOrderItem = orderItem.completeOrder()
 
             // When & Then
             shouldThrow<BusinessException> {
-                orderItem.completeOrder()
+                updatedOrderItem.completeOrder()
             }.errorCode shouldBe ErrorCode.ORDER_ALREADY_COMPLETED
         }
 
@@ -233,12 +234,12 @@ class OrderItemTest : FunSpec({
             )
 
             // When
-            orderItem.cancelOrder()
+            val result = orderItem.cancelOrder()
 
             // Then
-            orderItem.status shouldBe OrderStatus.CANCELLED
-            orderItem.isCancelled() shouldBe true
-            orderItem.isPending() shouldBe false
+            result.status shouldBe OrderStatus.CANCELLED
+            result.isCancelled() shouldBe true
+            result.isPending() shouldBe false
         }
 
         test("완료된 주문 항목을 취소할 수 있다") {
@@ -250,15 +251,15 @@ class OrderItemTest : FunSpec({
                 pricePerItem = 10000,
                 orderId = 1L
             )
-            orderItem.completeOrder()
+            val updatedOrderItem = orderItem.completeOrder()
 
             // When
-            orderItem.cancelOrder()
+            val result = orderItem.cancelOrder()
 
             // Then
-            orderItem.status shouldBe OrderStatus.CANCELLED
-            orderItem.isCancelled() shouldBe true
-            orderItem.isCompleted() shouldBe false
+            result.status shouldBe OrderStatus.CANCELLED
+            result.isCancelled() shouldBe true
+            result.isCompleted() shouldBe false
         }
 
         test("이미 취소된 주문 항목을 다시 취소하려고 하면 예외가 발생한다") {
@@ -270,11 +271,11 @@ class OrderItemTest : FunSpec({
                 pricePerItem = 10000,
                 orderId = 1L
             )
-            orderItem.cancelOrder()
+            val updatedOrderItem = orderItem.cancelOrder()
 
             // When & Then
             shouldThrow<BusinessException> {
-                orderItem.cancelOrder()
+                updatedOrderItem.cancelOrder()
             }.errorCode shouldBe ErrorCode.ORDER_ALREADY_CANCELLED
         }
 
@@ -287,11 +288,11 @@ class OrderItemTest : FunSpec({
                 pricePerItem = 10000,
                 orderId = 1L
             )
-            orderItem.cancelOrder()
+            val updatedOrderItem = orderItem.cancelOrder()
 
             // When & Then
             shouldThrow<BusinessException> {
-                orderItem.completeOrder()
+                updatedOrderItem.completeOrder()
             }.errorCode shouldBe ErrorCode.ORDER_ALREADY_CANCELLED
         }
     }
@@ -325,14 +326,14 @@ class OrderItemTest : FunSpec({
                 pricePerItem = 10000,
                 orderId = 1L
             )
-            orderItem.completeOrder()
+            val result = orderItem.completeOrder()
 
             // Then
-            orderItem.isPending() shouldBe false
-            orderItem.isCompleted() shouldBe true
-            orderItem.isCancelled() shouldBe false
-            orderItem.canBeCompleted() shouldBe false
-            orderItem.canBeCancelled() shouldBe true
+            result.isPending() shouldBe false
+            result.isCompleted() shouldBe true
+            result.isCancelled() shouldBe false
+            result.canBeCompleted() shouldBe false
+            result.canBeCancelled() shouldBe true
         }
 
         test("취소된 주문 항목의 상태를 올바르게 확인할 수 있다") {
@@ -344,14 +345,14 @@ class OrderItemTest : FunSpec({
                 pricePerItem = 10000,
                 orderId = 1L
             )
-            orderItem.cancelOrder()
+            val result = orderItem.cancelOrder()
 
             // Then
-            orderItem.isPending() shouldBe false
-            orderItem.isCompleted() shouldBe false
-            orderItem.isCancelled() shouldBe true
-            orderItem.canBeCompleted() shouldBe false
-            orderItem.canBeCancelled() shouldBe false
+            result.isPending() shouldBe false
+            result.isCompleted() shouldBe false
+            result.isCancelled() shouldBe true
+            result.canBeCompleted() shouldBe false
+            result.canBeCancelled() shouldBe false
         }
     }
 
@@ -535,8 +536,9 @@ class OrderItemTest : FunSpec({
     }
 
     context("OrderItem 불변성 테스트") {
-        
+
         test("OrderItem 객체는 데이터 클래스로서 동등성을 지원한다") {
+            val now = LocalDateTime.now()
             // Given
             val orderItem1 = OrderItem(
                 id = 1L,
@@ -545,7 +547,9 @@ class OrderItemTest : FunSpec({
                 productName = "동일 상품",
                 quantity = 2,
                 pricePerItem = 10000,
-                status = OrderStatus.PENDING
+                status = OrderStatus.PENDING,
+                createdAt = now,
+                updatedAt = now
             )
 
             val orderItem2 = OrderItem(
@@ -555,7 +559,9 @@ class OrderItemTest : FunSpec({
                 productName = "동일 상품",
                 quantity = 2,
                 pricePerItem = 10000,
-                status = OrderStatus.PENDING
+                status = OrderStatus.PENDING,
+                createdAt = now,
+                updatedAt = now
             )
 
             // When & Then
@@ -688,11 +694,11 @@ class OrderItemTest : FunSpec({
             orderItem.getTotalPrice() shouldBe 450000
 
             // When - 주문 완료 처리
-            orderItem.completeOrder()
+            val result = orderItem.completeOrder()
 
             // Then - 완료 상태 확인
-            orderItem.isCompleted() shouldBe true
-            orderItem.isPending() shouldBe false
+            result.isCompleted() shouldBe true
+            result.isPending() shouldBe false
         }
 
         test("주문 취소 시나리오") {
@@ -706,12 +712,12 @@ class OrderItemTest : FunSpec({
             )
 
             // When - 주문 취소
-            orderItem.cancelOrder()
+            val result = orderItem.cancelOrder()
 
             // Then - 취소 상태 확인
-            orderItem.isCancelled() shouldBe true
-            orderItem.canBeCompleted() shouldBe false
-            orderItem.canBeCancelled() shouldBe false
+            result.isCancelled() shouldBe true
+            result.canBeCompleted() shouldBe false
+            result.canBeCancelled() shouldBe false
         }
     }
 

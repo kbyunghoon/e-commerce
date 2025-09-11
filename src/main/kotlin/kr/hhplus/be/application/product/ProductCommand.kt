@@ -7,3 +7,10 @@ data class ProductRankingCommand(
     val rankingDate: LocalDate,
     val period: RankingPeriod,
 )
+
+data class CreateProductRanking(
+    val productId: Long,
+    val productName: String,
+    val quantity: Int,
+    val rankingDate: LocalDate
+)

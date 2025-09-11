@@ -11,7 +11,7 @@ class OrderEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "order_id")
-    val id: Long = 0,
+    val id: Long? = null,
 
     @Column(name = "order_number", nullable = false, unique = true)
     val orderNumber: String,
@@ -59,6 +59,7 @@ class OrderEntity(
             status = status,
             orderDate = orderDate,
             expireDate = expiresAt,
+            orderItems = null,
             createdAt = createdAt,
         )
     }

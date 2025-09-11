@@ -6,10 +6,12 @@ import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.mockk.every
 import io.mockk.verify
-import kr.hhplus.be.application.balance.BalanceDto.BalanceInfo
 import kr.hhplus.be.application.service.BalanceService
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
+import kr.hhplus.be.domain.user.BalanceHistory
+import kr.hhplus.be.domain.user.TransactionType
+import kr.hhplus.be.domain.user.User
 import kr.hhplus.be.presentation.dto.request.BalanceChargeRequest
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -37,15 +39,18 @@ class BalanceControllerTest(
             When("유효한 사용자 ID와 금액으로 충전을 요청하면") {
                 val userId = 1L
                 val chargeAmount = 15000
+                val amount = 0
                 val request = BalanceChargeRequest(userId, chargeAmount)
                 val now = LocalDateTime.now()
 
-                val mockBalanceInfo = BalanceInfo(
+                val mockBalanceInfo = BalanceHistory(
                     id = 1L,
                     userId = userId,
-                    amount = 15000,
-                    createdAt = now.minusDays(1),
-                    updatedAt = now
+                    amount = chargeAmount,
+                    beforeAmount = amount,
+                    afterAmount = chargeAmount + amount,
+                    type = TransactionType.CHARGE,
+                    transactionAt = now,
                 )
 
                 every { balanceService.charge(any(), any()) } returns mockBalanceInfo
@@ -115,12 +120,13 @@ class BalanceControllerTest(
             When("존재하는 사용자 ID로 잔액을 조회하면") {
                 val userId = 1L
                 val now = LocalDateTime.now()
-                val mockBalanceInfo = BalanceInfo(
+                val mockBalanceInfo = User(
                     id = 1L,
-                    userId = userId,
-                    amount = 5000,
-                    createdAt = now.minusDays(2),
-                    updatedAt = now.minusHours(1)
+                    balance = 5000,
+                    name = "테스트",
+                    email = "test@gmail.com",
+                    createdAt = now,
+                    updatedAt = now,
                 )
 
                 every { balanceService.getBalance(userId) } returns mockBalanceInfo

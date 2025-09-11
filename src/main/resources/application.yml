@@ -19,8 +19,30 @@ spring:
       ddl-auto: update
     properties:
       hibernate.timezone.default_storage: NORMALIZE_UTC
-      hibernate.jdbc.time_zone: UTC
+      hibernate.jdbc.time_zone: Asia/Seoul
     defer-datasource-initialization: true
+  kafka:
+    bootstrap-servers:
+      - localhost:9092
+      - localhost:9094
+      - localhost:9096
+    properties:
+      request.timeout.ms: 20000
+      retry.backoff.ms: 500
+      auto:
+        create.topics.enable: false
+        register.schemas: false
+        offset.reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      retries: 5
+    consumer:
+      group-id: ecommerce
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "kr.hhplus.be.domain"
 #  sql:
 #    init:
 #      mode: always  # data.sql 실행

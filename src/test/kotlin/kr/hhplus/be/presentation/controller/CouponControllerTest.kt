@@ -5,12 +5,12 @@ import com.ninjasquad.springmockk.MockkBean
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.mockk.*
-import kr.hhplus.be.application.coupon.CouponDto.UserCouponInfo
 import kr.hhplus.be.application.service.CouponService
 import kr.hhplus.be.domain.coupon.CouponStatus
 import kr.hhplus.be.domain.coupon.DiscountType
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
+import kr.hhplus.be.domain.user.UserCouponDetail
 import kr.hhplus.be.presentation.dto.request.CouponIssueRequest
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -160,7 +160,7 @@ class CouponControllerTest(
                 val now = LocalDateTime.now()
 
                 val mockUserCoupons = listOf(
-                    UserCouponInfo(
+                    UserCouponDetail(
                         id = 1L,
                         userId = userId,
                         couponId = 1L,
@@ -172,7 +172,7 @@ class CouponControllerTest(
                         issuedAt = now.minusDays(1),
                         usedAt = null
                     ),
-                    UserCouponInfo(
+                    UserCouponDetail(
                         id = 2L,
                         userId = userId,
                         couponId = 2L,
@@ -215,7 +215,7 @@ class CouponControllerTest(
                 clearMocks(couponService)
 
                 val userId = 2L
-                val emptyList = emptyList<UserCouponInfo>()
+                val emptyList = emptyList<UserCouponDetail>()
 
                 every { couponService.getUserCoupons(userId) } returns emptyList
 
@@ -244,7 +244,7 @@ class CouponControllerTest(
                 val now = LocalDateTime.now()
 
                 val mockAvailableCoupons = listOf(
-                    UserCouponInfo(
+                    UserCouponDetail(
                         id = 1L,
                         userId = userId,
                         couponId = 1L,

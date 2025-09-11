@@ -11,7 +11,7 @@ class ProductStockHistoryEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "history_id")
-    val id: Long = 0L,
+    val id: Long? = null,
 
     @Column(name = "product_id", nullable = false)
     val productId: Long,
@@ -29,9 +29,6 @@ class ProductStockHistoryEntity(
     @Column(name = "current_stock", nullable = false)
     val currentStock: Int,
 
-    @Column(name = "reason", nullable = false)
-    val reason: String,
-
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now()
 ) {
@@ -43,8 +40,7 @@ class ProductStockHistoryEntity(
             changeQuantity = this.changeQuantity,
             previousStock = this.previousStock,
             currentStock = this.currentStock,
-            reason = this.reason,
-            createdAt = this.createdAt
+            transactionAt = this.createdAt
         )
     }
 
@@ -57,8 +53,7 @@ class ProductStockHistoryEntity(
                 changeQuantity = domain.changeQuantity,
                 previousStock = domain.previousStock,
                 currentStock = domain.currentStock,
-                reason = domain.reason,
-                createdAt = domain.createdAt
+                createdAt = domain.transactionAt
             )
         }
     }

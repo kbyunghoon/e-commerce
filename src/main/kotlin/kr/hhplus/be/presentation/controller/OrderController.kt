@@ -1,8 +1,6 @@
 package kr.hhplus.be.presentation.controller
 
 import jakarta.validation.Valid
-import kr.hhplus.be.application.order.OrderCreateCommand
-import kr.hhplus.be.application.order.PaymentProcessCommand
 import kr.hhplus.be.application.service.OrderService
 import kr.hhplus.be.application.service.PaymentSagaOrchestrator
 import kr.hhplus.be.presentation.api.OrderApi
@@ -24,13 +22,7 @@ class OrderController(
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     override fun createOrder(@RequestBody @Valid request: OrderRequest): BaseResponse<OrderResponse> {
-        val command = OrderCreateCommand(
-            userId = request.userId,
-            items = request.items.map { it.toCommand() },
-            userCouponId = request.couponId
-        )
-
-        val orderData = orderService.processOrder(command)
+        val orderData = orderService.processOrder(request.toCommand())
         val response = OrderResponse.from(orderData)
 
         return BaseResponse.success(response)
@@ -40,12 +32,7 @@ class OrderController(
     override fun pay(
         @RequestBody @Valid request: PaymentRequest
     ): BaseResponse<PaymentResponse> {
-        val command = PaymentProcessCommand(
-            orderId = request.orderId,
-            userId = request.userId
-        )
-
-        val orderData = paymentSagaOrchestrator.executePaymentSaga(command)
+        val orderData = paymentSagaOrchestrator.executePaymentSaga(request.toCommand())
 
         return BaseResponse.success(
             PaymentResponse.from(orderData)

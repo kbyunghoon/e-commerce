@@ -1,7 +1,7 @@
 package kr.hhplus.be.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
-import kr.hhplus.be.application.order.OrderDto.OrderItemDetails
+import kr.hhplus.be.domain.order.OrderItem
 
 @Schema(description = "주문 상품 항목")
 data class OrderItemResponse(
@@ -21,13 +21,13 @@ data class OrderItemResponse(
     val totalPrice: Int
 ) {
     companion object {
-        fun from(orderItemInfo: OrderItemDetails): OrderItemResponse {
+        fun from(orderItem: OrderItem): OrderItemResponse {
             return OrderItemResponse(
-                productId = orderItemInfo.productId,
-                productName = orderItemInfo.productName,
-                price = orderItemInfo.price,
-                quantity = orderItemInfo.quantity,
-                totalPrice = orderItemInfo.price * orderItemInfo.quantity
+                productId = orderItem.productId,
+                productName = orderItem.productName,
+                price = orderItem.pricePerItem,
+                quantity = orderItem.quantity,
+                totalPrice = orderItem.pricePerItem * orderItem.quantity
             )
         }
     }

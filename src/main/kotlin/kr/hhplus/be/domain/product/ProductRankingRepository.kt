@@ -5,7 +5,11 @@ import java.time.LocalDate
 interface ProductRankingRepository {
     fun findTopProducts(startDate: LocalDate, endDate: LocalDate): List<ProductRanking>
 
-    fun saveAll(products: List<ProductRanking>): List<ProductRanking>
+    fun updateSalesCount(productId: Long, quantity: Int, date: LocalDate): Int
 
-    fun updateSalesCount(productId: Long, quantity: Int, date: LocalDate)
+    fun save(productRanking: ProductRanking): ProductRanking
+
+    fun existsByProductIdAndRankingDate(productId: Long, rankingDate: LocalDate): Boolean
+
+    fun findByProductIdAndRankingDate(productId: Long, rankingDate: LocalDate): ProductRanking?
 }

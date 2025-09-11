@@ -1,13 +1,11 @@
 package kr.hhplus.be.presentation.controller
 
 import jakarta.validation.Valid
-import kr.hhplus.be.application.coupon.CouponIssueCommand
 import kr.hhplus.be.application.service.CouponService
 import kr.hhplus.be.presentation.api.CouponApi
 import kr.hhplus.be.presentation.dto.common.BaseResponse
 import kr.hhplus.be.presentation.dto.request.CouponIssueRequest
-import kr.hhplus.be.presentation.dto.response.CouponIssueResponse
-import kr.hhplus.be.presentation.dto.response.CouponListResponse
+import kr.hhplus.be.presentation.dto.response.UserCouponListResponse
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 
@@ -19,8 +17,8 @@ class CouponController(
 
     @PostMapping("/issue")
     @ResponseStatus(HttpStatus.CREATED)
-    override fun issueCoupon(@RequestBody @Valid request: CouponIssueRequest): BaseResponse<CouponIssueResponse> {
-        couponService.issue(CouponIssueCommand(userId = request.userId, couponId = request.couponId))
+    override fun issueCoupon(@RequestBody @Valid request: CouponIssueRequest): BaseResponse<Unit> {
+        couponService.issue(request.toCommand())
 
         return BaseResponse.success()
     }
@@ -29,9 +27,9 @@ class CouponController(
     override fun getCoupons(
         @RequestParam userId: Long,
         @RequestParam status: String?
-    ): BaseResponse<CouponListResponse> {
+    ): BaseResponse<UserCouponListResponse> {
         val userCoupons = couponService.getUserCoupons(userId)
 
-        return BaseResponse.success(CouponListResponse.from(userCoupons))
+        return BaseResponse.success(UserCouponListResponse.from(userCoupons))
     }
 }

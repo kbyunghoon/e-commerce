@@ -4,6 +4,8 @@ services:
     image: redis:latest
     ports:
       - "6379:6379"
+    environment:
+      - TZ=Asia/Seoul
     deploy:
       resources:
         limits:
@@ -18,6 +20,7 @@ services:
       - MYSQL_USER=application
       - MYSQL_PASSWORD=application
       - MYSQL_DATABASE=hhplus
+      - TZ=Asia/Seoul
     volumes:
       - ./data/mysql/:/var/lib/mysql
 

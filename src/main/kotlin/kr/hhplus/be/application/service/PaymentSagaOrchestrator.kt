@@ -1,10 +1,13 @@
 package kr.hhplus.be.application.service
 
-import kr.hhplus.be.application.order.OrderDto
 import kr.hhplus.be.application.order.PaymentProcessCommand
-import kr.hhplus.be.application.service.saga.*
+import kr.hhplus.be.application.service.saga.SagaCouponService
+import kr.hhplus.be.application.service.saga.SagaOrderService
+import kr.hhplus.be.application.service.saga.SagaProductService
+import kr.hhplus.be.application.service.saga.SagaUserService
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
+import kr.hhplus.be.domain.order.Order
 import kr.hhplus.be.domain.order.saga.PaymentSaga
 import kr.hhplus.be.domain.order.saga.PaymentSagaRepository
 import kr.hhplus.be.domain.order.saga.PaymentSagaStep
@@ -26,7 +29,7 @@ class PaymentSagaOrchestrator(
     private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun executePaymentSaga(command: PaymentProcessCommand): OrderDto.OrderDetails {
+    fun executePaymentSaga(command: PaymentProcessCommand): Order {
         val sagaId = UUID.randomUUID().toString()
         log.info("Payment Saga 시작 - sagaId: {}, orderId: {}", sagaId, command.orderId)
 
@@ -136,7 +139,7 @@ class PaymentSagaOrchestrator(
     }
 
     @Transactional(readOnly = true)
-    fun getPaymentResult(orderId: Long, userId: Long): OrderDto.OrderDetails? {
+    fun getPaymentResult(orderId: Long, userId: Long): Order? {
         val saga = sagaRepository.findByOrderId(orderId) ?: return null
         return if (saga.status == SagaStatus.COMPLETED) {
             sagaOrderService.getOrder(orderId, userId)

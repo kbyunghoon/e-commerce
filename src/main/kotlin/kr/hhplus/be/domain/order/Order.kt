@@ -7,14 +7,15 @@ import java.time.format.DateTimeFormatter
 import kotlin.random.Random
 
 data class Order(
-    val id: Long = 0,
+    val id: Long? = null,
     val userId: Long,
     val orderNumber: String,
     val userCouponId: Long?,
     val originalAmount: Int,
     val discountAmount: Int,
     val finalAmount: Int,
-    var status: OrderStatus = OrderStatus.PENDING,
+    val status: OrderStatus = OrderStatus.PENDING,
+    val orderItems: List<OrderItem>?,
     val orderDate: LocalDateTime?,
     val expireDate: LocalDateTime? = null,
     val createdAt: LocalDateTime = LocalDateTime.now(),
@@ -36,7 +37,6 @@ data class Order(
             validateBusinessRules(userId, originalAmount, discountAmount, finalAmount)
 
             return Order(
-                id = 0,
                 userId = userId,
                 orderNumber = generateOrderNumber(orderedAt),
                 originalAmount = originalAmount,
@@ -46,6 +46,7 @@ data class Order(
                 userCouponId = userCouponId,
                 expireDate = orderedAt.plusMinutes(30),
                 orderDate = null,
+                orderItems = null,
                 createdAt = orderedAt,
             )
         }
@@ -94,9 +95,12 @@ data class Order(
         }
     }
 
-    fun completeOrder() {
-        validateInvariants()
+    fun withOrderItems(orderItems: List<OrderItem>): Order {
+        return this.copy(orderItems = orderItems)
+    }
 
+    fun completeOrder(): Order {
+        validateInvariants()
 
         if (isCompleted()) {
             throw BusinessException(ErrorCode.ORDER_ALREADY_COMPLETED)
@@ -105,24 +109,18 @@ data class Order(
         if (isCancelled()) {
             throw BusinessException(ErrorCode.ORDER_ALREADY_CANCELLED)
         }
-        this.status = OrderStatus.COMPLETED
 
-        if (this.status != OrderStatus.COMPLETED) {
-            throw BusinessException(ErrorCode.ORDER_STATE_CHANGE_FAILED)
-        }
+        return this.copy(status = OrderStatus.COMPLETED, orderDate = LocalDateTime.now())
     }
 
-    fun cancelOrder() {
+    fun cancelOrder(): Order {
         validateInvariants()
 
         if (isCancelled()) {
             throw BusinessException(ErrorCode.ORDER_ALREADY_CANCELLED)
         }
-        this.status = OrderStatus.CANCELLED
 
-        if (this.status != OrderStatus.CANCELLED) {
-            throw BusinessException(ErrorCode.ORDER_STATE_CHANGE_FAILED)
-        }
+        return this.copy(status = OrderStatus.CANCELLED, orderDate = LocalDateTime.now())
     }
 
     fun isPending(): Boolean = status == OrderStatus.PENDING
@@ -153,120 +151,3 @@ data class Order(
         }
     }
 }
-
-data class OrderItem(
-    val id: Long? = null,
-    val orderId: Long? = null,
-    val productId: Long,
-    val productName: String,
-    val quantity: Int,
-    val pricePerItem: Int,
-    var status: OrderStatus = OrderStatus.PENDING,
-) {
-    companion object {
-        const val MIN_QUANTITY = 1
-        const val MAX_QUANTITY = 100
-        const val MIN_PRICE = 1
-        const val MAX_PRICE = 100_000_000
-
-        fun create(
-            productId: Long,
-            quantity: Int,
-            productName: String,
-            pricePerItem: Int,
-            orderId: Long
-        ): OrderItem {
-            validateBusinessRules(productId, quantity, pricePerItem)
-
-            return OrderItem(
-                orderId = orderId,
-                productId = productId,
-                productName = productName,
-                quantity = quantity,
-                pricePerItem = pricePerItem,
-                status = OrderStatus.PENDING
-            )
-        }
-
-        private fun validateBusinessRules(
-            productId: Long,
-            quantity: Int,
-            pricePerItem: Int
-        ) {
-            if (productId <= 0) {
-                throw BusinessException(ErrorCode.INVALID_PRODUCT_ID)
-            }
-
-            if (quantity !in MIN_QUANTITY..MAX_QUANTITY) {
-                throw BusinessException(ErrorCode.INVALID_ORDER_QUANTITY)
-            }
-
-            if (pricePerItem !in MIN_PRICE..MAX_PRICE) {
-                throw BusinessException(ErrorCode.INVALID_PRODUCT_PRICE)
-            }
-        }
-    }
-
-    fun completeOrder() {
-        validateInvariants()
-
-        if (isCompleted()) {
-            throw BusinessException(ErrorCode.ORDER_ALREADY_COMPLETED)
-        }
-
-        if (isCancelled()) {
-            throw BusinessException(ErrorCode.ORDER_ALREADY_CANCELLED)
-        }
-        this.status = OrderStatus.COMPLETED
-
-        if (this.status != OrderStatus.COMPLETED) {
-            throw BusinessException(ErrorCode.ORDER_STATE_CHANGE_FAILED)
-        }
-    }
-
-    fun cancelOrder() {
-        validateInvariants()
-
-        if (isCancelled()) {
-            throw BusinessException(ErrorCode.ORDER_ALREADY_CANCELLED)
-        }
-        this.status = OrderStatus.CANCELLED
-
-        if (this.status != OrderStatus.CANCELLED) {
-            throw BusinessException(ErrorCode.ORDER_STATE_CHANGE_FAILED)
-        }
-    }
-
-    fun isPending(): Boolean = status == OrderStatus.PENDING
-
-    fun isCompleted(): Boolean = status == OrderStatus.COMPLETED
-
-    fun isCancelled(): Boolean = status == OrderStatus.CANCELLED
-
-    fun canBeCompleted(): Boolean = isPending()
-
-    fun canBeCancelled(): Boolean = !isCancelled()
-
-    fun getTotalPrice(): Int = quantity * pricePerItem
-
-    private fun validateInvariants() {
-        if (quantity !in MIN_QUANTITY..MAX_QUANTITY) {
-            throw BusinessException(ErrorCode.INVALID_ORDER_QUANTITY)
-        }
-        if (pricePerItem !in MIN_PRICE..MAX_PRICE) {
-            throw BusinessException(ErrorCode.INVALID_PRODUCT_PRICE)
-        }
-        if (productId <= 0) {
-            throw BusinessException(ErrorCode.INVALID_PRODUCT_ID)
-        }
-    }
-}
-
-data class Payment(
-    val orderId: Long,
-    val orderNumber: String,
-    val userId: Long,
-    val finalAmount: Int,
-    val status: OrderStatus,
-    val orderedAt: LocalDateTime
-)

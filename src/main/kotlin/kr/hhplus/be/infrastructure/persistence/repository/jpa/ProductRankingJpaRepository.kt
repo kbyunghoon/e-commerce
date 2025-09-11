@@ -24,8 +24,15 @@ interface ProductRankingJpaRepository : JpaRepository<ProductRankingEntity, Long
         @Param("endDate") endDate: LocalDate
     ): List<ProductRanking>
 
+    fun existsByProductIdAndRankingDate(productId: Long, rankingDate: LocalDate): Boolean
 
-    @Modifying(clearAutomatically = true)
+    fun findByProductIdAndRankingDate(productId: Long, rankingDate: LocalDate): ProductRanking?
+
+    @Modifying
     @Query("UPDATE ProductRankingEntity pr SET pr.totalSalesCount = pr.totalSalesCount + :quantity WHERE pr.productId = :productId AND pr.rankingDate = :date")
-    fun updateSalesCount(@Param("productId") productId: Long, @Param("quantity") quantity: Int, @Param("date") today: LocalDate)
+    fun updateSalesCount(
+        @Param("productId") productId: Long,
+        @Param("quantity") quantity: Int,
+        @Param("date") today: LocalDate
+    ): Int
 }

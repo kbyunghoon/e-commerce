@@ -6,6 +6,7 @@ import io.kotest.matchers.comparables.shouldBeLessThanOrEqualTo
 import io.kotest.matchers.shouldBe
 import kr.hhplus.be.config.IntegrationTest
 import kr.hhplus.be.domain.product.Product
+import kr.hhplus.be.domain.product.ProductRankingRepository
 import kr.hhplus.be.domain.product.ProductRepository
 import kr.hhplus.be.domain.product.ProductStatus
 import kr.hhplus.be.support.concurrent.ConcurrentTestExecutor
@@ -17,7 +18,8 @@ import java.time.LocalDateTime
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class ProductConcurrencyTest(
     private val productService: ProductService,
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val productRankingRepository: ProductRankingRepository
 ) : DescribeSpec({
 
     val executor = ConcurrentTestExecutor()
@@ -29,22 +31,21 @@ class ProductConcurrencyTest(
             val initialStock = 100
             val threadCount = 10
             val taskCount = 20
+            val now = LocalDateTime.now()
 
             val product = Product(
-                id = 0L,
                 name = "재고차감 테스트 상품",
                 stock = initialStock,
                 price = 1000,
-                createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now(),
+                createdAt = now,
+                updatedAt = now,
                 status = ProductStatus.ACTIVE,
-                version = 0L
             )
             val savedProduct = productRepository.save(product)
 
             // when
             val result: ConcurrentTestResult = executor.execute(threadCount, taskCount) {
-                productService.deductStock(savedProduct.id, 1)
+                productService.deductStock(savedProduct.id!!, 1)
             }
 
             // then
@@ -56,7 +57,8 @@ class ProductConcurrencyTest(
                 println("예외: ${exception.javaClass.simpleName} - ${exception.message}")
             }
 
-            val finalProduct = productRepository.findByIdOrThrow(savedProduct.id)
+            val finalProduct = productRepository.findByIdOrThrow(savedProduct.id!!)
+            val rankingHistory = productRankingRepository.findByProductIdAndRankingDate(savedProduct.id, now.toLocalDate())
             val finalStock = finalProduct.stock
             println("초기 재고: $initialStock")
             println("최종 재고: $finalStock")
@@ -66,6 +68,7 @@ class ProductConcurrencyTest(
 
             val expectedStock = initialStock - result.getSuccessCount().get()
             finalStock shouldBe expectedStock
+            rankingHistory?.totalSalesCount shouldBe result.getSuccessCount().get()
         }
 
         it("재고 차감 동시성 테스트 - 높은 동시성") {
@@ -73,22 +76,21 @@ class ProductConcurrencyTest(
             val initialStock = 50
             val threadCount = 20
             val taskCount = 100
+            val now = LocalDateTime.now()
 
             val product = Product(
-                id = 0L,
                 name = "높은 동시성 테스트 상품",
                 stock = initialStock,
                 price = 2000,
-                createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now(),
+                createdAt = now,
+                updatedAt = now,
                 status = ProductStatus.ACTIVE,
-                version = 0L
             )
             val savedProduct = productRepository.save(product)
 
             // when
             val result: ConcurrentTestResult = executor.execute(threadCount, taskCount) {
-                productService.deductStock(savedProduct.id, 1)
+                productService.deductStock(savedProduct.id!!, 1)
             }
 
             // then
@@ -102,7 +104,8 @@ class ProductConcurrencyTest(
                 println("$type: ${exceptions.size}회 발생")
             }
 
-            val finalProduct = productRepository.findByIdOrThrow(savedProduct.id)
+            val finalProduct = productRepository.findByIdOrThrow(savedProduct.id!!)
+            val rankingHistory = productRankingRepository.findByProductIdAndRankingDate(savedProduct.id, now.toLocalDate())
             val finalStock = finalProduct.stock
             val totalDeducted = initialStock - finalStock
             println("초기 재고: $initialStock")
@@ -115,6 +118,7 @@ class ProductConcurrencyTest(
 
             val expectedStock = initialStock - result.getSuccessCount().get()
             finalStock shouldBe expectedStock
+            rankingHistory?.totalSalesCount shouldBe totalDeducted
         }
 
         it("재고 부족 상황 동시성 테스트") {
@@ -122,22 +126,21 @@ class ProductConcurrencyTest(
             val initialStock = 5
             val threadCount = 10
             val taskCount = 20
+            val now = LocalDateTime.now()
 
             val product = Product(
-                id = 0L,
                 name = "재고부족 테스트 상품",
                 stock = initialStock,
                 price = 3000,
-                createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now(),
+                createdAt = now,
+                updatedAt = now,
                 status = ProductStatus.ACTIVE,
-                version = 0L
             )
             val savedProduct = productRepository.save(product)
 
             // when
             val result: ConcurrentTestResult = executor.execute(threadCount, taskCount) {
-                productService.deductStock(savedProduct.id, 1)
+                productService.deductStock(savedProduct.id!!, 1)
             }
 
             // then
@@ -150,13 +153,15 @@ class ProductConcurrencyTest(
                 println("$type: ${exceptions.size}회 발생")
             }
 
-            val finalProduct = productRepository.findByIdOrThrow(savedProduct.id)
+            val finalProduct = productRepository.findByIdOrThrow(savedProduct.id!!)
+            val rankingHistory = productRankingRepository.findByProductIdAndRankingDate(savedProduct.id, now.toLocalDate())
             val finalStock = finalProduct.stock
             println("초기 재고: $initialStock")
             println("최종 재고: $finalStock")
             println("차감된 재고: ${initialStock - finalStock}")
 
             finalStock shouldBe 0
+            rankingHistory?.totalSalesCount shouldBe initialStock - finalStock
 
             result.getSuccessCount().get() shouldBe initialStock
 
@@ -169,22 +174,21 @@ class ProductConcurrencyTest(
             val threadCount = 50
             val taskCount = 100
             val deductAmount = 5
+            val now = LocalDateTime.now()
 
             val product = Product(
-                id = 0L,
                 name = "대량 차감 테스트 상품",
                 stock = initialStock,
                 price = 5000,
-                createdAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now(),
+                createdAt = now,
+                updatedAt = now,
                 status = ProductStatus.ACTIVE,
-                version = 0L
             )
             val savedProduct = productRepository.save(product)
 
             // when
             val result: ConcurrentTestResult = executor.execute(threadCount, taskCount) {
-                productService.deductStock(savedProduct.id, deductAmount)
+                productService.deductStock(savedProduct.id!!, deductAmount)
             }
 
             // then
@@ -200,7 +204,8 @@ class ProductConcurrencyTest(
                 }
             }
 
-            val finalProduct = productRepository.findByIdOrThrow(savedProduct.id)
+            val finalProduct = productRepository.findByIdOrThrow(savedProduct.id!!)
+            val rankingHistory = productRankingRepository.findByProductIdAndRankingDate(savedProduct.id, now.toLocalDate())
             val finalStock = finalProduct.stock
             val totalDeducted = initialStock - finalStock
             println("초기 재고: $initialStock")
@@ -212,6 +217,7 @@ class ProductConcurrencyTest(
 
             val expectedStock = initialStock - (result.getSuccessCount().get() * deductAmount)
             finalStock shouldBe expectedStock
+            rankingHistory?.totalSalesCount shouldBe totalDeducted
         }
     }
 })

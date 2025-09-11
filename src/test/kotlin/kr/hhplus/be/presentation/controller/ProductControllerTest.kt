@@ -7,11 +7,12 @@ import io.kotest.extensions.spring.SpringExtension
 import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.verify
-import kr.hhplus.be.application.product.ProductDto
-import kr.hhplus.be.application.service.ProductRankingService
+import kr.hhplus.be.application.product.ProductSearchCommand
 import kr.hhplus.be.application.service.ProductService
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
+import kr.hhplus.be.domain.product.Product
+import kr.hhplus.be.domain.product.ProductStatus
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -42,28 +43,30 @@ class ProductControllerTest(
 
                 val now = LocalDateTime.now()
                 val mockProducts = listOf(
-                    ProductDto.ProductInfo(
+                    Product(
                         id = 1L,
                         name = "아이폰 15",
                         price = 1200000,
                         stock = 50,
                         createdAt = now.minusDays(10),
-                        updatedAt = now.minusDays(1)
+                        updatedAt = now.minusDays(1),
+                        status = ProductStatus.ACTIVE,
                     ),
-                    ProductDto.ProductInfo(
+                    Product(
                         id = 2L,
                         name = "갤럭시 S24",
                         price = 1000000,
                         stock = 30,
+                        status = ProductStatus.ACTIVE,
                         createdAt = now.minusDays(5),
-                        updatedAt = now.minusHours(1)
+                        updatedAt = now.minusHours(1),
                     )
                 )
 
                 val pageable = PageRequest.of(0, 10)
                 val page = PageImpl(mockProducts, pageable, mockProducts.size.toLong())
 
-                every { productService.getProducts(any(), null, null, null) } returns page
+                every { productService.getProducts(any()) } returns page
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -86,7 +89,7 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.data.pagination.size").value(10))
                         .andExpect(jsonPath("$.data.pagination.totalElements").value(2))
 
-                    verify(exactly = 1) { productService.getProducts(any(), null, null, null) }
+                    verify(exactly = 1) { productService.getProducts(any()) }
                 }
             }
 
@@ -96,28 +99,31 @@ class ProductControllerTest(
                 val searchKeyword = "아이폰"
                 val now = LocalDateTime.now()
                 val mockProducts = listOf(
-                    ProductDto.ProductInfo(
+                    Product(
                         id = 1L,
                         name = "아이폰 15",
                         price = 1200000,
                         stock = 50,
                         createdAt = now.minusDays(10),
+                        status = ProductStatus.ACTIVE,
                         updatedAt = now.minusDays(1)
                     ),
-                    ProductDto.ProductInfo(
+                    Product(
                         id = 3L,
                         name = "아이폰 14",
                         price = 1000000,
                         stock = 20,
                         createdAt = now.minusDays(20),
+                        status = ProductStatus.ACTIVE,
                         updatedAt = now.minusDays(5)
                     )
                 )
 
                 val pageable = PageRequest.of(0, 10)
                 val page = PageImpl(mockProducts, pageable, mockProducts.size.toLong())
+                val command = ProductSearchCommand(pageable, searchKeyword, null, null)
 
-                every { productService.getProducts(any(), eq(searchKeyword), null, null) } returns page
+                every { productService.getProducts(any()) } returns page
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -134,7 +140,7 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.data.products[0].name").value("아이폰 15"))
                         .andExpect(jsonPath("$.data.products[1].name").value("아이폰 14"))
 
-                    verify(exactly = 1) { productService.getProducts(any(), eq(searchKeyword), null, null) }
+                    verify(exactly = 1) { productService.getProducts(any()) }
                 }
             }
 
@@ -145,12 +151,13 @@ class ProductControllerTest(
                 val maxPrice = 1000000
                 val now = LocalDateTime.now()
                 val mockProducts = listOf(
-                    ProductDto.ProductInfo(
+                    Product(
                         id = 2L,
                         name = "갤럭시 S24",
                         price = 1000000,
                         stock = 30,
                         createdAt = now.minusDays(5),
+                        status = ProductStatus.ACTIVE,
                         updatedAt = now.minusHours(1)
                     )
                 )
@@ -158,7 +165,7 @@ class ProductControllerTest(
                 val pageable = PageRequest.of(0, 10)
                 val page = PageImpl(mockProducts, pageable, mockProducts.size.toLong())
 
-                every { productService.getProducts(any(), null, eq(minPrice), eq(maxPrice)) } returns page
+                every { productService.getProducts(any()) } returns page
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -179,9 +186,6 @@ class ProductControllerTest(
                     verify(exactly = 1) {
                         productService.getProducts(
                             any(),
-                            null,
-                            eq(minPrice),
-                            eq(maxPrice)
                         )
                     }
                 }
@@ -192,9 +196,9 @@ class ProductControllerTest(
 
                 val searchKeyword = "존재하지않는상품"
                 val pageable = PageRequest.of(0, 10)
-                val emptyPage = PageImpl<ProductDto.ProductInfo>(emptyList(), pageable, 0)
+                val emptyPage = PageImpl<Product>(emptyList(), pageable, 0)
 
-                every { productService.getProducts(any(), eq(searchKeyword), null, null) } returns emptyPage
+                every { productService.getProducts(any()) } returns emptyPage
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -210,7 +214,7 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.data.products.length()").value(0))
                         .andExpect(jsonPath("$.data.pagination.totalElements").value(0))
 
-                    verify(exactly = 1) { productService.getProducts(any(), eq(searchKeyword), null, null) }
+                    verify(exactly = 1) { productService.getProducts(any()) }
                 }
             }
 
@@ -219,12 +223,13 @@ class ProductControllerTest(
 
                 val now = LocalDateTime.now()
                 val mockProducts = listOf(
-                    ProductDto.ProductInfo(
+                    Product(
                         id = 1L,
                         name = "상품1",
                         price = 10000,
                         stock = 100,
                         createdAt = now,
+                        status = ProductStatus.ACTIVE,
                         updatedAt = now
                     )
                 )
@@ -232,7 +237,7 @@ class ProductControllerTest(
                 val pageable = PageRequest.of(0, 5)
                 val page = PageImpl(mockProducts, pageable, mockProducts.size.toLong())
 
-                every { productService.getProducts(any(), null, null, null) } returns page
+                every { productService.getProducts(any()) } returns page
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -248,7 +253,7 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.data.pagination.size").value(5))
                         .andExpect(jsonPath("$.data.pagination.page").value(0))
 
-                    verify(exactly = 1) { productService.getProducts(any(), null, null, null) }
+                    verify(exactly = 1) { productService.getProducts(any()) }
                 }
             }
         }
@@ -259,12 +264,13 @@ class ProductControllerTest(
 
                 val productId = 1L
                 val now = LocalDateTime.now()
-                val mockProduct = ProductDto.ProductInfo(
+                val mockProduct = Product(
                     id = productId,
                     name = "아이폰 15 Pro",
                     price = 1500000,
                     stock = 25,
                     createdAt = now.minusDays(7),
+                    status = ProductStatus.ACTIVE,
                     updatedAt = now.minusHours(2)
                 )
 
@@ -354,12 +360,13 @@ class ProductControllerTest(
 
                 val now = LocalDateTime.now()
                 val mockProducts = listOf(
-                    ProductDto.ProductInfo(
+                    Product(
                         id = 1L,
                         name = "기본 상품",
                         price = 50000,
                         stock = 10,
                         createdAt = now,
+                        status = ProductStatus.ACTIVE,
                         updatedAt = now
                     )
                 )
@@ -367,7 +374,7 @@ class ProductControllerTest(
                 val pageable = PageRequest.of(0, 10)
                 val page = PageImpl(mockProducts, pageable, mockProducts.size.toLong())
 
-                every { productService.getProducts(any(), "", null, null) } returns page
+                every { productService.getProducts(any()) } returns page
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -381,7 +388,7 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.success").value(true))
                         .andExpect(jsonPath("$.data.products").isArray)
 
-                    verify(exactly = 1) { productService.getProducts(any(), "", null, null) }
+                    verify(exactly = 1) { productService.getProducts(any()) }
                 }
             }
 
@@ -391,9 +398,9 @@ class ProductControllerTest(
                 val minPrice = 1000000
                 val maxPrice = 500000
                 val pageable = PageRequest.of(0, 10)
-                val emptyPage = PageImpl<ProductDto.ProductInfo>(emptyList(), pageable, 0)
+                val emptyPage = PageImpl<Product>(emptyList(), pageable, 0)
 
-                every { productService.getProducts(any(), null, eq(minPrice), eq(maxPrice)) } returns emptyPage
+                every { productService.getProducts(any()) } returns emptyPage
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -409,7 +416,7 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.data.products").isArray)
                         .andExpect(jsonPath("$.data.products.length()").value(0))
 
-                    verify(exactly = 1) { productService.getProducts(any(), null, eq(minPrice), eq(maxPrice)) }
+                    verify(exactly = 1) { productService.getProducts(any()) }
                 }
             }
 
@@ -419,9 +426,9 @@ class ProductControllerTest(
                 val minPrice = -1000
                 val maxPrice = 50000
                 val pageable = PageRequest.of(0, 10)
-                val emptyPage = PageImpl<ProductDto.ProductInfo>(emptyList(), pageable, 0)
+                val emptyPage = PageImpl<Product>(emptyList(), pageable, 0)
 
-                every { productService.getProducts(any(), null, eq(minPrice), eq(maxPrice)) } returns emptyPage
+                every { productService.getProducts(any()) } returns emptyPage
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -430,14 +437,8 @@ class ProductControllerTest(
                         .contentType(MediaType.APPLICATION_JSON)
                 )
 
-                Then("200 상태코드와 빈 상품 목록을 반환한다") {
-                    result.andExpect(status().isOk)
-                        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                        .andExpect(jsonPath("$.success").value(true))
-                        .andExpect(jsonPath("$.data.products").isArray)
-                        .andExpect(jsonPath("$.data.products.length()").value(0))
-
-                    verify(exactly = 1) { productService.getProducts(any(), null, eq(minPrice), eq(maxPrice)) }
+                Then("400 상태코드를 반환한다") {
+                    result.andExpect(status().isBadRequest)
                 }
             }
 
@@ -461,12 +462,13 @@ class ProductControllerTest(
 
                 val now = LocalDateTime.now()
                 val mockProducts = listOf(
-                    ProductDto.ProductInfo(
+                    Product(
                         id = 1L,
                         name = "상품",
                         price = 50000,
                         stock = 10,
                         createdAt = now,
+                        status = ProductStatus.ACTIVE,
                         updatedAt = now
                     )
                 )
@@ -474,7 +476,7 @@ class ProductControllerTest(
                 val pageable = PageRequest.of(0, 10)
                 val page = PageImpl(mockProducts, pageable, mockProducts.size.toLong())
 
-                every { productService.getProducts(any(), null, eq(50000), null) } returns page
+                every { productService.getProducts(any()) } returns page
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -488,7 +490,7 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.success").value(true))
                         .andExpect(jsonPath("$.data.products").isArray)
 
-                    verify(exactly = 1) { productService.getProducts(any(), null, eq(50000), null) }
+                    verify(exactly = 1) { productService.getProducts(any()) }
                 }
             }
         }
@@ -498,9 +500,9 @@ class ProductControllerTest(
                 clearMocks(productService)
 
                 val pageable = PageRequest.of(100, 10)
-                val emptyPage = PageImpl<ProductDto.ProductInfo>(emptyList(), pageable, 0)
+                val emptyPage = PageImpl<Product>(emptyList(), pageable, 0)
 
-                every { productService.getProducts(any(), null, null, null) } returns emptyPage
+                every { productService.getProducts(any()) } returns emptyPage
 
                 val result = mockMvc.perform(
                     get("/api/v1/products")
@@ -517,7 +519,7 @@ class ProductControllerTest(
                         .andExpect(jsonPath("$.data.products.length()").value(0))
                         .andExpect(jsonPath("$.data.pagination.page").value(100))
 
-                    verify(exactly = 1) { productService.getProducts(any(), null, null, null) }
+                    verify(exactly = 1) { productService.getProducts(any()) }
                 }
             }
         }

@@ -7,15 +7,11 @@ import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import kr.hhplus.be.application.coupon.CouponDto
-import kr.hhplus.be.application.order.OrderDto
 import kr.hhplus.be.application.order.PaymentProcessCommand
 import kr.hhplus.be.application.service.saga.SagaCouponService
 import kr.hhplus.be.application.service.saga.SagaOrderService
 import kr.hhplus.be.application.service.saga.SagaProductService
 import kr.hhplus.be.application.service.saga.SagaUserService
-import kr.hhplus.be.domain.coupon.CouponStatus
-import kr.hhplus.be.domain.coupon.DiscountType
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.Order
@@ -54,18 +50,6 @@ class PaymentSagaOrchestratorTest : BehaviorSpec({
             userId = userId
         )
 
-        val order = Order(
-            id = orderId,
-            userId = userId,
-            orderNumber = "ORDER-001",
-            originalAmount = 12000,
-            discountAmount = 2000,
-            finalAmount = finalAmount,
-            status = OrderStatus.PENDING,
-            userCouponId = userCouponId,
-            orderDate = LocalDateTime.now()
-        )
-
         val orderItems = listOf(
             OrderItem(
                 orderId = orderId,
@@ -77,28 +61,28 @@ class PaymentSagaOrchestratorTest : BehaviorSpec({
             )
         )
 
-        val userCouponInfo = CouponDto.UserCouponInfo(
-            id = userCouponId,
+
+        val order = Order(
+            id = orderId,
             userId = userId,
-            couponId = 1L,
-            couponName = "테스트 쿠폰",
-            discountType = DiscountType.FIXED,
-            discountValue = 2000,
-            status = CouponStatus.AVAILABLE,
-            expiresAt = LocalDateTime.now().plusDays(30),
-            issuedAt = LocalDateTime.now(),
-            usedAt = null
+            orderNumber = "ORDER-001",
+            originalAmount = 12000,
+            discountAmount = 2000,
+            finalAmount = finalAmount,
+            status = OrderStatus.PENDING,
+            userCouponId = userCouponId,
+            orderItems = orderItems,
+            orderDate = LocalDateTime.now()
         )
 
         When("정상적인 결제 사가 실행 요청을 하면") {
-            val orderDto = OrderDto.OrderDetails.from(order, orderItems)
-            every { sagaOrderService.getOrderForPayment(orderId, userId) } returns orderDto
+            every { sagaOrderService.getOrderForPayment(orderId, userId) } returns order
             every { sagaRepository.save(any()) } returnsArgument 0
             every { sagaUserService.deductBalance(userId, finalAmount) } returns Unit
             every { sagaProductService.deductStock(orderId, userId) } returns Unit
             every { sagaCouponService.useCoupon(userId, userCouponId) } returns Unit
             every { sagaOrderService.completeOrder(orderId) } returns Unit
-            every { sagaOrderService.getOrder(orderId, userId) } returns orderDto
+            every { sagaOrderService.getOrder(orderId, userId) } returns order
 
             val result = paymentSagaOrchestrator.executePaymentSaga(command)
 
@@ -117,14 +101,13 @@ class PaymentSagaOrchestratorTest : BehaviorSpec({
 
         When("쿠폰 없는 주문으로 결제 사가를 실행하면") {
             val orderWithoutCoupon = order.copy(userCouponId = null, discountAmount = 0, finalAmount = 12000)
-            val orderDtoWithoutCoupon = OrderDto.OrderDetails.from(orderWithoutCoupon, orderItems)
 
-            every { sagaOrderService.getOrderForPayment(orderId, userId) } returns orderDtoWithoutCoupon
+            every { sagaOrderService.getOrderForPayment(orderId, userId) } returns orderWithoutCoupon
             every { sagaRepository.save(any()) } returnsArgument 0
             every { sagaUserService.deductBalance(userId, 12000) } returns Unit
             every { sagaProductService.deductStock(orderId, userId) } returns Unit
             every { sagaOrderService.completeOrder(orderId) } returns Unit
-            every { sagaOrderService.getOrder(orderId, userId) } returns orderDtoWithoutCoupon
+            every { sagaOrderService.getOrder(orderId, userId) } returns orderWithoutCoupon
 
             val result = paymentSagaOrchestrator.executePaymentSaga(command)
 
@@ -158,8 +141,7 @@ class PaymentSagaOrchestratorTest : BehaviorSpec({
         }
 
         When("재고 부족으로 Saga가 실패하면") {
-            val orderDto = OrderDto.OrderDetails.from(order, orderItems)
-            every { sagaOrderService.getOrderForPayment(orderId, userId) } returns orderDto
+            every { sagaOrderService.getOrderForPayment(orderId, userId) } returns order
             every { sagaRepository.save(any()) } returnsArgument 0
             every { sagaUserService.deductBalance(userId, finalAmount) } returns Unit
             every {

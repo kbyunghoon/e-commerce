@@ -1,7 +1,7 @@
 package kr.hhplus.be.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
-import kr.hhplus.be.application.product.ProductDto
+import kr.hhplus.be.domain.product.Product
 import java.time.LocalDateTime
 
 @Schema(description = "상품 정보")
@@ -25,14 +25,14 @@ data class ProductResponse(
     val updatedAt: LocalDateTime
 ) {
     companion object {
-        fun from(productInfo: ProductDto.ProductInfo): ProductResponse {
+        fun from(product: Product): ProductResponse {
             return ProductResponse(
-                id = productInfo.id,
-                name = productInfo.name,
-                price = productInfo.price,
-                stock = productInfo.stock,
-                createdAt = productInfo.createdAt,
-                updatedAt = productInfo.updatedAt
+                id = product.id!!,
+                name = product.name,
+                price = product.price,
+                stock = product.stock,
+                createdAt = product.createdAt,
+                updatedAt = product.updatedAt
             )
         }
     }

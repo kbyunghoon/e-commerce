@@ -9,7 +9,7 @@ class ProductPriceHistoryEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "history_id")
-    val id: Long = 0,
+    val id: Long? = null,
 
     @Column(name = "product_id", nullable = false)
     val productId: Long,

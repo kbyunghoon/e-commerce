@@ -7,8 +7,8 @@ import io.kotest.extensions.spring.SpringExtension
 import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.verify
-import kr.hhplus.be.application.product.ProductRankingDto
 import kr.hhplus.be.application.service.ProductRankingService
+import kr.hhplus.be.domain.product.ProductRanking
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -36,32 +36,32 @@ class ProductRankingControllerTest(
                 clearMocks(productRankingService)
 
                 val mockProductRankings = listOf(
-                    ProductRankingDto.ProductRankingInfo(
-                        id = 1L,
+                    ProductRanking(
+                        productId = 1L,
                         productName = "인기 상품 1",
                         totalSalesCount = 100,
                         rankingDate = LocalDate.now(),
                     ),
-                    ProductRankingDto.ProductRankingInfo(
-                        id = 2L,
+                    ProductRanking(
+                        productId = 2L,
                         productName = "인기 상품 2",
                         totalSalesCount = 99,
                         rankingDate = LocalDate.now(),
                     ),
-                    ProductRankingDto.ProductRankingInfo(
-                        id = 3L,
+                    ProductRanking(
+                        productId = 3L,
                         productName = "인기 상품 3",
                         totalSalesCount = 98,
                         rankingDate = LocalDate.now(),
                     ),
-                    ProductRankingDto.ProductRankingInfo(
-                        id = 4L,
+                    ProductRanking(
+                        productId = 4L,
                         productName = "인기 상품 4",
                         totalSalesCount = 97,
                         rankingDate = LocalDate.now(),
                     ),
-                    ProductRankingDto.ProductRankingInfo(
-                        id = 5L,
+                    ProductRanking(
+                        productId = 5L,
                         productName = "인기 상품 5",
                         totalSalesCount = 96,
                         rankingDate = LocalDate.now(),
@@ -81,7 +81,7 @@ class ProductRankingControllerTest(
                         .andExpect(jsonPath("$.success").value(true))
                         .andExpect(jsonPath("$.data.rankings").isArray)
                         .andExpect(jsonPath("$.data.rankings.length()").value(5))
-                        .andExpect(jsonPath("$.data.rankings[0].id").value(1))
+                        .andExpect(jsonPath("$.data.rankings[0].productId").value(1))
                         .andExpect(jsonPath("$.data.rankings[0].productName").value("인기 상품 1"))
 
                     verify(exactly = 1) { productRankingService.getTopProducts(any()) }
@@ -91,7 +91,7 @@ class ProductRankingControllerTest(
             When("인기 상품이 없을 때 조회하면") {
                 clearMocks(productRankingService)
 
-                val emptyList = emptyList<ProductRankingDto.ProductRankingInfo>()
+                val emptyList = emptyList<ProductRanking>()
 
                 every { productRankingService.getTopProducts(any()) } returns emptyList
 

@@ -1,7 +1,6 @@
 package kr.hhplus.be.presentation.api
 
 import io.swagger.v3.oas.annotations.Operation
-import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -11,7 +10,6 @@ import kr.hhplus.be.presentation.dto.request.PaymentRequest
 import kr.hhplus.be.presentation.dto.response.OrderResponse
 import kr.hhplus.be.presentation.dto.response.PaymentResponse
 import org.springframework.http.HttpStatus
-import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.ResponseStatus
 

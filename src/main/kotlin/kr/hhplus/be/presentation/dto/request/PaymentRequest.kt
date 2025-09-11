@@ -3,6 +3,7 @@ package kr.hhplus.be.presentation.dto.request
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
+import kr.hhplus.be.application.order.PaymentProcessCommand
 
 @Schema(description = "결제 처리 요청")
 data class PaymentRequest(
@@ -14,4 +15,11 @@ data class PaymentRequest(
     @field:Schema(description = "주문 번호", example = "123", required = true)
     @field:NotNull(message = "주문 번호는 필수입니다")
     val orderId: Long
-)
+) {
+    fun toCommand(): PaymentProcessCommand {
+        return PaymentProcessCommand(
+            userId = userId,
+            orderId = orderId,
+        )
+    }
+}
