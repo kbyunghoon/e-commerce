@@ -56,6 +56,10 @@ dependencies {
     // DB
     runtimeOnly("com.mysql:mysql-connector-j")
 
+    // Redis
+    implementation("org.redisson:redisson-spring-boot-starter:3.46.0")
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
+
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("com.h2database:h2")

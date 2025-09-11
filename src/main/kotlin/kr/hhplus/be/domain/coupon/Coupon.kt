@@ -92,12 +92,14 @@ data class Coupon(
         if (!canBeIssued()) {
             throw BusinessException(ErrorCode.COUPON_SOLD_OUT)
         }
+
+        if (this.issuedQuantity + 1 > this.totalQuantity) {
+            throw BusinessException(ErrorCode.COUPON_ISSUE_LIMIT_EXCEEDED)
+        }
+
         this.issuedQuantity++
         this.updatedAt = LocalDateTime.now()
 
-        if (this.issuedQuantity > this.totalQuantity) {
-            throw BusinessException(ErrorCode.COUPON_ISSUE_LIMIT_EXCEEDED)
-        }
     }
 
     fun restore() {

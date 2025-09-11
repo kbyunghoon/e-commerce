@@ -1,10 +1,13 @@
-package kr.hhplus.be.infrastructure.persistence.repository
+package kr.hhplus.be.infrastructure.persistence.repository.jpa
 
+import jakarta.persistence.LockModeType
 import kr.hhplus.be.infrastructure.entity.ProductEntity
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 
 @Repository
@@ -24,4 +27,12 @@ interface ProductJpaRepository : JpaRepository<ProductEntity, Long> {
     ): Page<ProductEntity>
 
     fun findByIdIn(ids: List<Long>): List<ProductEntity>
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM ProductEntity p WHERE p.id = :id")
+    fun findByIdWithPessimisticLock(@Param("id") productId: Long): ProductEntity?
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM ProductEntity p WHERE p.id IN :ids ORDER BY p.id")
+    fun findByIdsWithPessimisticLock(@Param("ids") productIds: List<Long>): List<ProductEntity>
 }

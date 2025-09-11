@@ -25,7 +25,7 @@
              |
 +------------+------------+
 |      Application        |
-|      (Services)         |
+|       (Services)        |
 +------------^------------+
              |
 +------------+------------+
@@ -49,11 +49,10 @@
     - 순수한 비즈니스 규칙과 엔티티만 포함합니다.
 
 #### 2. Application Layer (애플리케이션 계층)
-- **책임**: 도메인 계층의 엔티티를 사용하여 비즈니스 로직을 구현합니다. `Service` 클래스는 단일 비즈니스 로직을 담당하며, `Facade` 클래스는 여러 `Service`를 조율하여 복잡한 비즈니스 흐름을 완성하고 트랜잭션 경계를 정의합니다. 비즈니스 로직의 흐름을 조정하고, 도메인 계층의 인터페이스를 통해 외부 서비스(데이터베이스, 외부 API 등)와 상호작용합니다.
+- **책임**: 도메인 계층의 엔티티를 사용하여 비즈니스 로직을 구현합니다.
 - **제약사항**:
     - 도메인 계층에만 의존합니다.
     - 프레임워크나 외부 라이브러리에 직접적으로 의존하지 않습니다.
-    - `Service` 및 `Facade` 클래스를 포함합니다.
 
 #### 3. Presentation Layer (프레젠테이션 계층)
 - **책임**: API 엔드포인트를 담당합니다. 사용자 요청을 받아 애플리케이션 계층의 비즈니스 로직을 호출하고, 결과를 사용자에게 반환합니다.
@@ -69,8 +68,8 @@
 
 ### 트랜잭션 경계 정책
 
-트랜잭션은 애플리케이션 계층의 `Facade`에서 관리됩니다.
-- `@Transactional` 어노테이션은 `Service`가 아닌 `Facade` 메서드에서만 적용합니다.
+트랜잭션은 애플리케이션 계층의 `Service`에서 관리됩니다.
+- `@Transactional` 어노테이션은 `Service` 메서드에서만 적용합니다.
 - 인프라스트럭처 계층의 Repository 구현체는 트랜잭션 관리의 책임을 가지지 않습니다.
 
 ### 패키지 구조 및 네이밍 컨벤션
@@ -80,7 +79,6 @@ src/main/kotlin/kr/hhplus/be/
 ├───application/
 │   ├───balance/        // 잔액 관련 Command 및 DTO (BalanceCommand.kt, BalanceDto.kt)
 │   ├───coupon/         // 쿠폰 관련 Command 및 DTO (CouponCommand.kt, CouponDto.kt)
-│   ├───facade/         // 여러 서비스의 조율 및 트랜잭션 관리
 │   ├───order/          // 주문 관련 Command 및 DTO (OrderCommand.kt, OrderDto.kt)
 │   ├───product/        // 상품 관련 DTO (ProductDto.kt)
 │   └───service/        // 핵심 비즈니스 로직
@@ -109,9 +107,29 @@ src/main/kotlin/kr/hhplus/be/
 - **인터페이스**: PascalCase (예: `OrderRepository`, `ProductService`)
 - **메서드**: camelCase (예: `processOrder`, `deductStock`)
 - **변수**: camelCase (예: `userId`, `orderItems`)
-- **패키지**: kebab-case (예: `kr.hhplus.be.application.facade`)
+- **패키지**: kebab-case (예: `kr.hhplus.be.application.service`)
 - **DTO**: 접미사 `Dto`를 가진 클래스 (예: `BalanceDto`, `CouponDto`, `OrderDto`, `ProductDto`). 이 클래스 내부에 `Info` 접미사를 가진 중첩 데이터 클래스(예: `BalanceDto.BalanceInfo`, `ProductDto.ProductInfo`, `OrderDto.CalculatedOrderDetails`, `OrderDto.OrderCreateDto`)를 포함하여 실제 데이터를 표현합니다.
 - **Command**: 접미사 `Command`를 가진 최상위 데이터 클래스 (예: `BalanceChargeCommand`, `OrderCreateCommand`). 특정 작업을 수행하기 위한 요청 데이터를 캡슐화합니다.
 - **Entity**: 접미사 `Entity` (예: `ProductEntity`, `UserEntity`)
 - **Repository 구현체**: 접미사 `Impl` (예: `ProductRepositoryImpl`)
 - **JPA Repository 인터페이스**: 접미사 `JpaRepository` (예: `ProductJpaRepository`)
+
+## 캐시 전략 및 성능 최적화
+
+### 캐시 적용 개요
+대량 트래픽 환경에서의 조회 성능 최적화를 위해 Redis 기반 캐싱 전략을 적용했습니다.
+
+### 주요 캐시 적용 대상
+- **상품 랭킹 조회**: 복잡한 집계 쿼리로 인한 성능 병목 해결 ✅ 적용완료
+
+### 캐시 전략
+- **패턴**: Cache-Aside
+- **키 전략**: 기능별 명확한 네임스페이스 적용
+
+### 성능 개선 결과
+상세한 성능 테스트 결과 및 분석은 [04_cache_report.md](docs/report/04_cache_report.md)를 참고해주세요.
+
+**주요 개선 효과** (상품 랭킹 조회):
+- 평균 응답시간: **88.9% 개선** (58.65ms → 6.46ms)
+- 처리량: **47.3% 증가** (946.1 → 1,393.7 req/s)
+- 95th percentile: **92.0% 개선** (219.57ms → 17.55ms)

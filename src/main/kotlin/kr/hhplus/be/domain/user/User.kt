@@ -10,7 +10,8 @@ data class User(
     var name: String,
     var email: String,
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    var updatedAt: LocalDateTime = LocalDateTime.now()
+    var updatedAt: LocalDateTime = LocalDateTime.now(),
+    val version: Long = 0
 ) {
     fun chargeBalance(amount: Int) {
         if (amount <= 0) {

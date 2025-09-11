@@ -3,7 +3,7 @@ package kr.hhplus.be.infrastructure.persistence
 import kr.hhplus.be.domain.product.ProductStockHistory
 import kr.hhplus.be.domain.product.ProductStockHistoryRepository
 import kr.hhplus.be.infrastructure.entity.ProductStockHistoryEntity
-import kr.hhplus.be.infrastructure.persistence.repository.ProductStockHistoryJpaRepository
+import kr.hhplus.be.infrastructure.persistence.repository.jpa.ProductStockHistoryJpaRepository
 import org.springframework.stereotype.Component
 
 @Component

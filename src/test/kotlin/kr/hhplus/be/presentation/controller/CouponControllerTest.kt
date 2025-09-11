@@ -4,9 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.extensions.spring.SpringExtension
-import io.mockk.clearMocks
-import io.mockk.every
-import io.mockk.verify
+import io.mockk.*
 import kr.hhplus.be.application.coupon.CouponDto.UserCouponInfo
 import kr.hhplus.be.application.service.CouponService
 import kr.hhplus.be.domain.coupon.CouponStatus
@@ -44,22 +42,8 @@ class CouponControllerTest(
                 val userId = 1L
                 val couponId = 1L
                 val request = CouponIssueRequest(userId, couponId)
-                val now = LocalDateTime.now()
 
-                val mockUserCouponInfo = UserCouponInfo(
-                    id = 1L,
-                    userId = userId,
-                    couponId = couponId,
-                    couponName = "10% 할인 쿠폰",
-                    discountType = DiscountType.PERCENTAGE,
-                    discountValue = 10,
-                    status = CouponStatus.AVAILABLE,
-                    expiresAt = now.plusDays(30),
-                    issuedAt = now,
-                    usedAt = null
-                )
-
-                every { couponService.issue(any()) } returns mockUserCouponInfo
+                every { couponService.issue(any()) } just Runs
 
                 val result = mockMvc.perform(
                     post("/api/v1/coupons/issue")
@@ -67,18 +51,10 @@ class CouponControllerTest(
                         .content(objectMapper.writeValueAsString(request))
                 )
 
-                Then("201 상태코드와 발급된 쿠폰 정보를 반환한다") {
+                Then("201 상태코드와 성공 응답을 반환한다") {
                     result.andExpect(status().isCreated)
                         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                         .andExpect(jsonPath("$.success").value(true))
-                        .andExpect(jsonPath("$.data.id").value(1))
-                        .andExpect(jsonPath("$.data.userId").value(userId))
-                        .andExpect(jsonPath("$.data.couponId").value(couponId))
-                        .andExpect(jsonPath("$.data.couponName").value("10% 할인 쿠폰"))
-                        .andExpect(jsonPath("$.data.discountType").value("PERCENTAGE"))
-                        .andExpect(jsonPath("$.data.discountValue").value(10))
-                        .andExpect(jsonPath("$.data.expiresAt").exists())
-                        .andExpect(jsonPath("$.data.issuedAt").exists())
 
                     verify(exactly = 1) { couponService.issue(any()) }
                 }
@@ -109,56 +85,6 @@ class CouponControllerTest(
                 }
             }
 
-            When("존재하지 않는 쿠폰 ID로 발급을 요청하면") {
-                clearMocks(couponService)
-
-                val userId = 1L
-                val couponId = 999L
-                val request = CouponIssueRequest(userId, couponId)
-
-                every { couponService.issue(any()) } throws BusinessException(ErrorCode.COUPON_NOT_FOUND)
-
-                val result = mockMvc.perform(
-                    post("/api/v1/coupons/issue")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request))
-                )
-
-                Then("400 상태코드와 에러 메시지를 반환한다") {
-                    result.andExpect(status().isBadRequest)
-                        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                        .andExpect(jsonPath("$.success").value(false))
-                        .andExpect(jsonPath("$.error.code").value("COUPON_NOT_FOUND"))
-
-                    verify(exactly = 1) { couponService.issue(any()) }
-                }
-            }
-
-            When("만료된 쿠폰을 발급 요청하면") {
-                clearMocks(couponService)
-
-                val userId = 1L
-                val couponId = 1L
-                val request = CouponIssueRequest(userId, couponId)
-
-                every { couponService.issue(any()) } throws BusinessException(ErrorCode.COUPON_EXPIRED)
-
-                val result = mockMvc.perform(
-                    post("/api/v1/coupons/issue")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request))
-                )
-
-                Then("400 상태코드와 에러 메시지를 반환한다") {
-                    result.andExpect(status().isBadRequest)
-                        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                        .andExpect(jsonPath("$.success").value(false))
-                        .andExpect(jsonPath("$.error.code").value("COUPON_EXPIRED"))
-
-                    verify(exactly = 1) { couponService.issue(any()) }
-                }
-            }
-
             When("쿠폰이 모두 소진되었을 때 발급을 요청하면") {
                 clearMocks(couponService)
 
@@ -179,6 +105,31 @@ class CouponControllerTest(
                         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                         .andExpect(jsonPath("$.success").value(false))
                         .andExpect(jsonPath("$.error.code").value("COUPON_SOLD_OUT"))
+
+                    verify(exactly = 1) { couponService.issue(any()) }
+                }
+            }
+
+            When("알 수 없는 오류가 발생하면") {
+                clearMocks(couponService)
+
+                val userId = 1L
+                val couponId = 1L
+                val request = CouponIssueRequest(userId, couponId)
+
+                every { couponService.issue(any()) } throws BusinessException(ErrorCode.UNKNOWN_ERROR)
+
+                val result = mockMvc.perform(
+                    post("/api/v1/coupons/issue")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                )
+
+                Then("500 상태코드와 에러 메시지를 반환한다") {
+                    result.andExpect(status().isInternalServerError)
+                        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                        .andExpect(jsonPath("$.success").value(false))
+                        .andExpect(jsonPath("$.error.code").value("UNKNOWN_ERROR"))
 
                     verify(exactly = 1) { couponService.issue(any()) }
                 }

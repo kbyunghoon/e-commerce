@@ -3,7 +3,7 @@ package kr.hhplus.be.infrastructure.persistence
 import kr.hhplus.be.domain.user.User
 import kr.hhplus.be.domain.user.UserRepository
 import kr.hhplus.be.infrastructure.entity.UserEntity
-import kr.hhplus.be.infrastructure.persistence.repository.UserJpaRepository
+import kr.hhplus.be.infrastructure.persistence.repository.jpa.UserJpaRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 

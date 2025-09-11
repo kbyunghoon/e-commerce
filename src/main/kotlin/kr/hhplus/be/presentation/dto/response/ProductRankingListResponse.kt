@@ -1,17 +1,18 @@
 package kr.hhplus.be.presentation.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
-import kr.hhplus.be.application.product.ProductDto.ProductRankingInfo
+import kr.hhplus.be.application.product.ProductRankingDtoV2
 
-@Schema(description = "인기 상품 목록 응답")
+@Schema(description = "상품 랭킹 목록 응답")
 data class ProductRankingListResponse(
-    @field:Schema(description = "인기 상품 목록 (최근 3일 기준 상위 5개)")
-    val products: List<ProductRankingInfo>
+    @field:Schema(description = "상품 랭킹 목록")
+    val rankings: List<ProductRankingResponse>
 ) {
+
     companion object {
-        fun from(products: List<ProductRankingInfo>): ProductRankingListResponse {
+        fun from(dtoList: List<ProductRankingDtoV2.ProductRankingInfo>): ProductRankingListResponse {
             return ProductRankingListResponse(
-                products = products
+                rankings = dtoList.map { ProductRankingResponse.from(it) }
             )
         }
     }
