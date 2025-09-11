@@ -4,7 +4,6 @@ import kr.hhplus.be.application.order.OrderItemCreateCommand
 import kr.hhplus.be.application.product.ProductDto
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
-import kr.hhplus.be.domain.product.ProductRedissonRepository
 import kr.hhplus.be.domain.product.ProductRepository
 import kr.hhplus.be.domain.product.ProductStockHistory
 import kr.hhplus.be.domain.product.ProductStockHistoryRepository
@@ -13,6 +12,7 @@ import kr.hhplus.be.domain.product.events.StockChangedEvent
 import kr.hhplus.be.global.lock.DistributedLock
 import kr.hhplus.be.global.lock.LockResource
 import kr.hhplus.be.global.lock.LockStrategy
+import kr.hhplus.be.global.lock.ProductStockLockKeyProvider
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -81,13 +81,17 @@ class ProductService(
 
     @DistributedLock(
         resource = LockResource.PRODUCT_STOCK,
-        key = "#productId",
+        keyProvider = "productStockLockKeyProvider",
         lockStrategy = LockStrategy.PUB_SUB_LOCK,
         waitTime = 5,
         leaseTime = 10
     )
     @Transactional
-    fun deductStock(productId: Long, quantity: Int) {
+    fun deductStock(
+        productId: Long,
+        quantity: Int,
+        keyProvider: ProductStockLockKeyProvider = ProductStockLockKeyProvider(productId)
+    ) {
         val product = productRepository.findByIdWithPessimisticLock(productId)
         val previousStock = product.stock
 
@@ -109,27 +113,27 @@ class ProductService(
     @Transactional
     fun batchDeductStock(stockDeductions: List<ProductDto.ProductStockDeduction>) {
         if (stockDeductions.isEmpty()) return
-        
+
         val sortedDeductions = stockDeductions.sortedBy { it.productId }
         val productIds = sortedDeductions.map { it.productId }
-        
+
         val products = productRepository.findByIdsWithPessimisticLock(productIds)
-        
+
         sortedDeductions.forEach { deduction ->
             val product = products.find { it.id == deduction.productId }
                 ?: throw BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
-            
+
             if (product.stock < deduction.quantity) {
                 throw BusinessException(ErrorCode.INSUFFICIENT_STOCK)
             }
         }
-        
+
         val updatedProducts = products.map { product ->
             val deduction = sortedDeductions.find { it.productId == product.id }!!
             val previousStock = product.stock
-            
+
             product.deductStock(deduction.quantity)
-            
+
             applicationEventPublisher.publishEvent(
                 StockChangedEvent(
                     productId = product.id,
@@ -140,22 +144,26 @@ class ProductService(
                     reason = StockChangeType.DEDUCT.reason
                 )
             )
-            
+
             product
         }
-        
+
         productRepository.saveAll(updatedProducts)
     }
 
     @DistributedLock(
         resource = LockResource.PRODUCT_STOCK,
-        key = "#productId",
+        keyProvider = "productStockLockKeyProvider",
         lockStrategy = LockStrategy.PUB_SUB_LOCK,
         waitTime = 5,
         leaseTime = 10
     )
     @Transactional
-    fun restoreStock(productId: Long, quantity: Int) {
+    fun restoreStock(
+        productId: Long,
+        quantity: Int,
+        keyProvider: ProductStockLockKeyProvider = ProductStockLockKeyProvider(productId)
+    ) {
         val product = productRepository.findByIdOrThrow(productId)
         val previousStock = product.stock
 

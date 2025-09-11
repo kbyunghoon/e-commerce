@@ -26,7 +26,7 @@ class DistributedLockAspect(
         val key = generator.generateKey(
             sig.parameterNames,
             joinPoint.args,
-            ann.key,
+            ann.keyProvider,
             ann.resource
         )
         log.debug("[Lock] 키 생성 - $key")

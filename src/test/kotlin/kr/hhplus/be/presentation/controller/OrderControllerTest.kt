@@ -9,9 +9,11 @@ import io.mockk.mockk
 import io.mockk.verify
 import kr.hhplus.be.application.order.OrderDto
 import kr.hhplus.be.application.service.OrderService
+import kr.hhplus.be.application.service.PaymentSagaOrchestrator
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
 import kr.hhplus.be.domain.order.OrderStatus
+import kr.hhplus.be.presentation.controller.GlobalExceptionHandler
 import kr.hhplus.be.presentation.dto.request.OrderItemRequest
 import kr.hhplus.be.presentation.dto.request.OrderRequest
 import kr.hhplus.be.presentation.dto.request.PaymentRequest
@@ -26,7 +28,8 @@ import java.time.LocalDateTime
 
 class OrderControllerTest : FunSpec({
     val orderService: OrderService = mockk()
-    val orderController = OrderController(orderService)
+    val paymentSagaOrchestrator: PaymentSagaOrchestrator = mockk()
+    val orderController = OrderController(orderService, paymentSagaOrchestrator)
     val mockMvc: MockMvc = MockMvcBuilders.standaloneSetup(orderController)
         .setControllerAdvice(GlobalExceptionHandler())
         .build()
@@ -307,7 +310,7 @@ class OrderControllerTest : FunSpec({
 
     context("결제 처리 API 테스트") {
 
-        test("유효한 결제 요청을 보내면 200 상태코드와 함께 결제가 처리된다") {
+        test("유효한 결제 요청을 보내면 200 상태코드와 함께 결제 처리가 시작된다") {
             // Given
             val orderId = 1L
             val userId = 1L
@@ -317,7 +320,7 @@ class OrderControllerTest : FunSpec({
                 orderId = orderId
             )
 
-            val completedOrderInfo = OrderDto.OrderDetails(
+            val orderInfo = OrderDto.OrderDetails(
                 id = orderId,
                 orderNumber = "테스트",
                 userId = userId,
@@ -329,15 +332,15 @@ class OrderControllerTest : FunSpec({
                 orderItems = listOf(
                     OrderDto.OrderItemDetails(
                         productId = 1L,
-                        productName = "결제 완료 상품",
+                        productName = "결제 처리중 상품",
                         quantity = 2,
                         price = 10000
                     )
                 ),
-                status = OrderStatus.COMPLETED
+                status = OrderStatus.PENDING  // 이벤트 기반이므로 즉시 완료되지 않음
             )
 
-            every { orderService.processPayment(any()) } returns completedOrderInfo
+            every { paymentSagaOrchestrator.executePaymentSaga(any()) } returns orderInfo
 
             // When
             val result = mockMvc.perform(
@@ -349,10 +352,9 @@ class OrderControllerTest : FunSpec({
             // Then
             result.andExpect(status().isOk)
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.data.finalAmount").value(20000))
 
-            verify(exactly = 1) { orderService.processPayment(any()) }
+            verify(exactly = 1) { paymentSagaOrchestrator.executePaymentSaga(any()) }
         }
 
         test("잘못된 주문 ID로 결제 요청을 보내면 에러가 발생한다") {
@@ -365,7 +367,7 @@ class OrderControllerTest : FunSpec({
                 orderId = orderId
             )
 
-            every { orderService.processPayment(any()) } throws BusinessException(ErrorCode.ORDER_NOT_FOUND)
+            every { paymentSagaOrchestrator.executePaymentSaga(any()) } throws BusinessException(ErrorCode.ORDER_NOT_FOUND)
 
             // When
             val result = mockMvc.perform(
@@ -377,7 +379,7 @@ class OrderControllerTest : FunSpec({
             // Then
             result.andExpect(status().isBadRequest)
 
-            verify(exactly = 1) { orderService.processPayment(any()) }
+            verify(exactly = 1) { paymentSagaOrchestrator.executePaymentSaga(any()) }
         }
 
         test("잔액 부족으로 결제가 실패하면 적절한 에러 응답이 반환된다") {
@@ -390,7 +392,7 @@ class OrderControllerTest : FunSpec({
                 orderId = orderId
             )
 
-            every { orderService.processPayment(any()) } throws BusinessException(ErrorCode.INSUFFICIENT_BALANCE)
+            every { paymentSagaOrchestrator.executePaymentSaga(any()) } throws BusinessException(ErrorCode.INSUFFICIENT_BALANCE)
 
             // When
             val result = mockMvc.perform(
@@ -402,7 +404,7 @@ class OrderControllerTest : FunSpec({
             // Then
             result.andExpect(status().isPaymentRequired)
 
-            verify(exactly = 1) { orderService.processPayment(any()) }
+            verify(exactly = 1) { paymentSagaOrchestrator.executePaymentSaga(any()) }
         }
 
         test("이미 처리된 주문으로 결제 요청을 보내면 적절한 에러 응답이 반환된다") {
@@ -415,7 +417,7 @@ class OrderControllerTest : FunSpec({
                 orderId = orderId
             )
 
-            every { orderService.processPayment(any()) } throws BusinessException(ErrorCode.ORDER_ALREADY_PROCESSED)
+            every { paymentSagaOrchestrator.executePaymentSaga(any()) } throws BusinessException(ErrorCode.ORDER_ALREADY_PROCESSED)
 
             // When
             val result = mockMvc.perform(
@@ -427,7 +429,7 @@ class OrderControllerTest : FunSpec({
             // Then
             result.andExpect(status().isBadRequest)
 
-            verify(exactly = 1) { orderService.processPayment(any()) }
+            verify(exactly = 1) { paymentSagaOrchestrator.executePaymentSaga(any()) }
         }
     }
 
@@ -464,7 +466,7 @@ class OrderControllerTest : FunSpec({
                 status = OrderStatus.COMPLETED
             )
 
-            every { orderService.getOrder(userId, orderId) } returns orderInfo
+            every { orderService.getOrder(orderId, userId) } returns orderInfo
 
             // When
             val result = mockMvc.perform(
@@ -486,7 +488,7 @@ class OrderControllerTest : FunSpec({
                 .andExpect(jsonPath("$.data.items[0].productName").value("조회된 상품1"))
                 .andExpect(jsonPath("$.data.items[1].productName").value("조회된 상품2"))
 
-            verify(exactly = 1) { orderService.getOrder(userId, orderId) }
+            verify(exactly = 1) { orderService.getOrder(orderId, userId) }
         }
 
         test("존재하지 않는 주문을 조회하면 적절한 에러 응답이 반환된다") {
@@ -494,7 +496,7 @@ class OrderControllerTest : FunSpec({
             val orderId = 999L
             val userId = 1L
 
-            every { orderService.getOrder(userId, orderId) } throws BusinessException(ErrorCode.ORDER_NOT_FOUND)
+            every { orderService.getOrder(orderId, userId) } throws BusinessException(ErrorCode.ORDER_NOT_FOUND)
 
             // When
             val result = mockMvc.perform(
@@ -505,7 +507,7 @@ class OrderControllerTest : FunSpec({
             // Then
             result.andExpect(status().isBadRequest)
 
-            verify(exactly = 1) { orderService.getOrder(userId, orderId) }
+            verify(exactly = 1) { orderService.getOrder(orderId, userId) }
         }
 
         test("다른 사용자의 주문을 조회하면 적절한 에러 응답이 반환된다") {
@@ -513,7 +515,7 @@ class OrderControllerTest : FunSpec({
             val orderId = 1L
             val wrongUserId = 999L
 
-            every { orderService.getOrder(wrongUserId, orderId) } throws BusinessException(ErrorCode.ORDER_NOT_FOUND)
+            every { orderService.getOrder(orderId, wrongUserId) } throws BusinessException(ErrorCode.ORDER_NOT_FOUND)
 
             // When
             val result = mockMvc.perform(
@@ -524,7 +526,7 @@ class OrderControllerTest : FunSpec({
             // Then
             result.andExpect(status().isBadRequest)
 
-            verify(exactly = 1) { orderService.getOrder(wrongUserId, orderId) }
+            verify(exactly = 1) { orderService.getOrder(orderId, wrongUserId) }
         }
 
         test("userId 파라미터 없이 주문 조회를 요청하면 400 상태코드가 반환된다") {
@@ -538,7 +540,7 @@ class OrderControllerTest : FunSpec({
 
             // Then
             result.andExpect(status().isBadRequest)
-            verify(exactly = 0) { orderService.getOrder(orderId) }
+            verify(exactly = 0) { orderService.getOrder(any(), any()) }
         }
     }
 
@@ -595,8 +597,8 @@ class OrderControllerTest : FunSpec({
             val orderId = 1L
             val paymentRequest = PaymentRequest(userId = userId, orderId = orderId)
 
-            val completedOrderInfo = createdOrderInfo.copy(status = OrderStatus.COMPLETED)
-            every { orderService.processPayment(any()) } returns completedOrderInfo
+            val paymentProcessingOrderInfo = createdOrderInfo.copy(status = OrderStatus.PENDING) // 이벤트 기반 처리
+            every { paymentSagaOrchestrator.executePaymentSaga(any()) } returns paymentProcessingOrderInfo
 
             // When
             val paymentResult = mockMvc.perform(
@@ -607,10 +609,9 @@ class OrderControllerTest : FunSpec({
 
             // Then
             paymentResult.andExpect(status().isOk)
-                .andExpect(jsonPath("$.data.status").value("COMPLETED"))
 
             verify(exactly = 1) { orderService.processOrder(any()) }
-            verify(exactly = 1) { orderService.processPayment(any()) }
+            verify(exactly = 1) { paymentSagaOrchestrator.executePaymentSaga(any()) }
         }
 
         test("쿠폰을 사용한 주문 생성 시나리오가 정상적으로 동작한다") {

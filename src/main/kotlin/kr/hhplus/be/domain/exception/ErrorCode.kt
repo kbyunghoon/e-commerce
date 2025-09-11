@@ -11,7 +11,8 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
 
     // 잔액
     CHARGE_INVALID_AMOUNT(HttpStatus.BAD_REQUEST, "충전 금액은 0보다 커야 합니다."),
-    DEDUCT_INVALID_AMOUNT(HttpStatus.BAD_REQUEST, "차감 금액은 0보다 커야 합니다."),
+    DEDUCTION_INVALID_AMOUNT(HttpStatus.BAD_REQUEST, "차감 금액은 0보다 커야 합니다."),
+    REFUND_INVALID_AMOUNT(HttpStatus.BAD_REQUEST, "환불 금액은 0보다 커야 합니다."),
     CHARGE_FAILED(HttpStatus.BAD_REQUEST, "잔액 충전에 실패했습니다."),
     INSUFFICIENT_BALANCE(HttpStatus.PAYMENT_REQUIRED, "잔액이 부족합니다."),
 
@@ -45,6 +46,7 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     ORDER_ID_NOT_FOUND(HttpStatus.BAD_REQUEST, "주문 ID를 찾을 수 없습니다."),
     ORDER_ALREADY_PROCESSED(HttpStatus.BAD_REQUEST, "이미 진행 중인 주문입니다."),
     ORDER_ALREADY_CANCELLED(HttpStatus.BAD_REQUEST, "이미 취소 된 주문입니다."),
+    ORDER_ALREADY_COMPLETED(HttpStatus.BAD_REQUEST, "이미 주문 완료 된 주문입니다."),
     ORDER_ITEMS_CANNOT_BE_EMPTY(HttpStatus.BAD_REQUEST, "주문 항목이 비어 있습니다."),
     INSUFFICIENT_STOCK(HttpStatus.BAD_REQUEST, "재고가 부족합니다."),
     OPTIMISTIC_LOCK_FAILED(HttpStatus.CONFLICT, "동시성 처리 중 충돌이 발생했습니다. 다시 시도해주세요."),
@@ -60,6 +62,9 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     INVALID_ORDER_QUANTITY(HttpStatus.BAD_REQUEST, "주문 수량이 유효하지 않습니다."),
     INVALID_PRODUCT_ID(HttpStatus.BAD_REQUEST, "상품 ID가 유효하지 않습니다."),
     INVALID_PRODUCT_PRICE(HttpStatus.BAD_REQUEST, "상품 가격이 유효하지 않습니다."),
+    
+    // 결제 및 Saga
+    PAYMENT_PROCESSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "결제 처리 중 오류가 발생했습니다."),
 
     // 유저
     USER_NOT_FOUND(HttpStatus.BAD_REQUEST, "사용자를 찾을 수 없습니다."),

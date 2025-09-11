@@ -6,4 +6,6 @@ interface ProductRankingRepository {
     fun findTopProducts(startDate: LocalDate, endDate: LocalDate): List<ProductRanking>
 
     fun saveAll(products: List<ProductRanking>): List<ProductRanking>
+
+    fun updateSalesCount(productId: Long, quantity: Int, date: LocalDate)
 }

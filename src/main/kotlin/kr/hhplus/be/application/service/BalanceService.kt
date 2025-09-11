@@ -13,10 +13,8 @@ import kr.hhplus.be.domain.user.events.BalanceRefundedEvent
 import kr.hhplus.be.global.lock.DistributedLock
 import kr.hhplus.be.global.lock.LockResource
 import kr.hhplus.be.global.lock.LockStrategy
+import kr.hhplus.be.global.lock.UserBalanceLockKeyProvider
 import org.springframework.context.ApplicationEventPublisher
-import org.springframework.orm.ObjectOptimisticLockingFailureException
-import org.springframework.retry.annotation.Backoff
-import org.springframework.retry.annotation.Retryable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -25,20 +23,18 @@ class BalanceService(
     private val userRepository: UserRepository,
     private val applicationEventPublisher: ApplicationEventPublisher
 ) {
-    @Retryable(
-        value = [ObjectOptimisticLockingFailureException::class],
-        maxAttempts = 3,
-        backoff = Backoff(delay = 200)
-    )
     @DistributedLock(
         resource = LockResource.USER_BALANCE,
-        key = "#command.userId",
+        keyProvider = "userBalanceLockKeyProvider",
         lockStrategy = LockStrategy.SPIN_LOCK,
         waitTime = 5,
         leaseTime = 10
     )
     @Transactional
-    fun charge(command: BalanceChargeCommand): BalanceInfo {
+    fun charge(
+        command: BalanceChargeCommand,
+        keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(command.userId)
+    ): BalanceInfo {
         if (command.amount <= 0) {
             throw BusinessException(ErrorCode.CHARGE_INVALID_AMOUNT)
         }
@@ -61,20 +57,18 @@ class BalanceService(
         return BalanceInfo.from(updatedUser)
     }
 
-    @Retryable(
-        value = [ObjectOptimisticLockingFailureException::class],
-        maxAttempts = 3,
-        backoff = Backoff(delay = 200)
-    )
     @DistributedLock(
         resource = LockResource.USER_BALANCE,
-        key = "#command.userId",
+        keyProvider = "userBalanceLockKeyProvider",
         lockStrategy = LockStrategy.SPIN_LOCK,
         waitTime = 5,
         leaseTime = 10
     )
     @Transactional
-    fun use(command: BalanceDeductCommand): BalanceInfo {
+    fun use(
+        command: BalanceDeductCommand,
+        keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(command.userId)
+    ): BalanceInfo {
         val user = userRepository.findByIdOrThrow(command.userId)
 
         val beforeAmount = user.balance
@@ -94,20 +88,18 @@ class BalanceService(
         return BalanceInfo.from(updatedUser)
     }
 
-    @Retryable(
-        value = [ObjectOptimisticLockingFailureException::class],
-        maxAttempts = 3,
-        backoff = Backoff(delay = 200)
-    )
     @DistributedLock(
         resource = LockResource.USER_BALANCE,
-        key = "#command.userId",
+        keyProvider = "userBalanceLockKeyProvider",
         lockStrategy = LockStrategy.SPIN_LOCK,
         waitTime = 5,
         leaseTime = 10
     )
     @Transactional
-    fun refund(command: BalanceRefundCommand): BalanceInfo {
+    fun refund(
+        command: BalanceRefundCommand,
+        keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(command.userId)
+    ): BalanceInfo {
         val user = userRepository.findByIdOrThrow(command.userId)
         val beforeAmount = user.balance
 
@@ -130,5 +122,54 @@ class BalanceService(
     fun getBalance(userId: Long): BalanceInfo {
         val user = userRepository.findByIdOrThrow(userId)
         return BalanceInfo.from(user)
+    }
+
+    @DistributedLock(
+        resource = LockResource.USER_BALANCE,
+        keyProvider = "userBalanceLockKeyProvider",
+        lockStrategy = LockStrategy.SPIN_LOCK,
+        waitTime = 5,
+        leaseTime = 10
+    )
+    @Transactional
+    fun deductForSaga(
+        userId: Long,
+        amount: Int,
+        keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(userId)
+    ) {
+        if (amount <= 0) {
+            throw BusinessException(ErrorCode.DEDUCTION_INVALID_AMOUNT)
+        }
+
+        val user = userRepository.findByIdOrThrow(userId)
+
+        if (user.balance < amount) {
+            throw BusinessException(ErrorCode.INSUFFICIENT_BALANCE)
+        }
+
+        user.deductBalance(amount)
+        userRepository.save(user)
+    }
+
+    @DistributedLock(
+        resource = LockResource.USER_BALANCE,
+        keyProvider = "userBalanceLockKeyProvider",
+        lockStrategy = LockStrategy.SPIN_LOCK,
+        waitTime = 5,
+        leaseTime = 10
+    )
+    @Transactional
+    fun refundForSaga(
+        userId: Long,
+        amount: Int,
+        keyProvider: UserBalanceLockKeyProvider = UserBalanceLockKeyProvider(userId)
+    ) {
+        if (amount <= 0) {
+            throw BusinessException(ErrorCode.REFUND_INVALID_AMOUNT)
+        }
+
+        val user = userRepository.findByIdOrThrow(userId)
+        user.chargeBalance(amount)
+        userRepository.save(user)
     }
 }

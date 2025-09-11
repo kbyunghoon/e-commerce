@@ -1,6 +1,7 @@
 package kr.hhplus.be.domain.product.events
 
 import kr.hhplus.be.domain.product.StockChangeType
+import java.time.LocalDate
 
 data class StockChangedEvent(
     val productId: Long,
@@ -8,5 +9,6 @@ data class StockChangedEvent(
     val changeQuantity: Int,
     val previousStock: Int,
     val currentStock: Int,
-    val reason: String
+    val reason: String,
+    val date: LocalDate? = LocalDate.now()
 )

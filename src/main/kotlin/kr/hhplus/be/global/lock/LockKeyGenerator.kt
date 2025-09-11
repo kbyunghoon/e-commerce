@@ -1,12 +1,13 @@
 package kr.hhplus.be.global.lock
 
 import org.slf4j.LoggerFactory
-import org.springframework.expression.spel.standard.SpelExpressionParser
-import org.springframework.expression.spel.support.StandardEvaluationContext
+import org.springframework.context.ApplicationContext
 import org.springframework.stereotype.Component
 
 @Component
-class LockKeyGenerator {
+class LockKeyGenerator(
+    private val applicationContext: ApplicationContext
+) {
 
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -17,26 +18,27 @@ class LockKeyGenerator {
     fun generateKey(
         paramNames: Array<String>,
         args: Array<Any?>,
-        spelKey: String,
+        keyProviderBeanName: String,
         resource: LockResource
     ): String {
-        log.debug("[Lock] 키 생성 시작 - spel='{}', resource={}", spelKey, resource)
+        log.debug("[Lock] 키 생성 시작 - keyProvider='{}', resource={}", keyProviderBeanName, resource)
 
         return try {
-            val parser = SpelExpressionParser()
-            val context = StandardEvaluationContext()
+            val keyProvider = findKeyProviderFromArgs(args) 
+                ?: throw IllegalArgumentException("LockKeyProvider를 찾을 수 없습니다. 메서드 파라미터 중 LockKeyProvider를 구현한 객체가 필요합니다.")
 
-            paramNames.forEachIndexed { index, name ->
-                context.setVariable(name, args[index])
-            }
+            val key = keyProvider.getLockKey()
+            check(key.isNotBlank()) { "LockKeyProvider가 빈 키를 반환했습니다" }
 
-            val resolved = parser.parseExpression(spelKey).getValue(context, String::class.java)
-            check(!resolved.isNullOrBlank()) { "SpEL 표현식이 빈 값을 반환했습니다" }
-
-            PREFIX + resource.createKey(resolved)
+            PREFIX + resource.createKey(key)
         } catch (e: Exception) {
-            log.error("락 키 생성 실패 - spel='{}', resource={}", spelKey, resource, e)
+            log.error("락 키 생성 실패 - keyProvider='{}', resource={}", keyProviderBeanName, resource, e)
             throw IllegalArgumentException("락 키 생성에 실패했습니다: ${e.message}", e)
         }
+    }
+
+    private fun findKeyProviderFromArgs(args: Array<Any?>): LockKeyProvider? {
+        return args.filterNotNull()
+            .firstOrNull { it is LockKeyProvider } as? LockKeyProvider
     }
 }

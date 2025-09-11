@@ -8,7 +8,8 @@ import org.springframework.stereotype.Repository
 interface OrderRepository {
     fun save(order: Order): Order
     fun findById(orderId: Long): Order?
-    
+    fun findByIdAndUserId(orderId: Long, userId: Long): Order?
+
     fun findByIdOrThrow(orderId: Long): Order {
         return findById(orderId) ?: throw BusinessException(ErrorCode.ORDER_NOT_FOUND)
     }

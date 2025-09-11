@@ -3,16 +3,12 @@ package kr.hhplus.be.application.service
 import kr.hhplus.be.application.coupon.CouponDto
 import kr.hhplus.be.application.coupon.CouponDto.UserCouponInfo
 import kr.hhplus.be.application.coupon.CouponIssueCommand
+import kr.hhplus.be.domain.coupon.CouponIssueResult
 import kr.hhplus.be.domain.coupon.CouponRedisRepository
 import kr.hhplus.be.domain.coupon.CouponRepository
-import kr.hhplus.be.domain.coupon.CouponStatus
 import kr.hhplus.be.domain.exception.BusinessException
 import kr.hhplus.be.domain.exception.ErrorCode
-import kr.hhplus.be.domain.user.UserCoupon
 import kr.hhplus.be.domain.user.UserCouponRepository
-import kr.hhplus.be.global.lock.DistributedLock
-import kr.hhplus.be.global.lock.LockResource
-import kr.hhplus.be.global.lock.LockStrategy
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -26,50 +22,11 @@ class CouponService(
         val status = couponRedisRepository.issueRequest(command.userId, command.couponId)
 
         when (status) {
-            "ALREADY_ISSUED" -> throw BusinessException(ErrorCode.COUPON_ALREADY_ISSUED)
-            "SOLD_OUT" -> throw BusinessException(ErrorCode.COUPON_SOLD_OUT)
-            "SUCCESS" -> {}
-
+            CouponIssueResult.ALREADY_ISSUED.value -> throw BusinessException(ErrorCode.COUPON_ALREADY_ISSUED)
+            CouponIssueResult.SOLD_OUT.value -> throw BusinessException(ErrorCode.COUPON_SOLD_OUT)
+            CouponIssueResult.SUCCESS.value -> {}
             else -> throw BusinessException(ErrorCode.UNKNOWN_ERROR)
         }
-    }
-
-    @DistributedLock(
-        resource = LockResource.COUPON,
-        key = "#command.couponId",
-        lockStrategy = LockStrategy.PUB_SUB_LOCK,
-        waitTime = 5,
-        leaseTime = 10
-    )
-    @Transactional
-    fun issueV1(command: CouponIssueCommand): UserCouponInfo {
-        val coupon = couponRepository.findByIdWithPessimisticLock(command.couponId)
-
-        if (!coupon.canBeIssued()) {
-            if (coupon.isExpired()) {
-                throw BusinessException(ErrorCode.COUPON_EXPIRED)
-            }
-            if (coupon.isSoldOut()) {
-                throw BusinessException(ErrorCode.COUPON_SOLD_OUT)
-            }
-        }
-
-        if (userCouponRepository.existsByUserIdAndCouponId(command.userId, command.couponId)) {
-            throw BusinessException(ErrorCode.COUPON_ALREADY_ISSUED)
-        }
-
-        coupon.issue()
-        couponRepository.save(coupon)
-
-        val userCoupon = UserCoupon(
-            userId = command.userId,
-            couponId = command.couponId,
-            status = CouponStatus.AVAILABLE
-        )
-
-        val savedUserCoupon = userCouponRepository.save(userCoupon)
-
-        return UserCouponInfo.from(savedUserCoupon, coupon)
     }
 
     @Transactional
@@ -122,5 +79,15 @@ class CouponService(
         }
 
         return CouponDto.ValidatedUserCoupon(userCoupon, coupon)
+    }
+
+    @Transactional
+    fun useCouponForSaga(userId: Long, couponId: Long) {
+        use(userId, couponId)
+    }
+
+    @Transactional
+    fun restoreCouponForSaga(userId: Long, couponId: Long) {
+        restore(userId, couponId)
     }
 }

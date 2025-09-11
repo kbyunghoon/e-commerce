@@ -120,8 +120,8 @@ class BalanceServiceTest : BehaviorSpec({
                 balanceService.use(command)
             }
 
-            Then("DEDUCT_INVALID_AMOUNT 예외가 발생한다") {
-                exception.errorCode shouldBe ErrorCode.DEDUCT_INVALID_AMOUNT
+            Then("DEDUCTION_INVALID_AMOUNT 예외가 발생한다") {
+                exception.errorCode shouldBe ErrorCode.DEDUCTION_INVALID_AMOUNT
                 verify(exactly = 1) { userRepository.findByIdOrThrow(any()) }
                 verify(exactly = 0) { userRepository.save(any()) }
                 verify(exactly = 0) { applicationEventPublisher.publishEvent(any()) }

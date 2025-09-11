@@ -3,7 +3,7 @@ package kr.hhplus.be.global.cache
 import java.time.Duration
 
 enum class CacheType(val cacheName: String, val ttl: Duration) {
-    POPULAR_PRODUCTS(CacheNames.PRODUCT_RANKING, Duration.ofHours(24))
+    POPULAR_PRODUCTS(CacheNames.PRODUCT_RANKING, Duration.ofMinutes(5))
 }
 
 object CacheNames {

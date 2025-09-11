@@ -1,5 +1,6 @@
 package kr.hhplus.be.infrastructure.persistence.repository.redis
 
+import kr.hhplus.be.domain.coupon.CouponIssueResult
 import kr.hhplus.be.domain.coupon.CouponRedisRepository
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.script.RedisScript
@@ -22,7 +23,7 @@ class CouponRedisRepositoryImpl(
             
             -- 1. 중복 발급 체크 (SADD는 이미 존재하면 0 반환)
             if redis.call('SADD', issuedKey, userId) == 0 then
-                return 'ALREADY_ISSUED'
+                return '${CouponIssueResult.ALREADY_ISSUED.value}'
             end
             
             -- 2. 재고 확인 및 차감
@@ -30,7 +31,7 @@ class CouponRedisRepositoryImpl(
             if not currentStock or tonumber(currentStock) <= 0 then
                 -- 재고 없으면 Set에서 제거하고 실패
                 redis.call('SREM', issuedKey, userId)
-                return 'SOLD_OUT'
+                return '${CouponIssueResult.SOLD_OUT.value}'
             end
             
             -- 3. 재고 차감
@@ -39,10 +40,10 @@ class CouponRedisRepositoryImpl(
                 -- 동시성으로 인한 음수 재고 시 복구
                 redis.call('INCR', stockKey)
                 redis.call('SREM', issuedKey, userId)
-                return 'SOLD_OUT'
+                return '${CouponIssueResult.SOLD_OUT.value}'
             end
             
-            return 'SUCCESS'
+            return '${CouponIssueResult.SUCCESS.value}'
         """.trimIndent()
 
             return RedisScript.of(luaScript, String::class.java)

@@ -18,4 +18,8 @@ class OrderRepositoryImpl(
     override fun findById(orderId: Long): Order? {
         return orderJpaRepository.findByIdOrNull(orderId)?.toDomain()
     }
+
+    override fun findByIdAndUserId(orderId: Long, userId: Long): Order? {
+        return orderJpaRepository.findByIdAndUserId(orderId, userId)?.toDomain()
+    }
 }

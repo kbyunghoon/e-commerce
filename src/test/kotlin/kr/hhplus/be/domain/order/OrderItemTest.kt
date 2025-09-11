@@ -219,7 +219,7 @@ class OrderItemTest : FunSpec({
             // When & Then
             shouldThrow<BusinessException> {
                 orderItem.completeOrder()
-            }.errorCode shouldBe ErrorCode.ORDER_ALREADY_PROCESSED
+            }.errorCode shouldBe ErrorCode.ORDER_ALREADY_COMPLETED
         }
 
         test("대기 상태의 주문 항목을 취소할 수 있다") {
@@ -292,7 +292,7 @@ class OrderItemTest : FunSpec({
             // When & Then
             shouldThrow<BusinessException> {
                 orderItem.completeOrder()
-            }.errorCode shouldBe ErrorCode.ORDER_ALREADY_PROCESSED
+            }.errorCode shouldBe ErrorCode.ORDER_ALREADY_CANCELLED
         }
     }
 

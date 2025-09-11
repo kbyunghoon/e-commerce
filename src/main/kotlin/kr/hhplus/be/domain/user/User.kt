@@ -23,7 +23,7 @@ data class User(
 
     fun deductBalance(amount: Int) {
         if (amount <= 0) {
-            throw BusinessException(ErrorCode.DEDUCT_INVALID_AMOUNT)
+            throw BusinessException(ErrorCode.DEDUCTION_INVALID_AMOUNT)
         }
         if (this.balance < amount) {
             throw BusinessException(ErrorCode.INSUFFICIENT_BALANCE)
